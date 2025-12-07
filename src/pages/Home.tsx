@@ -78,8 +78,14 @@ export default function Home() {
       let cdnOnline = true;
       for (const widget of widgetChecks) {
         try {
-          const res = await fetch(`${CDN_BASE}/${widget.path}`, { method: 'HEAD' });
-          const cdnStatus = res.ok ? 'online' : 'offline';
+          // Use no-cors mode for CDN check - we just need to know if it's reachable
+          // With no-cors, response.ok is always false but type will be 'opaque' if successful
+          const res = await fetch(`${CDN_BASE}/${widget.path}`, { 
+            method: 'GET',
+            mode: 'no-cors' 
+          });
+          // With no-cors, a successful request returns type 'opaque'
+          const cdnStatus = res.type === 'opaque' || res.ok ? 'online' : 'offline';
           setHealth(prev => ({
             ...prev,
             widgets: { 
@@ -87,7 +93,7 @@ export default function Home() {
               [widget.key]: { ...prev.widgets[widget.key as keyof typeof prev.widgets], cdn: cdnStatus } 
             },
           }));
-          if (!res.ok) cdnOnline = false;
+          if (res.type !== 'opaque' && !res.ok) cdnOnline = false;
         } catch {
           setHealth(prev => ({
             ...prev,
