@@ -79,6 +79,7 @@ export default function DevOps() {
   const [workflows, setWorkflows] = useState<Record<string, Workflow[]>>({});
   const [loadingSecrets, setLoadingSecrets] = useState(true);
   const [cfDeployments, setCfDeployments] = useState<CFDeployment[]>([]);
+  const [expandedWorkflows, setExpandedWorkflows] = useState<Record<string, boolean>>({});
 
   // Try to load token from server first, then localStorage
   useEffect(() => {
@@ -409,28 +410,38 @@ export default function DevOps() {
                   {/* Recent Workflow Runs (for non-Pages repos) */}
                   {repo.name !== 'yume-pages' && repo.workflows && repo.workflows.length > 0 && (
                     <div className="mb-4">
-                      <h3 className="text-sm font-medium text-slate-400 mb-2">Recent Workflows</h3>
-                      <div className="space-y-2">
-                        {repo.workflows.slice(0, 3).map((run) => (
-                          <a
-                            key={run.id}
-                            href={run.html_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center justify-between bg-slate-800/30 rounded-lg p-3 hover:bg-slate-800/50 transition-colors"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span>{getStatusIcon(run.status, run.conclusion)}</span>
-                              <span className={`text-sm ${getStatusColor(run.status, run.conclusion)}`}>
-                                {run.name}
+                      <button 
+                        onClick={() => setExpandedWorkflows(prev => ({ ...prev, [repo.name]: !prev[repo.name] }))}
+                        className="flex items-center justify-between w-full text-left mb-2 group"
+                      >
+                        <h3 className="text-sm font-medium text-slate-400 group-hover:text-slate-300">
+                          <span className={`inline-block transition-transform mr-1 ${expandedWorkflows[repo.name] ? 'rotate-90' : ''}`}>▶</span>
+                          Recent Workflows ({repo.workflows.length})
+                        </h3>
+                      </button>
+                      {expandedWorkflows[repo.name] && (
+                        <div className="space-y-2 animate-fadeIn">
+                          {repo.workflows.slice(0, 3).map((run) => (
+                            <a
+                              key={run.id}
+                              href={run.html_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-between bg-slate-800/30 rounded-lg p-3 hover:bg-slate-800/50 transition-colors"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span>{getStatusIcon(run.status, run.conclusion)}</span>
+                                <span className={`text-sm ${getStatusColor(run.status, run.conclusion)}`}>
+                                  {run.name}
+                                </span>
+                              </div>
+                              <span className="text-slate-500 text-xs">
+                                {new Date(run.created_at).toLocaleString()}
                               </span>
-                            </div>
-                            <span className="text-slate-500 text-xs">
-                              {new Date(run.created_at).toLocaleString()}
-                            </span>
-                          </a>
-                        ))}
-                      </div>
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -438,7 +449,15 @@ export default function DevOps() {
                   {repo.name === 'yume-pages' && (
                     <div className="mb-4">
                       <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-medium text-slate-400">☁️ Recent Deployments</h3>
+                        <button 
+                          onClick={() => setExpandedWorkflows(prev => ({ ...prev, 'yume-pages': !prev['yume-pages'] }))}
+                          className="flex items-center text-left group"
+                        >
+                          <h3 className="text-sm font-medium text-slate-400 group-hover:text-slate-300">
+                            <span className={`inline-block transition-transform mr-1 ${expandedWorkflows['yume-pages'] ? 'rotate-90' : ''}`}>▶</span>
+                            ☁️ Recent Deployments ({cfDeployments.length})
+                          </h3>
+                        </button>
                         <button 
                           onClick={fetchCFDeployments}
                           className="text-slate-500 hover:text-yume-mint text-xs"
@@ -446,38 +465,40 @@ export default function DevOps() {
                           🔄 Refresh
                         </button>
                       </div>
-                      {cfDeployments.length > 0 ? (
-                        <div className="space-y-2">
-                          {cfDeployments.slice(0, 3).map((deploy) => (
-                            <a
-                              key={deploy.id}
-                              href={deploy.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center justify-between bg-slate-800/30 rounded-lg p-3 hover:bg-slate-800/50 transition-colors"
-                            >
-                              <div className="flex items-center gap-2">
-                                <span>{deploy.status === 'success' ? '✅' : deploy.status === 'failure' ? '❌' : '🔄'}</span>
-                                <span className={`text-sm ${deploy.status === 'success' ? 'text-green-400' : deploy.status === 'failure' ? 'text-red-400' : 'text-yellow-400'}`}>
-                                  {deploy.source?.commit_message || 'Deployment'}
-                                </span>
-                                <span className="text-slate-500 text-xs font-mono">
-                                  {deploy.source?.commit_hash}
-                                </span>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-slate-500 text-xs block">
-                                  {new Date(deploy.created_at).toLocaleString()}
-                                </span>
-                                <span className="text-xs text-yume-mint">
-                                  {deploy.environment}
-                                </span>
-                              </div>
-                            </a>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-slate-500 text-sm italic">No deployments found or CF API token not configured</p>
+                      {expandedWorkflows['yume-pages'] && (
+                        cfDeployments.length > 0 ? (
+                          <div className="space-y-2 animate-fadeIn">
+                            {cfDeployments.slice(0, 3).map((deploy) => (
+                              <a
+                                key={deploy.id}
+                                href={deploy.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-between bg-slate-800/30 rounded-lg p-3 hover:bg-slate-800/50 transition-colors"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span>{deploy.status === 'success' ? '✅' : deploy.status === 'failure' ? '❌' : '🔄'}</span>
+                                  <span className={`text-sm ${deploy.status === 'success' ? 'text-green-400' : deploy.status === 'failure' ? 'text-red-400' : 'text-yellow-400'}`}>
+                                    {deploy.source?.commit_message || 'Deployment'}
+                                  </span>
+                                  <span className="text-slate-500 text-xs font-mono">
+                                    {deploy.source?.commit_hash}
+                                  </span>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-slate-500 text-xs block">
+                                    {new Date(deploy.created_at).toLocaleString()}
+                                  </span>
+                                  <span className="text-xs text-yume-mint">
+                                    {deploy.environment}
+                                  </span>
+                                </div>
+                              </a>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-slate-500 text-sm italic animate-fadeIn">No deployments found or CF API token not configured</p>
+                        )
                       )}
                     </div>
                   )}
