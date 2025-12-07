@@ -32,6 +32,20 @@ interface Workflow {
   path: string;
 }
 
+interface CFDeployment {
+  id: string;
+  url: string;
+  environment: string;
+  status: string;
+  created_at: string;
+  source: {
+    type: string;
+    branch: string;
+    commit_hash: string;
+    commit_message: string;
+  };
+}
+
 const REPOS = [
   { 
     name: 'yume-tools', 
@@ -64,6 +78,7 @@ export default function DevOps() {
   const [triggeringWorkflow, setTriggeringWorkflow] = useState<string | null>(null);
   const [workflows, setWorkflows] = useState<Record<string, Workflow[]>>({});
   const [loadingSecrets, setLoadingSecrets] = useState(true);
+  const [cfDeployments, setCfDeployments] = useState<CFDeployment[]>([]);
 
   // Try to load token from server first, then localStorage
   useEffect(() => {
@@ -111,8 +126,24 @@ export default function DevOps() {
     if (tokenSaved && githubToken) {
       fetchAllRepoData();
       fetchWorkflows();
+      fetchCFDeployments();
     }
   }, [tokenSaved, githubToken]);
+
+  // Fetch Cloudflare Pages deployments
+  const fetchCFDeployments = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/cf-deployments?project=yume-pages`, {
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCfDeployments(data.deployments || []);
+      }
+    } catch {
+      // Ignore errors - CF deployments are optional
+    }
+  };
 
   const saveToken = () => {
     localStorage.setItem('github_pat', githubToken);
@@ -375,8 +406,8 @@ export default function DevOps() {
                     </div>
                   )}
 
-                  {/* Recent Workflow Runs */}
-                  {repo.workflows && repo.workflows.length > 0 && (
+                  {/* Recent Workflow Runs (for non-Pages repos) */}
+                  {repo.name !== 'yume-pages' && repo.workflows && repo.workflows.length > 0 && (
                     <div className="mb-4">
                       <h3 className="text-sm font-medium text-slate-400 mb-2">Recent Workflows</h3>
                       <div className="space-y-2">
@@ -397,6 +428,42 @@ export default function DevOps() {
                             <span className="text-slate-500 text-xs">
                               {new Date(run.created_at).toLocaleString()}
                             </span>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Cloudflare Pages Deployments (for yume-pages) */}
+                  {repo.name === 'yume-pages' && cfDeployments.length > 0 && (
+                    <div className="mb-4">
+                      <h3 className="text-sm font-medium text-slate-400 mb-2">☁️ Cloudflare Deployments</h3>
+                      <div className="space-y-2">
+                        {cfDeployments.slice(0, 3).map((deploy) => (
+                          <a
+                            key={deploy.id}
+                            href={deploy.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-between bg-slate-800/30 rounded-lg p-3 hover:bg-slate-800/50 transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span>{deploy.status === 'success' ? '✅' : deploy.status === 'failure' ? '❌' : '🔄'}</span>
+                              <span className={`text-sm ${deploy.status === 'success' ? 'text-green-400' : deploy.status === 'failure' ? 'text-red-400' : 'text-yellow-400'}`}>
+                                {deploy.source?.commit_message || 'Deployment'}
+                              </span>
+                              <span className="text-slate-500 text-xs">
+                                ({deploy.source?.commit_hash})
+                              </span>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-slate-500 text-xs block">
+                                {new Date(deploy.created_at).toLocaleString()}
+                              </span>
+                              <span className="text-xs text-yume-mint">
+                                {deploy.environment}
+                              </span>
+                            </div>
                           </a>
                         ))}
                       </div>
