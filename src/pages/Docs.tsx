@@ -33,7 +33,7 @@ export default function Docs() {
       {/* Quick Links */}
       <div className="grid md:grid-cols-2 gap-4 mb-8">
         <a
-          href="https://api.emuy.io/docs"
+          href="https://api.emuy.gg/docs"
           target="_blank"
           rel="noopener noreferrer"
           className="glass-panel p-6 hover:border-yume-teal/50 transition-colors group"
