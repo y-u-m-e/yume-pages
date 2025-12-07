@@ -96,8 +96,9 @@ export const auth = {
     return `${API_BASE}/auth/login?return_url=${encodeURIComponent(url)}`;
   },
 
-  async logout(): Promise<ApiResponse<void>> {
-    return apiFetch<void>('/auth/logout', { method: 'POST' });
+  getLogoutUrl(returnUrl?: string): string {
+    const url = returnUrl || window.location.href;
+    return `${API_BASE}/auth/logout?return_url=${encodeURIComponent(url)}`;
   },
 };
 

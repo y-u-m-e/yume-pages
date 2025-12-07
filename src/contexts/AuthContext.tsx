@@ -6,7 +6,7 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   login: () => void;
-  logout: () => Promise<void>;
+  logout: () => void;
   refresh: () => Promise<void>;
 }
 
@@ -46,11 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = auth.getLoginUrl();
   };
 
-  const logout = async () => {
-    const result = await auth.logout();
-    if (result.success) {
-      setUser(null);
-    }
+  const logout = () => {
+    // Redirect to logout endpoint which clears cookies and redirects back
+    window.location.href = auth.getLogoutUrl();
   };
 
   const refresh = async () => {
