@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import Nav from './Nav';
-import { VERSION, BUILD_DATE } from '@/version';
+import { VERSION } from '@/version';
 
 export default function Layout() {
   return (
