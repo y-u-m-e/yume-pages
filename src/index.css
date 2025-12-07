@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles */
+:root {
+  --color-teal: #5eead4;
+  --color-teal-dark: #2dd4bf;
+  --color-cyan: #00ffff;
+  --color-orange: #ff981f;
+  --color-panel: rgba(15, 40, 50, 0.6);
+  --color-border: rgba(94, 234, 212, 0.2);
+}
+
+body {
+  margin: 0;
+  font-family: 'Outfit', sans-serif;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  min-height: 100vh;
+  color: #f1f5f9;
+}
+
+/* Glass panel effect */
+@layer components {
+  .glass-panel {
+    @apply bg-yume-panel backdrop-blur-md rounded-2xl border border-yume-border;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  }
+
+  .glass-panel-dark {
+    @apply bg-yume-panel-dark backdrop-blur-xl rounded-2xl border border-yume-border;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    background: linear-gradient(135deg, #2dd4bf 0%, #5eead4 100%);
+    color: #0f2935;
+  }
+
+  .btn-primary:hover {
+    @apply transform -translate-y-0.5;
+    box-shadow: 0 4px 15px rgba(94, 234, 212, 0.3);
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    @apply bg-yume-teal/15 text-yume-teal border border-yume-teal/30;
+  }
+
+  .btn-secondary:hover {
+    @apply bg-yume-teal/25;
+  }
+
+  /* Nav link */
+  .nav-link {
+    @apply px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2;
+    @apply text-slate-300 hover:text-white hover:bg-white/10;
+  }
+
+  .nav-link.active {
+    @apply bg-yume-teal/20 text-yume-teal;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 40, 50, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(94, 234, 212, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(94, 234, 212, 0.5);
+}
+
+/* Selection */
+::selection {
+  background: rgba(94, 234, 212, 0.3);
+  color: white;
+}
+
