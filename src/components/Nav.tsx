@@ -36,9 +36,11 @@ export default function Nav() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <NavLink to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <div className="w-9 h-9 rounded-full bg-yume-accent flex items-center justify-center">
-              <span className="text-yume-bg font-bold text-lg">Y</span>
-            </div>
+            <img 
+              src="/favicon/favicon.svg" 
+              alt="Yume" 
+              className="w-9 h-9 rounded-full"
+            />
             <span className="font-semibold text-lg text-white hidden sm:inline">Yume Tools</span>
           </NavLink>
 

@@ -133,9 +133,11 @@ export default function Home() {
           
           <div className="bg-yume-card rounded-2xl border border-yume-border p-5 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-yume-accent flex items-center justify-center text-yume-bg font-bold">
-                Y
-              </div>
+              <img 
+                src="/favicon/favicon.svg" 
+                alt="Yume" 
+                className="w-10 h-10 rounded-full"
+              />
               <div>
                 <div className="font-medium text-white">Yume Tools</div>
                 <div className="text-sm text-gray-500">OSRS Clan Tools</div>
