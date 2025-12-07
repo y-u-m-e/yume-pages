@@ -16,22 +16,15 @@ export interface User {
 
 export interface AttendanceRecord {
   id: number;
-  player_name: string;
-  event_name: string;
-  event_date: string;
-  recorded_at: string;
-}
-
-export interface EventGroup {
-  event_name: string;
-  event_date: string;
-  player_count: number;
-  players: string[];
+  name: string;
+  event: string;
+  date: string;
+  recorded_at?: string;
 }
 
 export interface LeaderboardEntry {
-  player_name: string;
-  total_events: number;
+  name: string;
+  count: number;
 }
 
 // API Response wrapper
@@ -81,6 +74,7 @@ interface AuthMeResponse {
   access?: {
     docs: boolean;
     cruddy: boolean;
+    admin?: boolean;
   };
   user?: User;
 }
@@ -102,59 +96,67 @@ export const auth = {
   },
 };
 
-// Records API (Cruddy Panel)
+// Records API (Cruddy Panel) - uses /attendance/records endpoints
 export const records = {
   async getAll(params?: {
     page?: number;
-    pageSize?: number;
-    startDate?: string;
-    endDate?: string;
-  }): Promise<ApiResponse<{ records: AttendanceRecord[]; total: number }>> {
+    limit?: number;
+    name?: string;
+    event?: string;
+    start?: string;
+    end?: string;
+  }): Promise<ApiResponse<{ results: AttendanceRecord[]; total: number; page: number; limit: number }>> {
     const searchParams = new URLSearchParams();
     if (params?.page) searchParams.set('page', params.page.toString());
-    if (params?.pageSize) searchParams.set('pageSize', params.pageSize.toString());
-    if (params?.startDate) searchParams.set('startDate', params.startDate);
-    if (params?.endDate) searchParams.set('endDate', params.endDate);
+    if (params?.limit) searchParams.set('limit', params.limit.toString());
+    if (params?.name) searchParams.set('name', params.name);
+    if (params?.event) searchParams.set('event', params.event);
+    if (params?.start) searchParams.set('start', params.start);
+    if (params?.end) searchParams.set('end', params.end);
 
     const query = searchParams.toString();
-    return apiFetch(`/api/records${query ? `?${query}` : ''}`);
+    return apiFetch(`/attendance/records${query ? `?${query}` : ''}`);
   },
 
   async add(record: {
-    player_name: string;
-    event_name: string;
-    event_date: string;
-  }): Promise<ApiResponse<AttendanceRecord>> {
-    return apiFetch('/api/records', {
+    name: string;
+    event: string;
+    date: string;
+  }): Promise<ApiResponse<{ success: boolean; id: number }>> {
+    return apiFetch('/attendance/records', {
       method: 'POST',
       body: JSON.stringify(record),
     });
   },
 
-  async delete(id: number): Promise<ApiResponse<void>> {
-    return apiFetch(`/api/records/${id}`, {
+  async update(id: number, record: {
+    name: string;
+    event: string;
+    date: string;
+  }): Promise<ApiResponse<{ success: boolean }>> {
+    return apiFetch(`/attendance/records/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(record),
+    });
+  },
+
+  async delete(id: number): Promise<ApiResponse<{ success: boolean }>> {
+    return apiFetch(`/attendance/records/${id}`, {
       method: 'DELETE',
     });
   },
 
-  async getEventGroups(params?: {
-    page?: number;
-    pageSize?: number;
-    startDate?: string;
-    endDate?: string;
-  }): Promise<ApiResponse<{ events: EventGroup[]; total: number }>> {
+  async getLeaderboard(params?: {
+    top?: number;
+    start?: string;
+    end?: string;
+  }): Promise<ApiResponse<LeaderboardEntry[]>> {
     const searchParams = new URLSearchParams();
-    if (params?.page) searchParams.set('page', params.page.toString());
-    if (params?.pageSize) searchParams.set('pageSize', params.pageSize.toString());
-    if (params?.startDate) searchParams.set('startDate', params.startDate);
-    if (params?.endDate) searchParams.set('endDate', params.endDate);
+    if (params?.top) searchParams.set('top', params.top.toString());
+    if (params?.start) searchParams.set('start', params.start);
+    if (params?.end) searchParams.set('end', params.end);
 
     const query = searchParams.toString();
-    return apiFetch(`/api/records/events${query ? `?${query}` : ''}`);
-  },
-
-  async getLeaderboard(): Promise<ApiResponse<LeaderboardEntry[]>> {
-    return apiFetch('/api/records/leaderboard');
+    return apiFetch(`/attendance?top=${params?.top || 50}${query ? `&${query}` : ''}`);
   },
 };
-

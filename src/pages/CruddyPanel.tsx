@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { records, AttendanceRecord, LeaderboardEntry, EventGroup } from '@/lib/api';
+import { records, AttendanceRecord, LeaderboardEntry } from '@/lib/api';
 
-type Tab = 'records' | 'events' | 'leaderboard';
+type Tab = 'records' | 'leaderboard';
 
 export default function CruddyPanel() {
   const { user, loading: authLoading } = useAuth();
@@ -11,14 +11,14 @@ export default function CruddyPanel() {
   
   const [activeTab, setActiveTab] = useState<Tab>('records');
   const [recordsData, setRecordsData] = useState<AttendanceRecord[]>([]);
-  const [eventsData, setEventsData] = useState<EventGroup[]>([]);
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
   
   // Form state for adding records
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newRecord, setNewRecord] = useState({ player_name: '', event_name: '', event_date: '' });
+  const [newRecord, setNewRecord] = useState({ name: '', event: '', date: '' });
   const [submitting, setSubmitting] = useState(false);
 
   // Redirect to home if not authenticated
@@ -38,23 +38,17 @@ export default function CruddyPanel() {
       
       try {
         if (activeTab === 'records') {
-          const result = await records.getAll({ pageSize: 50 });
+          const result = await records.getAll({ limit: 50 });
           if (result.success && result.data) {
-            setRecordsData(result.data.records || []);
+            setRecordsData(result.data.results || []);
+            setTotal(result.data.total || 0);
           } else {
             setError(result.error || 'Failed to load records');
           }
-        } else if (activeTab === 'events') {
-          const result = await records.getEventGroups({ pageSize: 50 });
-          if (result.success && result.data) {
-            setEventsData(result.data.events || []);
-          } else {
-            setError(result.error || 'Failed to load events');
-          }
         } else if (activeTab === 'leaderboard') {
-          const result = await records.getLeaderboard();
+          const result = await records.getLeaderboard({ top: 50 });
           if (result.success && result.data) {
-            setLeaderboardData(result.data || []);
+            setLeaderboardData(Array.isArray(result.data) ? result.data : []);
           } else {
             setError(result.error || 'Failed to load leaderboard');
           }
@@ -72,20 +66,22 @@ export default function CruddyPanel() {
   const handleAddRecord = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setError(null);
     
     const result = await records.add({
-      player_name: newRecord.player_name,
-      event_name: newRecord.event_name,
-      event_date: newRecord.event_date,
+      name: newRecord.name,
+      event: newRecord.event,
+      date: newRecord.date,
     });
     
     if (result.success) {
-      setNewRecord({ player_name: '', event_name: '', event_date: '' });
+      setNewRecord({ name: '', event: '', date: '' });
       setShowAddForm(false);
       // Refresh records
-      const refreshResult = await records.getAll({ pageSize: 50 });
+      const refreshResult = await records.getAll({ limit: 50 });
       if (refreshResult.success && refreshResult.data) {
-        setRecordsData(refreshResult.data.records || []);
+        setRecordsData(refreshResult.data.results || []);
+        setTotal(refreshResult.data.total || 0);
       }
     } else {
       setError(result.error || 'Failed to add record');
@@ -100,6 +96,7 @@ export default function CruddyPanel() {
     const result = await records.delete(id);
     if (result.success) {
       setRecordsData(recordsData.filter(r => r.id !== id));
+      setTotal(t => t - 1);
     } else {
       setError(result.error || 'Failed to delete record');
     }
@@ -115,7 +112,6 @@ export default function CruddyPanel() {
 
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'records', label: 'Records', icon: '📋' },
-    { id: 'events', label: 'Events', icon: '📅' },
     { id: 'leaderboard', label: 'Leaderboard', icon: '🏆' },
   ];
 
@@ -127,7 +123,9 @@ export default function CruddyPanel() {
           <h1 className="text-2xl font-bold text-white mb-1">
             <span className="text-yume-accent">◉</span> Cruddy Panel
           </h1>
-          <p className="text-gray-400">Track clan event attendance and leaderboards</p>
+          <p className="text-gray-400">
+            Track clan event attendance • {total} total records
+          </p>
         </div>
         
         {activeTab === 'records' && (
@@ -150,8 +148,8 @@ export default function CruddyPanel() {
               <label className="block text-sm text-gray-400 mb-1">Player Name</label>
               <input
                 type="text"
-                value={newRecord.player_name}
-                onChange={(e) => setNewRecord({ ...newRecord, player_name: e.target.value })}
+                value={newRecord.name}
+                onChange={(e) => setNewRecord({ ...newRecord, name: e.target.value })}
                 className="input"
                 placeholder="Enter player name"
                 required
@@ -161,8 +159,8 @@ export default function CruddyPanel() {
               <label className="block text-sm text-gray-400 mb-1">Event Name</label>
               <input
                 type="text"
-                value={newRecord.event_name}
-                onChange={(e) => setNewRecord({ ...newRecord, event_name: e.target.value })}
+                value={newRecord.event}
+                onChange={(e) => setNewRecord({ ...newRecord, event: e.target.value })}
                 className="input"
                 placeholder="Enter event name"
                 required
@@ -172,8 +170,8 @@ export default function CruddyPanel() {
               <label className="block text-sm text-gray-400 mb-1">Event Date</label>
               <input
                 type="date"
-                value={newRecord.event_date}
-                onChange={(e) => setNewRecord({ ...newRecord, event_date: e.target.value })}
+                value={newRecord.date}
+                onChange={(e) => setNewRecord({ ...newRecord, date: e.target.value })}
                 className="input"
                 required
               />
@@ -209,6 +207,7 @@ export default function CruddyPanel() {
       {error && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400">
           {error}
+          <button onClick={() => setError(null)} className="ml-2 text-red-300 hover:text-red-200">×</button>
         </div>
       )}
 
@@ -239,9 +238,9 @@ export default function CruddyPanel() {
                 ) : (
                   recordsData.map((record) => (
                     <tr key={record.id} className="hover:bg-yume-bg-light/50 transition-colors">
-                      <td className="px-6 py-4 text-white font-medium">{record.player_name}</td>
-                      <td className="px-6 py-4 text-gray-300">{record.event_name}</td>
-                      <td className="px-6 py-4 text-gray-400">{record.event_date}</td>
+                      <td className="px-6 py-4 text-white font-medium">{record.name}</td>
+                      <td className="px-6 py-4 text-gray-300">{record.event}</td>
+                      <td className="px-6 py-4 text-gray-400">{record.date}</td>
                       <td className="px-6 py-4 text-right">
                         <button
                           onClick={() => handleDeleteRecord(record.id)}
@@ -256,36 +255,15 @@ export default function CruddyPanel() {
               </tbody>
             </table>
           </div>
-        ) : activeTab === 'events' ? (
-          <div className="p-6 grid gap-4">
-            {eventsData.length === 0 ? (
-              <div className="text-center text-gray-500 py-12">No events found.</div>
-            ) : (
-              eventsData.map((event, i) => (
-                <div key={i} className="bg-yume-bg-light rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-white">{event.event_name}</h3>
-                    <span className="badge-accent">{event.player_count} players</span>
-                  </div>
-                  <div className="text-sm text-gray-400 mb-2">{event.event_date}</div>
-                  <div className="flex flex-wrap gap-2">
-                    {event.players.map((player, j) => (
-                      <span key={j} className="badge">{player}</span>
-                    ))}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
         ) : (
           <div className="p-6">
             {leaderboardData.length === 0 ? (
-              <div className="text-center text-gray-500 py-12">No leaderboard data.</div>
+              <div className="text-center text-gray-500 py-12">No leaderboard data yet.</div>
             ) : (
               <div className="space-y-2">
                 {leaderboardData.map((entry, i) => (
                   <div
-                    key={entry.player_name}
+                    key={entry.name}
                     className={`flex items-center justify-between p-4 rounded-xl ${
                       i === 0 ? 'bg-yume-accent/20 border border-yume-accent/30' :
                       i === 1 ? 'bg-gray-400/10 border border-gray-400/20' :
@@ -302,9 +280,9 @@ export default function CruddyPanel() {
                       }`}>
                         {i + 1}
                       </span>
-                      <span className="font-medium text-white">{entry.player_name}</span>
+                      <span className="font-medium text-white">{entry.name}</span>
                     </div>
-                    <span className="text-yume-accent font-semibold">{entry.total_events} events</span>
+                    <span className="text-yume-accent font-semibold">{entry.count} events</span>
                   </div>
                 ))}
               </div>
