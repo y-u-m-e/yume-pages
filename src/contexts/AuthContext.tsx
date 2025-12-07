@@ -23,7 +23,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const result = await auth.me();
     
-    if (result.success && result.data) {
+    // Check if we got a valid user (not just { authenticated: false })
+    if (result.success && result.data && 'id' in result.data && result.data.id) {
       setUser(result.data);
     } else {
       setUser(null);
