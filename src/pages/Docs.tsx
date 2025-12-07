@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
-type DocSection = 'overview' | 'react-apps' | 'widgets' | 'api' | 'architecture';
+type DocSection = 'overview' | 'react-apps' | 'widgets' | 'api' | 'architecture' | 'devops';
 
 export default function Docs() {
   const { user, loading } = useAuth();
@@ -29,6 +29,7 @@ export default function Docs() {
     { id: 'widgets', label: 'Carrd Widgets', icon: '🧩' },
     { id: 'api', label: 'API Reference', icon: '📡' },
     { id: 'architecture', label: 'Architecture', icon: '🏗️' },
+    { id: 'devops', label: 'DevOps Guide', icon: '🚀' },
   ];
 
   return (
@@ -455,6 +456,271 @@ yume-tools → push to main → jsDelivr CDN (update SHAs in yume-api)
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DevOps Guide Section */}
+      {activeSection === 'devops' && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Overview */}
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
+            <h2 className="text-xl font-semibold text-white mb-4">Deployment Overview</h2>
+            <p className="text-gray-400 mb-4">
+              Each repository has a different deployment strategy. Here's how they work:
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left border-b border-yume-border">
+                    <th className="pb-2 text-gray-400 font-medium">Repository</th>
+                    <th className="pb-2 text-gray-400 font-medium">Hosting</th>
+                    <th className="pb-2 text-gray-400 font-medium">Deployment</th>
+                  </tr>
+                </thead>
+                <tbody className="text-gray-300">
+                  <tr className="border-b border-yume-border/50">
+                    <td className="py-3 font-mono text-yume-accent">yume-pages</td>
+                    <td className="py-3">Cloudflare Pages</td>
+                    <td className="py-3 text-green-400">Auto-deploy on push</td>
+                  </tr>
+                  <tr className="border-b border-yume-border/50">
+                    <td className="py-3 font-mono text-yume-accent">yume-api</td>
+                    <td className="py-3">Cloudflare Worker</td>
+                    <td className="py-3 text-yellow-400">GitHub Actions → staging, manual → prod</td>
+                  </tr>
+                  <tr>
+                    <td className="py-3 font-mono text-yume-accent">yume-tools</td>
+                    <td className="py-3">jsDelivr CDN</td>
+                    <td className="py-3 text-blue-400">SHA versioning via API proxy</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* yume-pages */}
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center text-lg">🌐</div>
+              <div>
+                <h2 className="text-xl font-semibold text-white">yume-pages (React Frontend)</h2>
+                <p className="text-gray-500 text-sm">emuy.gg</p>
+              </div>
+            </div>
+            <div className="space-y-4 text-gray-400">
+              <p><strong className="text-white">How it works:</strong> Cloudflare Pages has direct Git integration. Push to <code className="text-yume-accent">main</code> and it auto-builds and deploys.</p>
+              
+              <div className="bg-yume-bg rounded-xl p-4">
+                <p className="text-white text-sm mb-2">To deploy changes:</p>
+                <pre className="text-sm text-gray-300">{`cd yume-pages
+# Make your changes
+git add -A
+git commit -m "Your change description"
+git push
+# Done! Auto-deploys in ~1-2 minutes`}</pre>
+              </div>
+              
+              <p><strong className="text-white">Monitoring:</strong> DevOps Panel shows Cloudflare Pages deployment history.</p>
+            </div>
+          </div>
+
+          {/* yume-api */}
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center text-lg">⚡</div>
+              <div>
+                <h2 className="text-xl font-semibold text-white">yume-api (Cloudflare Worker)</h2>
+                <p className="text-gray-500 text-sm">api.emuy.gg / api.itai.gg</p>
+              </div>
+            </div>
+            <div className="space-y-4 text-gray-400">
+              <p><strong className="text-white">How it works:</strong></p>
+              <ul className="list-disc list-inside space-y-1 ml-4">
+                <li><strong className="text-green-400">Push to main</strong> → Auto-deploys to <strong>staging</strong> (api-staging.itai.gg)</li>
+                <li><strong className="text-yellow-400">Manual trigger</strong> → Deploy to <strong>production</strong></li>
+              </ul>
+              
+              <div className="bg-yume-bg rounded-xl p-4">
+                <p className="text-white text-sm mb-2">Deploy to staging (automatic):</p>
+                <pre className="text-sm text-gray-300">{`cd yume-api
+# Make your changes
+git add -A && git commit -m "message" && git push
+# Auto-deploys to staging`}</pre>
+              </div>
+
+              <div className="bg-yume-bg rounded-xl p-4">
+                <p className="text-white text-sm mb-2">Deploy to production:</p>
+                <pre className="text-sm text-gray-300">{`# Option 1: DevOps Panel
+Go to emuy.gg/devops → Click "🚀 Deploy Production"
+
+# Option 2: GitHub Actions
+GitHub → yume-api → Actions → "Deploy Worker" → Run workflow → production
+
+# Option 3: Local CLI
+cd yume-api && npx wrangler deploy`}</pre>
+              </div>
+            </div>
+          </div>
+
+          {/* yume-tools */}
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-lg">📦</div>
+              <div>
+                <h2 className="text-xl font-semibold text-white">yume-tools (CDN Widgets)</h2>
+                <p className="text-gray-500 text-sm">jsDelivr CDN via API proxy</p>
+              </div>
+            </div>
+            <div className="space-y-4 text-gray-400">
+              <p><strong className="text-white">How it works:</strong></p>
+              <ul className="list-disc list-inside space-y-1 ml-4">
+                <li>Widgets served via jsDelivr CDN with specific Git SHAs</li>
+                <li><strong className="text-green-400">Staging</strong> always uses <code className="text-yume-accent">main</code> branch (latest)</li>
+                <li><strong className="text-yellow-400">Production</strong> uses locked SHA commits</li>
+              </ul>
+              
+              <div className="bg-yume-bg rounded-xl p-4 mt-4">
+                <p className="text-white text-sm mb-2">The Flow:</p>
+                <pre className="text-sm text-gray-300">{`1. Push widget changes to main
+   ↓
+2. Staging auto-updates (uses @main ref)
+   ↓
+3. Test on staging (api-staging.itai.gg/cdn/*)
+   ↓
+4. Trigger "promote-to-production" workflow
+   ↓
+5. Workflow updates SHA_* vars in wrangler.jsonc
+   ↓
+6. Production now serves new widgets`}</pre>
+              </div>
+
+              <div className="bg-yume-bg rounded-xl p-4">
+                <p className="text-white text-sm mb-2">Update widgets:</p>
+                <pre className="text-sm text-gray-300">{`# Step 1: Push changes
+cd yume-tools
+# Edit files in dist/
+git add -A && git commit -m "Update widget XYZ" && git push
+
+# Step 2: Test on staging
+# Visit api-staging.itai.gg/cdn/nav-bar.js etc.
+
+# Step 3: Promote to production
+# DevOps Panel → "🚀 Promote to Production"
+# OR GitHub → yume-tools → Actions → "promote-to-production"`}</pre>
+              </div>
+            </div>
+          </div>
+
+          {/* Required Secrets */}
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">🔐 Required Secrets</h2>
+            
+            <h3 className="text-white font-medium mt-4 mb-2">yume-api GitHub Secrets:</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <tbody className="text-gray-300">
+                  <tr className="border-b border-yume-border/50">
+                    <td className="py-2 font-mono text-yume-accent">CLOUDFLARE_API_TOKEN</td>
+                    <td className="py-2 text-gray-500">Deploy Workers</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 className="text-white font-medium mt-4 mb-2">yume-tools GitHub Secrets:</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <tbody className="text-gray-300">
+                  <tr className="border-b border-yume-border/50">
+                    <td className="py-2 font-mono text-yume-accent">CLOUDFLARE_API_TOKEN</td>
+                    <td className="py-2 text-gray-500">Deploy Worker after SHA update</td>
+                  </tr>
+                  <tr className="border-b border-yume-border/50">
+                    <td className="py-2 font-mono text-yume-accent">REPO_ACCESS_TOKEN</td>
+                    <td className="py-2 text-gray-500">Push SHA updates to yume-api</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 className="text-white font-medium mt-4 mb-2">Worker Secrets (via wrangler secret put):</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <tbody className="text-gray-300">
+                  <tr className="border-b border-yume-border/50">
+                    <td className="py-2 font-mono text-yume-accent">DISCORD_CLIENT_SECRET</td>
+                    <td className="py-2 text-gray-500">OAuth</td>
+                  </tr>
+                  <tr className="border-b border-yume-border/50">
+                    <td className="py-2 font-mono text-yume-accent">GITHUB_PAT</td>
+                    <td className="py-2 text-gray-500">DevOps Panel (repo, workflow scopes)</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 font-mono text-yume-accent">CLOUDFLARE_API_TOKEN</td>
+                    <td className="py-2 text-gray-500">DevOps Panel (Pages Read permission)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Quick Reference */}
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">📋 Daily Workflow Cheatsheet</h2>
+            
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="bg-yume-bg-light rounded-xl p-4">
+                <h3 className="text-green-400 font-medium mb-2">Frontend Change</h3>
+                <pre className="text-xs text-gray-300">{`cd yume-pages
+git add -A
+git commit -m "msg"
+git push
+# Wait ~2 min`}</pre>
+              </div>
+              
+              <div className="bg-yume-bg-light rounded-xl p-4">
+                <h3 className="text-yellow-400 font-medium mb-2">API Change</h3>
+                <pre className="text-xs text-gray-300">{`cd yume-api
+git add -A
+git commit -m "msg"
+git push
+# Test staging
+# DevOps → Deploy Prod`}</pre>
+              </div>
+              
+              <div className="bg-yume-bg-light rounded-xl p-4">
+                <h3 className="text-blue-400 font-medium mb-2">Widget Change</h3>
+                <pre className="text-xs text-gray-300">{`cd yume-tools
+# Edit dist/
+git add -A
+git commit -m "msg"
+git push
+# Test staging
+# DevOps → Promote`}</pre>
+              </div>
+            </div>
+          </div>
+
+          {/* Maintenance */}
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">🔧 Maintenance Commands</h2>
+            <div className="bg-yume-bg rounded-xl p-4 overflow-x-auto">
+              <pre className="text-sm text-gray-300">{`# Check Worker health
+curl https://api.emuy.gg/health
+
+# View Worker logs (live tail)
+cd yume-api && npx wrangler tail
+
+# Add a secret to Worker
+cd yume-api && npx wrangler secret put SECRET_NAME
+
+# Query D1 database
+cd yume-api && npx wrangler d1 execute event_tracking --command "SELECT * FROM admin_users"
+
+# Deploy staging manually
+cd yume-api && npx wrangler deploy --env staging`}</pre>
             </div>
           </div>
         </div>
