@@ -47,10 +47,12 @@ export default function CruddyPanel() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-yume-teal mb-2">📊 Cruddy Panel</h1>
-        <p className="text-slate-400">
+        <h1 className="text-2xl font-bold text-white mb-2">
+          <span className="text-yume-accent">◉</span> Cruddy Panel
+        </h1>
+        <p className="text-gray-400">
           Track clan event attendance, view leaderboards, and manage records.
         </p>
       </div>

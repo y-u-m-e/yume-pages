@@ -26,10 +26,12 @@ export default function InfographicMaker() {
   }, []);
 
   return (
-    <div className="max-w-full">
+    <div className="max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-yume-teal mb-2">🎨 Infographic Maker</h1>
-        <p className="text-slate-400">
+        <h1 className="text-2xl font-bold text-white mb-2">
+          <span className="text-yume-accent">◈</span> Infographic Maker
+        </h1>
+        <p className="text-gray-400">
           Create stunning OSRS-style infographics with layers, shapes, text, and images.
         </p>
       </div>

@@ -1,92 +1,171 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* Base styles */
 :root {
-  --color-teal: #5eead4;
-  --color-teal-dark: #2dd4bf;
-  --color-cyan: #00ffff;
-  --color-orange: #ff981f;
-  --color-panel: rgba(15, 40, 50, 0.6);
-  --color-border: rgba(94, 234, 212, 0.2);
+  --color-accent: #d4ff00;
+  --color-accent-dim: #b8e600;
+  --color-bg: #141414;
+  --color-bg-light: #1a1a1a;
+  --color-card: #1e1e1e;
+  --color-border: rgba(255, 255, 255, 0.08);
 }
 
 body {
   margin: 0;
-  font-family: 'Outfit', sans-serif;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--color-bg);
   min-height: 100vh;
-  color: #f1f5f9;
+  color: #ffffff;
 }
 
-/* Glass panel effect */
+/* Glass panel effect - modern dark style */
 @layer components {
   .glass-panel {
-    @apply bg-yume-panel backdrop-blur-md rounded-2xl border border-yume-border;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    @apply bg-yume-card rounded-2xl border border-yume-border;
+    transition: all 0.2s ease;
+  }
+
+  .glass-panel:hover {
+    @apply bg-yume-card-hover border-yume-border-accent;
   }
 
   .glass-panel-dark {
-    @apply bg-yume-panel-dark backdrop-blur-xl rounded-2xl border border-yume-border;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    @apply bg-yume-bg-light rounded-2xl border border-yume-border;
+  }
+
+  /* Stat Card - like the delivery stats in the image */
+  .stat-card {
+    @apply bg-yume-card rounded-2xl border border-yume-border p-5;
+    transition: all 0.2s ease;
+  }
+
+  .stat-card:hover {
+    @apply border-yume-border-accent;
+  }
+
+  .stat-card-accent {
+    @apply rounded-2xl p-5;
+    background: var(--color-accent);
+    color: #141414;
   }
 
   /* Buttons */
   .btn-primary {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
-    background: linear-gradient(135deg, #2dd4bf 0%, #5eead4 100%);
-    color: #0f2935;
+    @apply px-5 py-2.5 rounded-xl font-semibold transition-all duration-200;
+    background: var(--color-accent);
+    color: #141414;
   }
 
   .btn-primary:hover {
     @apply transform -translate-y-0.5;
-    box-shadow: 0 4px 15px rgba(94, 234, 212, 0.3);
+    background: var(--color-accent-dim);
+    box-shadow: 0 4px 20px rgba(212, 255, 0, 0.25);
   }
 
   .btn-secondary {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
-    @apply bg-yume-teal/15 text-yume-teal border border-yume-teal/30;
+    @apply px-5 py-2.5 rounded-xl font-medium transition-all duration-200;
+    @apply bg-yume-card text-white border border-yume-border;
   }
 
   .btn-secondary:hover {
-    @apply bg-yume-teal/25;
+    @apply border-yume-border-accent text-yume-accent;
   }
 
   /* Nav link */
   .nav-link {
-    @apply px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2;
-    @apply text-slate-300 hover:text-white hover:bg-white/10;
+    @apply px-4 py-2 rounded-xl transition-all duration-200 flex items-center gap-2;
+    @apply text-gray-400 hover:text-white hover:bg-white/5;
   }
 
   .nav-link.active {
-    @apply bg-yume-teal/20 text-yume-teal;
+    @apply bg-yume-accent/10 text-yume-accent;
+  }
+
+  /* Icon button - circular like in the image */
+  .icon-btn {
+    @apply w-10 h-10 rounded-full flex items-center justify-center;
+    @apply bg-yume-card border border-yume-border;
+    @apply text-gray-400 hover:text-white hover:border-yume-border-accent;
+    transition: all 0.2s ease;
+  }
+
+  /* Badge/Tag */
+  .badge {
+    @apply px-3 py-1 rounded-full text-xs font-medium;
+    @apply bg-yume-card border border-yume-border text-gray-300;
+  }
+
+  .badge-accent {
+    @apply px-3 py-1 rounded-full text-xs font-medium;
+    background: var(--color-accent);
+    color: #141414;
+  }
+
+  .badge-success {
+    @apply px-3 py-1 rounded-full text-xs font-medium;
+    @apply bg-emerald-500/20 text-emerald-400 border border-emerald-500/30;
+  }
+
+  /* Input */
+  .input {
+    @apply w-full px-4 py-2.5 rounded-xl;
+    @apply bg-yume-card border border-yume-border;
+    @apply text-white placeholder-gray-500;
+    @apply focus:outline-none focus:border-yume-accent/50;
+    transition: all 0.2s ease;
+  }
+
+  /* Search input like in the image */
+  .search-input {
+    @apply w-full px-4 py-2.5 pl-10 rounded-xl;
+    @apply bg-yume-bg-light border border-yume-border;
+    @apply text-white placeholder-gray-500;
+    @apply focus:outline-none focus:border-yume-border-accent;
+    transition: all 0.2s ease;
   }
 }
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(15, 40, 50, 0.3);
-  border-radius: 4px;
+  background: var(--color-bg);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(94, 234, 212, 0.3);
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(94, 234, 212, 0.5);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* Selection */
 ::selection {
-  background: rgba(94, 234, 212, 0.3);
+  background: rgba(212, 255, 0, 0.3);
   color: white;
 }
 
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+/* Staggered animation delays */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }

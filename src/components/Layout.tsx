@@ -4,16 +4,19 @@ import { VERSION, BUILD_DATE } from '@/version';
 
 export default function Layout() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-yume-bg">
       <Nav />
-      <main className="flex-1 container mx-auto px-4 py-6">
+      
+      <main className="flex-1 px-4 sm:px-6 py-6">
         <Outlet />
       </main>
-      <footer className="py-4 text-center text-slate-500 text-sm">
-        <p>© 2024 Yume Tools • Built for the OSRS community</p>
-        <p className="text-xs mt-1 text-slate-600">v{VERSION} • {new Date(BUILD_DATE).toLocaleDateString()}</p>
+
+      <footer className="border-t border-yume-border py-4">
+        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between text-sm text-gray-500">
+          <span>© 2024 Yume Tools</span>
+          <span>v{VERSION}</span>
+        </div>
       </footer>
     </div>
   );
 }
-

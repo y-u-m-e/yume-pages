@@ -7,27 +7,27 @@ export default {
   theme: {
     extend: {
       colors: {
-        // OSRS-inspired color palette
+        // Modern dark theme with lime accent
         'yume': {
-          'teal': '#5eead4',
-          'teal-dark': '#2dd4bf',
-          'cyan': '#00ffff',
-          'orange': '#ff981f',
-          'pink': '#ff00ff',
-          'panel': 'rgba(15, 40, 50, 0.6)',
-          'panel-dark': 'rgba(20, 60, 60, 0.7)',
-          'border': 'rgba(94, 234, 212, 0.2)',
+          'accent': '#d4ff00',        // Bright lime/yellow
+          'accent-dim': '#b8e600',    // Slightly dimmer accent
+          'bg': '#141414',            // Main background
+          'bg-light': '#1a1a1a',      // Lighter background
+          'card': '#1e1e1e',          // Card background
+          'card-hover': '#252525',    // Card hover state
+          'border': 'rgba(255, 255, 255, 0.08)',
+          'border-accent': 'rgba(212, 255, 0, 0.3)',
         },
       },
       fontFamily: {
+        'inter': ['Inter', 'system-ui', 'sans-serif'],
         'outfit': ['Outfit', 'sans-serif'],
-        'runescape': ['RuneScape UF', 'Trebuchet MS', 'Arial Black', 'sans-serif'],
       },
-      backdropBlur: {
-        'xs': '2px',
+      borderRadius: {
+        '2xl': '1rem',
+        '3xl': '1.5rem',
       },
     },
   },
   plugins: [],
 }
-
