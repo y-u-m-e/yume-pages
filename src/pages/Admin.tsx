@@ -2,22 +2,16 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface AllowedUser {
-  id: string;
-  username: string;
-  addedAt: string;
-  addedBy: string;
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
+
+interface DBUser {
+  id: number;
+  discord_id: string;
+  username: string | null;
+  access_cruddy: number;
+  access_docs: number;
+  created_at: string;
 }
-
-// Mock data for now - will be replaced with API calls
-const mockCruddyUsers: AllowedUser[] = [
-  { id: '166201366228762624', username: 'itai_', addedAt: '2024-12-01', addedBy: 'System' },
-  { id: '667951474856427528', username: 'user2', addedAt: '2024-12-05', addedBy: 'itai_' },
-];
-
-const mockDocsUsers: AllowedUser[] = [
-  { id: '166201366228762624', username: 'itai_', addedAt: '2024-12-01', addedBy: 'System' },
-];
 
 type Tab = 'users' | 'settings' | 'logs';
 
@@ -26,10 +20,17 @@ export default function Admin() {
   const navigate = useNavigate();
   
   const [activeTab, setActiveTab] = useState<Tab>('users');
-  const [cruddyUsers, setCruddyUsers] = useState<AllowedUser[]>(mockCruddyUsers);
-  const [docsUsers, setDocsUsers] = useState<AllowedUser[]>(mockDocsUsers);
-  const [newUserId, setNewUserId] = useState('');
-  const [addingTo, setAddingTo] = useState<'cruddy' | 'docs' | null>(null);
+  const [dbUsers, setDbUsers] = useState<DBUser[]>([]);
+  const [envUsers, setEnvUsers] = useState<{ cruddy: string[]; docs: string[] }>({ cruddy: [], docs: [] });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Form state
+  const [newDiscordId, setNewDiscordId] = useState('');
+  const [newUsername, setNewUsername] = useState('');
+  const [newAccessCruddy, setNewAccessCruddy] = useState(true);
+  const [newAccessDocs, setNewAccessDocs] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Redirect if not admin
   useEffect(() => {
@@ -38,33 +39,96 @@ export default function Admin() {
     }
   }, [user, authLoading, isAdmin, navigate]);
 
-  const handleAddUser = (type: 'cruddy' | 'docs') => {
-    if (!newUserId.trim()) return;
-    
-    const newUser: AllowedUser = {
-      id: newUserId,
-      username: `User ${newUserId.slice(-4)}`,
-      addedAt: new Date().toISOString().split('T')[0],
-      addedBy: user?.username || 'Unknown',
-    };
-    
-    if (type === 'cruddy') {
-      setCruddyUsers([...cruddyUsers, newUser]);
-    } else {
-      setDocsUsers([...docsUsers, newUser]);
+  // Fetch users on mount
+  useEffect(() => {
+    if (user && isAdmin) {
+      fetchUsers();
     }
-    
-    setNewUserId('');
-    setAddingTo(null);
+  }, [user, isAdmin]);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/admin/users`, {
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Failed to fetch users');
+      const data = await res.json();
+      setDbUsers(data.users || []);
+      setEnvUsers(data.env_users || { cruddy: [], docs: [] });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch users');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleRemoveUser = (type: 'cruddy' | 'docs', userId: string) => {
+  const handleAddUser = async () => {
+    if (!newDiscordId.trim()) return;
+    
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/admin/users`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          discord_id: newDiscordId.trim(),
+          username: newUsername.trim() || null,
+          access_cruddy: newAccessCruddy,
+          access_docs: newAccessDocs
+        })
+      });
+      
+      if (!res.ok) throw new Error('Failed to add user');
+      
+      setNewDiscordId('');
+      setNewUsername('');
+      setNewAccessCruddy(true);
+      setNewAccessDocs(false);
+      await fetchUsers();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to add user');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemoveUser = async (discordId: string) => {
     if (!confirm('Are you sure you want to remove this user?')) return;
     
-    if (type === 'cruddy') {
-      setCruddyUsers(cruddyUsers.filter(u => u.id !== userId));
-    } else {
-      setDocsUsers(docsUsers.filter(u => u.id !== userId));
+    try {
+      const res = await fetch(`${API_BASE}/admin/users/${discordId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (!res.ok) throw new Error('Failed to remove user');
+      await fetchUsers();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to remove user');
+    }
+  };
+
+  const handleUpdateUser = async (dbUser: DBUser, field: 'access_cruddy' | 'access_docs') => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/users`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          discord_id: dbUser.discord_id,
+          username: dbUser.username,
+          access_cruddy: field === 'access_cruddy' ? !dbUser.access_cruddy : dbUser.access_cruddy,
+          access_docs: field === 'access_docs' ? !dbUser.access_docs : dbUser.access_docs
+        })
+      });
+      
+      if (!res.ok) throw new Error('Failed to update user');
+      await fetchUsers();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update user');
     }
   };
 
@@ -82,6 +146,9 @@ export default function Admin() {
     { id: 'logs', label: 'Activity Logs', icon: '📜' },
   ];
 
+  const cruddyCount = dbUsers.filter(u => u.access_cruddy).length + envUsers.cruddy.length;
+  const docsCount = dbUsers.filter(u => u.access_docs).length + envUsers.docs.length;
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -95,18 +162,16 @@ export default function Admin() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="stat-card">
-          <div className="text-sm text-gray-400 mb-1">Cruddy Users</div>
-          <div className="text-3xl font-bold text-white">{cruddyUsers.length}</div>
+          <div className="text-sm text-gray-400 mb-1">Cruddy Access</div>
+          <div className="text-3xl font-bold text-white">{cruddyCount}</div>
         </div>
         <div className="stat-card">
-          <div className="text-sm text-gray-400 mb-1">Docs Users</div>
-          <div className="text-3xl font-bold text-white">{docsUsers.length}</div>
+          <div className="text-sm text-gray-400 mb-1">Docs Access</div>
+          <div className="text-3xl font-bold text-white">{docsCount}</div>
         </div>
         <div className="stat-card">
-          <div className="text-sm text-gray-400 mb-1">Total Unique</div>
-          <div className="text-3xl font-bold text-yume-accent">
-            {new Set([...cruddyUsers, ...docsUsers].map(u => u.id)).size}
-          </div>
+          <div className="text-sm text-gray-400 mb-1">DB Users</div>
+          <div className="text-3xl font-bold text-yume-accent">{dbUsers.length}</div>
         </div>
       </div>
 
@@ -130,98 +195,142 @@ export default function Admin() {
 
       {/* Content */}
       {activeTab === 'users' && (
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Cruddy Panel Users */}
-          <div className="bg-yume-card rounded-2xl border border-yume-border overflow-hidden">
-            <div className="px-6 py-4 border-b border-yume-border flex items-center justify-between">
-              <h3 className="font-semibold text-white">Cruddy Panel Access</h3>
-              <button
-                onClick={() => setAddingTo(addingTo === 'cruddy' ? null : 'cruddy')}
-                className="text-sm text-yume-accent hover:underline"
-              >
-                {addingTo === 'cruddy' ? 'Cancel' : '+ Add User'}
-              </button>
-            </div>
-            
-            {addingTo === 'cruddy' && (
-              <div className="px-6 py-4 border-b border-yume-border bg-yume-bg-light">
-                <div className="flex gap-2">
+        <div className="space-y-6">
+          {/* Add User Form */}
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
+            <h3 className="font-semibold text-white mb-4">Add New User</h3>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <input
+                type="text"
+                value={newDiscordId}
+                onChange={(e) => setNewDiscordId(e.target.value)}
+                placeholder="Discord User ID"
+                className="input"
+              />
+              <input
+                type="text"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder="Username (optional)"
+                className="input"
+              />
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 text-sm text-gray-300">
                   <input
-                    type="text"
-                    value={newUserId}
-                    onChange={(e) => setNewUserId(e.target.value)}
-                    placeholder="Discord User ID"
-                    className="input flex-1"
+                    type="checkbox"
+                    checked={newAccessCruddy}
+                    onChange={(e) => setNewAccessCruddy(e.target.checked)}
+                    className="w-4 h-4 rounded"
                   />
-                  <button onClick={() => handleAddUser('cruddy')} className="btn-primary">
-                    Add
-                  </button>
-                </div>
+                  Cruddy
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-300">
+                  <input
+                    type="checkbox"
+                    checked={newAccessDocs}
+                    onChange={(e) => setNewAccessDocs(e.target.checked)}
+                    className="w-4 h-4 rounded"
+                  />
+                  Docs
+                </label>
               </div>
-            )}
-            
-            <div className="divide-y divide-yume-border">
-              {cruddyUsers.map((u) => (
-                <div key={u.id} className="px-6 py-3 flex items-center justify-between hover:bg-yume-bg-light/50">
-                  <div>
-                    <div className="text-white font-medium">{u.username}</div>
-                    <div className="text-xs text-gray-500">{u.id}</div>
-                  </div>
-                  <button
-                    onClick={() => handleRemoveUser('cruddy', u.id)}
-                    className="text-red-400 hover:text-red-300 text-sm"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
+              <button 
+                onClick={handleAddUser} 
+                disabled={saving || !newDiscordId.trim()}
+                className="btn-primary"
+              >
+                {saving ? 'Adding...' : 'Add User'}
+              </button>
             </div>
           </div>
 
-          {/* Docs Users */}
+          {/* Users Table */}
           <div className="bg-yume-card rounded-2xl border border-yume-border overflow-hidden">
             <div className="px-6 py-4 border-b border-yume-border flex items-center justify-between">
-              <h3 className="font-semibold text-white">Documentation Access</h3>
-              <button
-                onClick={() => setAddingTo(addingTo === 'docs' ? null : 'docs')}
-                className="text-sm text-yume-accent hover:underline"
-              >
-                {addingTo === 'docs' ? 'Cancel' : '+ Add User'}
+              <h3 className="font-semibold text-white">Database Users</h3>
+              <button onClick={fetchUsers} className="text-sm text-yume-accent hover:underline">
+                🔄 Refresh
               </button>
             </div>
             
-            {addingTo === 'docs' && (
-              <div className="px-6 py-4 border-b border-yume-border bg-yume-bg-light">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newUserId}
-                    onChange={(e) => setNewUserId(e.target.value)}
-                    placeholder="Discord User ID"
-                    className="input flex-1"
-                  />
-                  <button onClick={() => handleAddUser('docs')} className="btn-primary">
-                    Add
-                  </button>
-                </div>
+            {loading ? (
+              <div className="p-6 text-center text-gray-400">Loading...</div>
+            ) : error ? (
+              <div className="p-6 text-center text-red-400">{error}</div>
+            ) : dbUsers.length === 0 ? (
+              <div className="p-6 text-center text-gray-400">No users in database. Add users above or they are managed via environment variables.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-yume-bg-light">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Discord ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Username</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase">Cruddy</th>
+                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase">Docs</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">Added</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-yume-border">
+                    {dbUsers.map((u) => (
+                      <tr key={u.id} className="hover:bg-yume-bg-light/50">
+                        <td className="px-6 py-4 text-sm font-mono text-gray-300">{u.discord_id}</td>
+                        <td className="px-6 py-4 text-sm text-white">{u.username || '—'}</td>
+                        <td className="px-6 py-4 text-center">
+                          <button 
+                            onClick={() => handleUpdateUser(u, 'access_cruddy')}
+                            className={`w-6 h-6 rounded ${u.access_cruddy ? 'bg-green-500' : 'bg-gray-600'}`}
+                          >
+                            {u.access_cruddy ? '✓' : ''}
+                          </button>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <button 
+                            onClick={() => handleUpdateUser(u, 'access_docs')}
+                            className={`w-6 h-6 rounded ${u.access_docs ? 'bg-green-500' : 'bg-gray-600'}`}
+                          >
+                            {u.access_docs ? '✓' : ''}
+                          </button>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-400">
+                          {new Date(u.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button
+                            onClick={() => handleRemoveUser(u.discord_id)}
+                            className="text-red-400 hover:text-red-300 text-sm"
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
-            
-            <div className="divide-y divide-yume-border">
-              {docsUsers.map((u) => (
-                <div key={u.id} className="px-6 py-3 flex items-center justify-between hover:bg-yume-bg-light/50">
-                  <div>
-                    <div className="text-white font-medium">{u.username}</div>
-                    <div className="text-xs text-gray-500">{u.id}</div>
-                  </div>
-                  <button
-                    onClick={() => handleRemoveUser('docs', u.id)}
-                    className="text-red-400 hover:text-red-300 text-sm"
-                  >
-                    Remove
-                  </button>
+          </div>
+
+          {/* Environment Users (Read-only) */}
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
+            <h3 className="font-semibold text-white mb-4">Environment Variable Users (Read-only)</h3>
+            <p className="text-sm text-gray-400 mb-4">
+              These users are configured in the Worker's environment variables. To modify, update <code className="text-yume-accent">wrangler.jsonc</code>.
+            </p>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <div className="text-sm text-gray-400 mb-2">ALLOWED_USER_IDS_CRUDDY</div>
+                <div className="text-sm font-mono text-gray-300 bg-yume-bg-light p-3 rounded-lg break-all">
+                  {envUsers.cruddy.length > 0 ? envUsers.cruddy.join(', ') : '(empty)'}
                 </div>
-              ))}
+              </div>
+              <div>
+                <div className="text-sm text-gray-400 mb-2">ALLOWED_USER_IDS_DOCS</div>
+                <div className="text-sm font-mono text-gray-300 bg-yume-bg-light p-3 rounded-lg break-all">
+                  {envUsers.docs.length > 0 ? envUsers.docs.join(', ') : '(empty)'}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -297,4 +406,3 @@ export default function Admin() {
     </div>
   );
 }
-
