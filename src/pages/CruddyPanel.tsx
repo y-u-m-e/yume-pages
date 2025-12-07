@@ -8,9 +8,9 @@ export default function CruddyPanel() {
   useEffect(() => {
     if (!user || loading) return;
 
-    // Load the existing cruddy panel widget
+    // Load the existing cruddy panel widget (use specific SHA to bust cache)
     const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/gh/y-u-m-e/yume-tools@main/dist/cruddy-panel/cruddy-panel.js';
+    script.src = 'https://cdn.jsdelivr.net/gh/y-u-m-e/yume-tools@b292e3f/dist/cruddy-panel/cruddy-panel.js';
     script.onload = () => {
       // @ts-expect-error - CruddyPanel is loaded from external script
       if (window.CruddyPanel && containerRef.current) {

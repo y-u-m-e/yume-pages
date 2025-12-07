@@ -80,8 +80,9 @@ export const auth = {
     return apiFetch<User>('/auth/me');
   },
 
-  getLoginUrl(): string {
-    return `${API_BASE}/auth/login`;
+  getLoginUrl(returnUrl?: string): string {
+    const url = returnUrl || window.location.href;
+    return `${API_BASE}/auth/login?return_url=${encodeURIComponent(url)}`;
   },
 
   async logout(): Promise<ApiResponse<void>> {
