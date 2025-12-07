@@ -74,10 +74,21 @@ async function apiFetch<T>(
   }
 }
 
+// Auth response type
+interface AuthMeResponse {
+  authenticated: boolean;
+  authorized?: boolean;
+  access?: {
+    docs: boolean;
+    cruddy: boolean;
+  };
+  user?: User;
+}
+
 // Auth API
 export const auth = {
-  async me(): Promise<ApiResponse<User>> {
-    return apiFetch<User>('/auth/me');
+  async me(): Promise<ApiResponse<AuthMeResponse>> {
+    return apiFetch<AuthMeResponse>('/auth/me');
   },
 
   getLoginUrl(returnUrl?: string): string {

@@ -23,9 +23,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const result = await auth.me();
     
-    // Check if we got a valid user (not just { authenticated: false })
-    if (result.success && result.data && 'id' in result.data && result.data.id) {
-      setUser(result.data);
+    // API returns { authenticated, user } - extract the user object
+    if (result.success && result.data && result.data.authenticated && result.data.user) {
+      setUser(result.data.user);
     } else {
       setUser(null);
       // Don't set error for "not logged in" case
