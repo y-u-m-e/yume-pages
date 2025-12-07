@@ -1,9 +1,18 @@
 import { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function CruddyPanel() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { user, loading, login } = useAuth();
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect to home if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/');
+    }
+  }, [user, loading, navigate]);
 
   useEffect(() => {
     if (!user || loading) return;
@@ -29,27 +38,10 @@ export default function CruddyPanel() {
     };
   }, [user, loading]);
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="text-slate-400">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="max-w-md mx-auto py-20 text-center">
-        <div className="glass-panel p-8">
-          <div className="text-5xl mb-4">🔒</div>
-          <h2 className="text-xl font-semibold text-white mb-2">Authentication Required</h2>
-          <p className="text-slate-400 mb-6">
-            Please log in with Discord to access the Cruddy Panel.
-          </p>
-          <button onClick={login} className="btn-primary">
-            🎮 Login with Discord
-          </button>
-        </div>
+        <div className="w-8 h-8 border-2 border-yume-teal border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }

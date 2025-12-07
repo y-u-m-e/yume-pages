@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
-const tools = [
+// Public tools - always visible
+const publicTools = [
   {
     to: '/infographic-maker',
     icon: '🎨',
@@ -8,6 +10,10 @@ const tools = [
     description: 'Create stunning OSRS-style infographics with layers, shapes, and RuneScape fonts.',
     color: 'from-teal-500 to-cyan-500',
   },
+];
+
+// Protected tools - only visible when logged in
+const protectedTools = [
   {
     to: '/cruddy-panel',
     icon: '📊',
@@ -25,6 +31,10 @@ const tools = [
 ];
 
 export default function Home() {
+  const { user, login } = useAuth();
+  
+  const tools = user ? [...publicTools, ...protectedTools] : publicTools;
+
   return (
     <div className="max-w-5xl mx-auto">
       {/* Hero */}
@@ -38,7 +48,7 @@ export default function Home() {
       </div>
 
       {/* Tools Grid */}
-      <div className="grid md:grid-cols-3 gap-6 pb-16">
+      <div className={`grid gap-6 pb-8 ${tools.length === 1 ? 'max-w-md mx-auto' : tools.length === 2 ? 'md:grid-cols-2 max-w-2xl mx-auto' : 'md:grid-cols-3'}`}>
         {tools.map((tool) => (
           <Link
             key={tool.to}
@@ -57,6 +67,21 @@ export default function Home() {
           </Link>
         ))}
       </div>
+
+      {/* Login prompt for more tools */}
+      {!user && (
+        <div className="text-center pb-16">
+          <button
+            onClick={login}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 hover:border-yume-teal/50 transition-all text-sm text-slate-400 hover:text-white"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 71 55" fill="currentColor">
+              <path d="M60.1 4.9A58.5 58.5 0 0045.4.4a.2.2 0 00-.2.1 40.8 40.8 0 00-1.8 3.7 54 54 0 00-16.2 0A37.4 37.4 0 0025.4.5a.2.2 0 00-.2-.1 58.4 58.4 0 00-14.7 4.5.2.2 0 00-.1.1A60 60 0 00.4 44.4a.2.2 0 000 .2 58.7 58.7 0 0017.7 9 .2.2 0 00.3-.1 42 42 0 003.6-5.9.2.2 0 00-.1-.3 38.7 38.7 0 01-5.5-2.6.2.2 0 01 0-.4l1.1-.9a.2.2 0 01.2 0 41.9 41.9 0 0035.6 0 .2.2 0 01.2 0l1.1.9a.2.2 0 010 .4 36.3 36.3 0 01-5.5 2.6.2.2 0 00-.1.3 47.2 47.2 0 003.6 5.9.2.2 0 00.2.1 58.5 58.5 0 0017.8-9 .2.2 0 000-.2c1.5-15.3-2.4-28.6-10.3-40.4a.2.2 0 00-.1-.1zM23.7 36.4c-3.5 0-6.4-3.2-6.4-7.1s2.8-7.2 6.4-7.2c3.6 0 6.5 3.3 6.4 7.2 0 3.9-2.8 7.1-6.4 7.1zm23.6 0c-3.5 0-6.4-3.2-6.4-7.1s2.9-7.2 6.4-7.2c3.6 0 6.5 3.3 6.4 7.2 0 3.9-2.8 7.1-6.4 7.1z"/>
+            </svg>
+            Login with Discord for more tools
+          </button>
+        </div>
+      )}
 
       {/* Features */}
       <div className="glass-panel p-8 mb-16">
