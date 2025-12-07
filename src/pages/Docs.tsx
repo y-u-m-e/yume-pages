@@ -488,7 +488,7 @@ yume-tools → push to main → jsDelivr CDN (update SHAs in yume-api)
                   <tr className="border-b border-yume-border/50">
                     <td className="py-3 font-mono text-yume-accent">yume-api</td>
                     <td className="py-3">Cloudflare Worker</td>
-                    <td className="py-3 text-yellow-400">GitHub Actions → staging, manual → prod</td>
+                    <td className="py-3 text-green-400">Auto-deploy on push (staging → prod)</td>
                   </tr>
                   <tr>
                     <td className="py-3 font-mono text-yume-accent">yume-tools</td>
@@ -529,38 +529,39 @@ git push
           {/* yume-api */}
           <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center text-lg">⚡</div>
+              <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center text-lg">⚡</div>
               <div>
                 <h2 className="text-xl font-semibold text-white">yume-api (Cloudflare Worker)</h2>
                 <p className="text-gray-500 text-sm">api.emuy.gg / api.itai.gg</p>
               </div>
             </div>
             <div className="space-y-4 text-gray-400">
-              <p><strong className="text-white">How it works:</strong></p>
-              <ul className="list-disc list-inside space-y-1 ml-4">
-                <li><strong className="text-green-400">Push to main</strong> → Auto-deploys to <strong>staging</strong> (api-staging.itai.gg)</li>
-                <li><strong className="text-yellow-400">Manual trigger</strong> → Deploy to <strong>production</strong></li>
-              </ul>
+              <p><strong className="text-white">How it works:</strong> Same as Cloudflare Pages - push to <code className="text-yume-accent">main</code> auto-deploys to both staging and production.</p>
               
               <div className="bg-yume-bg rounded-xl p-4">
-                <p className="text-white text-sm mb-2">Deploy to staging (automatic):</p>
+                <p className="text-white text-sm mb-2">Deploy (automatic):</p>
                 <pre className="text-sm text-gray-300">{`cd yume-api
 # Make your changes
 git add -A && git commit -m "message" && git push
-# Auto-deploys to staging`}</pre>
+# Auto-deploys to staging first, then production`}</pre>
               </div>
 
               <div className="bg-yume-bg rounded-xl p-4">
-                <p className="text-white text-sm mb-2">Deploy to production:</p>
-                <pre className="text-sm text-gray-300">{`# Option 1: DevOps Panel
-Go to emuy.gg/devops → Click "🚀 Deploy Production"
+                <p className="text-white text-sm mb-2">Manual deploy (if needed):</p>
+                <pre className="text-sm text-gray-300">{`# Option 1: GitHub Actions
+GitHub → yume-api → Actions → "Deploy Worker" 
+→ Run workflow → Choose: both/staging/production
 
-# Option 2: GitHub Actions
-GitHub → yume-api → Actions → "Deploy Worker" → Run workflow → production
-
-# Option 3: Local CLI
-cd yume-api && npx wrangler deploy`}</pre>
+# Option 2: Local CLI
+cd yume-api && npx wrangler deploy           # production
+cd yume-api && npx wrangler deploy --env staging  # staging`}</pre>
               </div>
+              
+              <p className="text-sm"><strong className="text-white">URLs:</strong></p>
+              <ul className="list-disc list-inside space-y-1 ml-4 text-sm">
+                <li><strong className="text-green-400">Production:</strong> api.emuy.gg / api.itai.gg</li>
+                <li><strong className="text-yellow-400">Staging:</strong> api-staging.itai.gg</li>
+              </ul>
             </div>
           </div>
 
@@ -681,13 +682,12 @@ git push
               </div>
               
               <div className="bg-yume-bg-light rounded-xl p-4">
-                <h3 className="text-yellow-400 font-medium mb-2">API Change</h3>
+                <h3 className="text-green-400 font-medium mb-2">API Change</h3>
                 <pre className="text-xs text-gray-300">{`cd yume-api
 git add -A
 git commit -m "msg"
 git push
-# Test staging
-# DevOps → Deploy Prod`}</pre>
+# Auto-deploys both!`}</pre>
               </div>
               
               <div className="bg-yume-bg-light rounded-xl p-4">
