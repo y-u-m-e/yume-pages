@@ -345,7 +345,7 @@ export default function DevOps() {
           </span>
           <div className="flex gap-3">
             <button 
-              onClick={fetchAllRepoData} 
+              onClick={() => { fetchAllRepoData(); fetchCFDeployments(); }} 
               className="btn-secondary text-sm"
             >
               🔄 Refresh All
@@ -435,38 +435,50 @@ export default function DevOps() {
                   )}
 
                   {/* Cloudflare Pages Deployments (for yume-pages) */}
-                  {repo.name === 'yume-pages' && cfDeployments.length > 0 && (
+                  {repo.name === 'yume-pages' && (
                     <div className="mb-4">
-                      <h3 className="text-sm font-medium text-slate-400 mb-2">☁️ Cloudflare Deployments</h3>
-                      <div className="space-y-2">
-                        {cfDeployments.slice(0, 3).map((deploy) => (
-                          <a
-                            key={deploy.id}
-                            href={deploy.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center justify-between bg-slate-800/30 rounded-lg p-3 hover:bg-slate-800/50 transition-colors"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span>{deploy.status === 'success' ? '✅' : deploy.status === 'failure' ? '❌' : '🔄'}</span>
-                              <span className={`text-sm ${deploy.status === 'success' ? 'text-green-400' : deploy.status === 'failure' ? 'text-red-400' : 'text-yellow-400'}`}>
-                                {deploy.source?.commit_message || 'Deployment'}
-                              </span>
-                              <span className="text-slate-500 text-xs">
-                                ({deploy.source?.commit_hash})
-                              </span>
-                            </div>
-                            <div className="text-right">
-                              <span className="text-slate-500 text-xs block">
-                                {new Date(deploy.created_at).toLocaleString()}
-                              </span>
-                              <span className="text-xs text-yume-mint">
-                                {deploy.environment}
-                              </span>
-                            </div>
-                          </a>
-                        ))}
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-medium text-slate-400">☁️ Recent Deployments</h3>
+                        <button 
+                          onClick={fetchCFDeployments}
+                          className="text-slate-500 hover:text-yume-mint text-xs"
+                        >
+                          🔄 Refresh
+                        </button>
                       </div>
+                      {cfDeployments.length > 0 ? (
+                        <div className="space-y-2">
+                          {cfDeployments.slice(0, 3).map((deploy) => (
+                            <a
+                              key={deploy.id}
+                              href={deploy.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-between bg-slate-800/30 rounded-lg p-3 hover:bg-slate-800/50 transition-colors"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span>{deploy.status === 'success' ? '✅' : deploy.status === 'failure' ? '❌' : '🔄'}</span>
+                                <span className={`text-sm ${deploy.status === 'success' ? 'text-green-400' : deploy.status === 'failure' ? 'text-red-400' : 'text-yellow-400'}`}>
+                                  {deploy.source?.commit_message || 'Deployment'}
+                                </span>
+                                <span className="text-slate-500 text-xs font-mono">
+                                  {deploy.source?.commit_hash}
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-slate-500 text-xs block">
+                                  {new Date(deploy.created_at).toLocaleString()}
+                                </span>
+                                <span className="text-xs text-yume-mint">
+                                  {deploy.environment}
+                                </span>
+                              </div>
+                            </a>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-slate-500 text-sm italic">No deployments found or CF API token not configured</p>
+                      )}
                     </div>
                   )}
 
