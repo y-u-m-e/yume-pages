@@ -15,6 +15,7 @@ const protectedNavItems = [
 // Admin pages - only for admins
 const adminNavItems = [
   { to: '/admin', label: 'Admin', icon: '⚙' },
+  { to: '/devops', label: 'DevOps', icon: '🚀' },
 ];
 
 export default function Nav() {

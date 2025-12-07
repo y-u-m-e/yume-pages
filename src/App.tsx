@@ -5,6 +5,7 @@ import Home from '@/pages/Home'
 import CruddyPanel from '@/pages/CruddyPanel'
 import Docs from '@/pages/Docs'
 import Admin from '@/pages/Admin'
+import DevOps from '@/pages/DevOps'
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="cruddy-panel" element={<CruddyPanel />} />
           <Route path="docs" element={<Docs />} />
           <Route path="admin" element={<Admin />} />
+          <Route path="devops" element={<DevOps />} />
         </Route>
       </Routes>
     </AuthProvider>
