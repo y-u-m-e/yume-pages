@@ -264,7 +264,7 @@ export default function Home() {
             </div>
           </div>
           <a 
-            href="https://emuy.carrd.co" 
+            href="https://yumes-tools.itai.gg" 
             target="_blank" 
             rel="noopener noreferrer"
             className="text-xs text-yume-accent hover:underline"
