@@ -1,9 +1,9 @@
 /**
  * API Client for yume-api Worker
- * Base URL: https://api.emuy.gg (or api.itai.gg for legacy)
+ * Base URL: https://api.emuy.io (or api.itai.gg for legacy)
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.io';
 
 // Types
 export interface User {

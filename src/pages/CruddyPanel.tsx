@@ -16,7 +16,7 @@ export default function CruddyPanel() {
       if (window.CruddyPanel && containerRef.current) {
         // @ts-expect-error - CruddyPanel is loaded from external script
         window.CruddyPanel.mount(containerRef.current, {
-          apiBase: 'https://api.emuy.gg'
+          apiBase: 'https://api.emuy.io'
         });
       }
     };
