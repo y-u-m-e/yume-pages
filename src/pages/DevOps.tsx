@@ -51,6 +51,7 @@ const REPOS = [
 ];
 
 const GITHUB_ORG = 'y-u-m-e';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
 
 export default function DevOps() {
   const { user, loading: authLoading } = useAuth();
@@ -59,17 +60,51 @@ export default function DevOps() {
   );
   const [githubToken, setGithubToken] = useState('');
   const [tokenSaved, setTokenSaved] = useState(false);
+  const [tokenSource, setTokenSource] = useState<'server' | 'local' | null>(null);
   const [triggeringWorkflow, setTriggeringWorkflow] = useState<string | null>(null);
   const [workflows, setWorkflows] = useState<Record<string, Workflow[]>>({});
+  const [loadingSecrets, setLoadingSecrets] = useState(true);
 
-  // Load saved token from localStorage
+  // Try to load token from server first, then localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('github_pat');
-    if (saved) {
-      setGithubToken(saved);
-      setTokenSaved(true);
+    const loadToken = async () => {
+      setLoadingSecrets(true);
+      
+      // Try server first
+      try {
+        const res = await fetch(`${API_BASE}/admin/secrets`, {
+          credentials: 'include'
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.github_pat) {
+            setGithubToken(data.github_pat);
+            setTokenSaved(true);
+            setTokenSource('server');
+            setLoadingSecrets(false);
+            return;
+          }
+        }
+      } catch {
+        // Server token not available
+      }
+      
+      // Fallback to localStorage
+      const saved = localStorage.getItem('github_pat');
+      if (saved) {
+        setGithubToken(saved);
+        setTokenSaved(true);
+        setTokenSource('local');
+      }
+      setLoadingSecrets(false);
+    };
+    
+    if (user) {
+      loadToken();
+    } else {
+      setLoadingSecrets(false);
     }
-  }, []);
+  }, [user]);
 
   // Fetch repo data when token is available
   useEffect(() => {
@@ -240,11 +275,16 @@ export default function DevOps() {
       </div>
 
       {/* GitHub Token Setup */}
-      {!tokenSaved ? (
+      {loadingSecrets ? (
+        <div className="glass-panel p-6 mb-8 flex items-center gap-3">
+          <div className="w-5 h-5 border-2 border-yume-mint border-t-transparent rounded-full animate-spin" />
+          <span className="text-slate-400">Loading configuration...</span>
+        </div>
+      ) : !tokenSaved ? (
         <div className="glass-panel p-6 mb-8">
           <h2 className="text-xl font-semibold text-white mb-4">🔑 GitHub Token Required</h2>
           <p className="text-slate-400 text-sm mb-4">
-            Enter a GitHub Personal Access Token to view repo status and trigger workflows.
+            No server token configured. Enter a GitHub PAT manually, or add <code className="text-yume-mint">GITHUB_PAT</code> to Worker secrets.
             <br />
             Required scopes: <code className="text-yume-mint">repo</code>, <code className="text-yume-mint">workflow</code>
           </p>
@@ -257,16 +297,21 @@ export default function DevOps() {
               className="flex-1 px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:border-yume-mint text-white"
             />
             <button onClick={saveToken} className="btn-primary">
-              Save Token
+              Save Locally
             </button>
           </div>
           <p className="text-slate-500 text-xs mt-2">
-            Token is stored locally in your browser only.
+            Token will be stored in your browser. For persistent storage, run: <code className="text-yume-mint">npx wrangler secret put GITHUB_PAT</code>
           </p>
         </div>
       ) : (
         <div className="flex justify-between items-center mb-6">
-          <span className="text-green-400 text-sm">✅ GitHub token configured</span>
+          <span className="text-green-400 text-sm">
+            ✅ GitHub token configured 
+            <span className="text-slate-500 ml-2">
+              ({tokenSource === 'server' ? '🔒 from server' : '💾 from browser'})
+            </span>
+          </span>
           <div className="flex gap-3">
             <button 
               onClick={fetchAllRepoData} 
@@ -274,12 +319,14 @@ export default function DevOps() {
             >
               🔄 Refresh All
             </button>
-            <button 
-              onClick={clearToken} 
-              className="text-slate-400 hover:text-red-400 text-sm"
-            >
-              Clear Token
-            </button>
+            {tokenSource === 'local' && (
+              <button 
+                onClick={clearToken} 
+                className="text-slate-400 hover:text-red-400 text-sm"
+              >
+                Clear Token
+              </button>
+            )}
           </div>
         </div>
       )}
