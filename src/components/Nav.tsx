@@ -4,7 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 // Public pages visible to everyone
 const publicNavItems = [
   { to: '/', label: 'Home', icon: '⬡' },
-  { to: '/infographic-maker', label: 'Infographic Maker', icon: '◈' },
 ];
 
 // Protected pages only visible when logged in
@@ -13,13 +12,22 @@ const protectedNavItems = [
   { to: '/docs', label: 'Docs', icon: '◫' },
 ];
 
+// Admin pages - only for admins
+const adminNavItems = [
+  { to: '/admin', label: 'Admin', icon: '⚙' },
+];
+
 export default function Nav() {
-  const { user, loading, login, logout } = useAuth();
+  const { user, loading, login, logout, isAdmin } = useAuth();
   
   // Combine nav items based on auth status
-  const navItems = user 
-    ? [...publicNavItems, ...protectedNavItems]
-    : publicNavItems;
+  let navItems = [...publicNavItems];
+  if (user) {
+    navItems = [...navItems, ...protectedNavItems];
+    if (isAdmin) {
+      navItems = [...navItems, ...adminNavItems];
+    }
+  }
 
   return (
     <nav className="bg-yume-bg-light border-b border-yume-border">

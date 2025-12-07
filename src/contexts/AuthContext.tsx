@@ -1,10 +1,18 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { auth, User } from '@/lib/api';
 
+interface Access {
+  docs: boolean;
+  cruddy: boolean;
+  admin?: boolean;
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   error: string | null;
+  access: Access | null;
+  isAdmin: boolean;
   login: () => void;
   logout: () => void;
   refresh: () => Promise<void>;
@@ -14,6 +22,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [access, setAccess] = useState<Access | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,11 +32,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     const result = await auth.me();
     
-    // API returns { authenticated, user } - extract the user object
+    // API returns { authenticated, user, access } - extract the data
     if (result.success && result.data && result.data.authenticated && result.data.user) {
       setUser(result.data.user);
+      setAccess(result.data.access || null);
     } else {
       setUser(null);
+      setAccess(null);
       // Don't set error for "not logged in" case
       if (result.error && result.error !== 'Not authenticated') {
         setError(result.error);
@@ -55,8 +66,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await checkAuth();
   };
 
+  // Check if user is admin (has admin access or has both docs and cruddy access)
+  const isAdmin = access?.admin === true || (access?.docs === true && access?.cruddy === true);
+
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, logout, refresh }}>
+    <AuthContext.Provider value={{ user, loading, error, access, isAdmin, login, logout, refresh }}>
       {children}
     </AuthContext.Provider>
   );
@@ -69,4 +83,3 @@ export function useAuth() {
   }
   return context;
 }
-
