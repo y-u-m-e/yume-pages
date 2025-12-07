@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect } from 'react';
 
 // Protected tools - only visible when logged in
 const tools = [
@@ -19,8 +20,88 @@ const tools = [
   },
 ];
 
+// Service status type
+type ServiceStatus = 'checking' | 'online' | 'offline' | 'degraded';
+
+interface ServiceHealth {
+  api: ServiceStatus;
+  cdn: ServiceStatus;
+  widgets: {
+    mentionMaker: ServiceStatus;
+    eventParser: ServiceStatus;
+    infographicMaker: ServiceStatus;
+  };
+}
+
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
+const CDN_BASE = 'https://cdn.jsdelivr.net/gh/y-u-m-e/yume-tools@main/dist';
+
 export default function Home() {
   const { user, login, isAdmin } = useAuth();
+  const [health, setHealth] = useState<ServiceHealth>({
+    api: 'checking',
+    cdn: 'checking',
+    widgets: {
+      mentionMaker: 'checking',
+      eventParser: 'checking',
+      infographicMaker: 'checking',
+    },
+  });
+
+  // Check service health on mount
+  useEffect(() => {
+    const checkHealth = async () => {
+      // Check API health
+      try {
+        const res = await fetch(`${API_BASE}/health`, { method: 'GET' });
+        setHealth(prev => ({ ...prev, api: res.ok ? 'online' : 'degraded' }));
+      } catch {
+        setHealth(prev => ({ ...prev, api: 'offline' }));
+      }
+
+      // Check CDN / Widgets (check if JS files are accessible)
+      const widgetChecks = [
+        { key: 'mentionMaker', path: 'mention-widget/mention-widget.js' },
+        { key: 'eventParser', path: 'event-parser/event-parser.js' },
+        { key: 'infographicMaker', path: 'infographic-maker/infographic-maker.js' },
+      ];
+
+      let cdnOnline = true;
+      for (const widget of widgetChecks) {
+        try {
+          const res = await fetch(`${CDN_BASE}/${widget.path}`, { method: 'HEAD' });
+          setHealth(prev => ({
+            ...prev,
+            widgets: { ...prev.widgets, [widget.key]: res.ok ? 'online' : 'offline' },
+          }));
+          if (!res.ok) cdnOnline = false;
+        } catch {
+          setHealth(prev => ({
+            ...prev,
+            widgets: { ...prev.widgets, [widget.key]: 'offline' },
+          }));
+          cdnOnline = false;
+        }
+      }
+      setHealth(prev => ({ ...prev, cdn: cdnOnline ? 'online' : 'degraded' }));
+    };
+
+    checkHealth();
+  }, []);
+
+  const StatusDot = ({ status }: { status: ServiceStatus }) => {
+    const colors = {
+      checking: 'bg-gray-500 animate-pulse',
+      online: 'bg-emerald-400',
+      degraded: 'bg-yellow-400',
+      offline: 'bg-red-400',
+    };
+    return <div className={`w-2.5 h-2.5 rounded-full ${colors[status]}`} />;
+  };
+
+  const getStatusText = (status: ServiceStatus) => {
+    return status === 'checking' ? '...' : status.charAt(0).toUpperCase() + status.slice(1);
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -42,38 +123,104 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Quick stats */}
+        {/* API Status */}
         <div className="stat-card">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm text-gray-400">Status</span>
-            <div className={`w-3 h-3 rounded-full ${user ? 'bg-emerald-400' : 'bg-gray-500'}`} />
+            <span className="text-sm text-gray-400">Yume API</span>
+            <StatusDot status={health.api} />
           </div>
-          <div className="text-3xl font-bold text-white mb-1">
-            {user ? 'Online' : 'Offline'}
+          <div className="text-2xl font-bold text-white mb-1">
+            {getStatusText(health.api)}
           </div>
-          <div className="text-sm text-gray-500">
-            {user ? 'Authenticated' : 'Not logged in'}
+          <div className="text-xs text-gray-500 font-mono">
+            api.emuy.gg
           </div>
         </div>
 
+        {/* CDN Status */}
         <div className="stat-card">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm text-gray-400">Tools Available</span>
+            <span className="text-sm text-gray-400">jsDelivr CDN</span>
+            <StatusDot status={health.cdn} />
           </div>
-          <div className="text-3xl font-bold text-white mb-1">
-            {user ? '2' : '0'}
+          <div className="text-2xl font-bold text-white mb-1">
+            {getStatusText(health.cdn)}
           </div>
-          <div className="text-sm text-yume-accent">
-            {user ? 'Full access' : 'Login required'}
+          <div className="text-xs text-gray-500 font-mono">
+            cdn.jsdelivr.net
           </div>
         </div>
 
+        {/* Auth Status */}
         <div className="stat-card">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm text-gray-400">Platform</span>
+            <span className="text-sm text-gray-400">Discord Auth</span>
+            <StatusDot status={user ? 'online' : 'offline'} />
           </div>
-          <div className="text-3xl font-bold text-white mb-1">Yume</div>
-          <div className="text-sm text-gray-500">OSRS Clan Tools</div>
+          <div className="text-2xl font-bold text-white mb-1">
+            {user ? 'Connected' : 'Not Connected'}
+          </div>
+          <div className="text-xs text-gray-500">
+            {user ? 'OAuth2 active' : 'Login required'}
+          </div>
+        </div>
+      </div>
+
+      {/* Carrd Widgets Status Row */}
+      <div className="bg-yume-card rounded-2xl border border-yume-border p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-white">Carrd Widgets</h3>
+          <a 
+            href="https://emuy.carrd.co" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-xs text-yume-accent hover:underline"
+          >
+            View on Carrd →
+          </a>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Mention Maker */}
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-yume-bg-light">
+            <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center text-lg">
+              @
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-white truncate">Mention Maker</span>
+                <StatusDot status={health.widgets.mentionMaker} />
+              </div>
+              <div className="text-xs text-gray-500">Discord @mentions</div>
+            </div>
+          </div>
+
+          {/* Event Parser */}
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-yume-bg-light">
+            <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center text-lg">
+              📋
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-white truncate">Event Parser</span>
+                <StatusDot status={health.widgets.eventParser} />
+              </div>
+              <div className="text-xs text-gray-500">Log parsing</div>
+            </div>
+          </div>
+
+          {/* Infographic Maker */}
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-yume-bg-light">
+            <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center text-lg">
+              🖼️
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-white truncate">Infographic Maker</span>
+                <StatusDot status={health.widgets.infographicMaker} />
+              </div>
+              <div className="text-xs text-gray-500">OSRS graphics</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -82,7 +229,7 @@ export default function Home() {
         {/* Tools Section */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">Tools</h2>
+            <h2 className="text-lg font-semibold text-white">React Tools</h2>
           </div>
 
           {user ? (
@@ -129,7 +276,7 @@ export default function Home() {
 
         {/* Quick Info Sidebar */}
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-white">Quick Info</h2>
+          <h2 className="text-lg font-semibold text-white">Tech Stack</h2>
           
           <div className="bg-yume-card rounded-2xl border border-yume-border p-5 space-y-4">
             <div className="flex items-center gap-3">
@@ -148,15 +295,20 @@ export default function Home() {
 
             <div className="space-y-3">
               {[
-                { icon: '🎮', label: 'OSRS Themed', desc: 'RuneScape-inspired' },
-                { icon: '🔒', label: 'Discord Auth', desc: 'Secure OAuth' },
-                { icon: '⚡', label: 'Fast & Modern', desc: 'React + Vite' },
-                { icon: '☁️', label: 'Cloud Hosted', desc: 'Cloudflare' },
+                { icon: '⚛️', label: 'React + Vite', desc: 'Frontend framework', status: 'online' as ServiceStatus },
+                { icon: '☁️', label: 'Cloudflare Pages', desc: 'Frontend hosting', status: 'online' as ServiceStatus },
+                { icon: '⚡', label: 'Cloudflare Workers', desc: 'API backend', status: health.api },
+                { icon: '🗄️', label: 'Cloudflare D1', desc: 'SQLite database', status: health.api },
+                { icon: '📦', label: 'jsDelivr CDN', desc: 'Widget delivery', status: health.cdn },
+                { icon: '🔐', label: 'Discord OAuth2', desc: 'Authentication', status: user ? 'online' as ServiceStatus : 'offline' as ServiceStatus },
               ].map((item) => (
                 <div key={item.label} className="flex items-center gap-3">
-                  <span className="text-lg">{item.icon}</span>
-                  <div>
-                    <div className="text-sm font-medium text-white">{item.label}</div>
+                  <span className="text-lg w-6 text-center">{item.icon}</span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-white">{item.label}</span>
+                      <StatusDot status={item.status} />
+                    </div>
                     <div className="text-xs text-gray-500">{item.desc}</div>
                   </div>
                 </div>
