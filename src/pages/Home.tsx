@@ -21,15 +21,23 @@ const tools = [
 ];
 
 // Service status type
-type ServiceStatus = 'checking' | 'online' | 'offline' | 'degraded';
+type ServiceStatus = 'checking' | 'online' | 'offline' | 'degraded' | 'recent' | 'stale';
+
+interface WidgetHeartbeat {
+  status: string;
+  lastPing: string;
+  source: string;
+  pingCount: number;
+}
 
 interface ServiceHealth {
   api: ServiceStatus;
   cdn: ServiceStatus;
+  carrd: ServiceStatus;
   widgets: {
-    mentionMaker: ServiceStatus;
-    eventParser: ServiceStatus;
-    infographicMaker: ServiceStatus;
+    mentionMaker: { cdn: ServiceStatus; carrd: ServiceStatus; lastPing?: string };
+    eventParser: { cdn: ServiceStatus; carrd: ServiceStatus; lastPing?: string };
+    infographicMaker: { cdn: ServiceStatus; carrd: ServiceStatus; lastPing?: string };
   };
 }
 
@@ -41,10 +49,11 @@ export default function Home() {
   const [health, setHealth] = useState<ServiceHealth>({
     api: 'checking',
     cdn: 'checking',
+    carrd: 'checking',
     widgets: {
-      mentionMaker: 'checking',
-      eventParser: 'checking',
-      infographicMaker: 'checking',
+      mentionMaker: { cdn: 'checking', carrd: 'checking' },
+      eventParser: { cdn: 'checking', carrd: 'checking' },
+      infographicMaker: { cdn: 'checking', carrd: 'checking' },
     },
   });
 
@@ -61,46 +70,118 @@ export default function Home() {
 
       // Check CDN / Widgets (check if JS files are accessible)
       const widgetChecks = [
-        { key: 'mentionMaker', path: 'mention-widget/mention-widget.js' },
-        { key: 'eventParser', path: 'event-parser/event-parser.js' },
-        { key: 'infographicMaker', path: 'infographic-maker/infographic-maker.js' },
+        { key: 'mentionMaker', path: 'msg-maker/mention-widget.js', heartbeatKey: 'mention-maker' },
+        { key: 'eventParser', path: 'log-parser/event-parser-widget.js', heartbeatKey: 'event-parser' },
+        { key: 'infographicMaker', path: 'infographic-maker/infographic-maker.js', heartbeatKey: 'infographic-maker' },
       ];
 
       let cdnOnline = true;
       for (const widget of widgetChecks) {
         try {
           const res = await fetch(`${CDN_BASE}/${widget.path}`, { method: 'HEAD' });
+          const cdnStatus = res.ok ? 'online' : 'offline';
           setHealth(prev => ({
             ...prev,
-            widgets: { ...prev.widgets, [widget.key]: res.ok ? 'online' : 'offline' },
+            widgets: { 
+              ...prev.widgets, 
+              [widget.key]: { ...prev.widgets[widget.key as keyof typeof prev.widgets], cdn: cdnStatus } 
+            },
           }));
           if (!res.ok) cdnOnline = false;
         } catch {
           setHealth(prev => ({
             ...prev,
-            widgets: { ...prev.widgets, [widget.key]: 'offline' },
+            widgets: { 
+              ...prev.widgets, 
+              [widget.key]: { ...prev.widgets[widget.key as keyof typeof prev.widgets], cdn: 'offline' } 
+            },
           }));
           cdnOnline = false;
         }
       }
       setHealth(prev => ({ ...prev, cdn: cdnOnline ? 'online' : 'degraded' }));
+
+      // Check widget heartbeats (are they actually visible on Carrd?)
+      try {
+        const heartbeatRes = await fetch(`${API_BASE}/widget/status`);
+        if (heartbeatRes.ok) {
+          const data = await heartbeatRes.json();
+          const widgets = data.widgets || {};
+          
+          // Map heartbeat status to our status type
+          const mapStatus = (s: string): ServiceStatus => {
+            if (s === 'online') return 'online';
+            if (s === 'recent') return 'recent';
+            if (s === 'stale') return 'stale';
+            return 'offline';
+          };
+
+          let anyCarrdOnline = false;
+          for (const widget of widgetChecks) {
+            const hb = widgets[widget.heartbeatKey];
+            if (hb) {
+              const carrdStatus = mapStatus(hb.status);
+              if (carrdStatus === 'online' || carrdStatus === 'recent') anyCarrdOnline = true;
+              setHealth(prev => ({
+                ...prev,
+                widgets: {
+                  ...prev.widgets,
+                  [widget.key]: { 
+                    ...prev.widgets[widget.key as keyof typeof prev.widgets], 
+                    carrd: carrdStatus,
+                    lastPing: hb.lastPing
+                  },
+                },
+              }));
+            } else {
+              setHealth(prev => ({
+                ...prev,
+                widgets: {
+                  ...prev.widgets,
+                  [widget.key]: { 
+                    ...prev.widgets[widget.key as keyof typeof prev.widgets], 
+                    carrd: 'offline'
+                  },
+                },
+              }));
+            }
+          }
+          setHealth(prev => ({ ...prev, carrd: anyCarrdOnline ? 'online' : 'offline' }));
+        }
+      } catch {
+        // Heartbeat check failed - mark carrd as unknown
+        setHealth(prev => ({ ...prev, carrd: 'offline' }));
+      }
     };
 
     checkHealth();
   }, []);
 
-  const StatusDot = ({ status }: { status: ServiceStatus }) => {
+  const StatusDot = ({ status, size = 'sm' }: { status: ServiceStatus; size?: 'sm' | 'xs' }) => {
     const colors = {
       checking: 'bg-gray-500 animate-pulse',
       online: 'bg-emerald-400',
+      recent: 'bg-emerald-300',
+      stale: 'bg-yellow-400',
       degraded: 'bg-yellow-400',
       offline: 'bg-red-400',
     };
-    return <div className={`w-2.5 h-2.5 rounded-full ${colors[status]}`} />;
+    const sizeClass = size === 'xs' ? 'w-2 h-2' : 'w-2.5 h-2.5';
+    return <div className={`${sizeClass} rounded-full ${colors[status]}`} title={status} />;
   };
 
   const getStatusText = (status: ServiceStatus) => {
     return status === 'checking' ? '...' : status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  // Get combined widget status (best of CDN and Carrd)
+  const getWidgetStatus = (widget: { cdn: ServiceStatus; carrd: ServiceStatus }): ServiceStatus => {
+    // If both are online, return online
+    if (widget.cdn === 'online' && (widget.carrd === 'online' || widget.carrd === 'recent')) return 'online';
+    // If CDN is online but carrd hasn't pinged recently
+    if (widget.cdn === 'online') return widget.carrd === 'stale' ? 'degraded' : widget.carrd;
+    // If CDN is down
+    return 'offline';
   };
 
   return (
@@ -169,7 +250,13 @@ export default function Home() {
       {/* Carrd Widgets Status Row */}
       <div className="bg-yume-card rounded-2xl border border-yume-border p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-white">Carrd Widgets</h3>
+          <div className="flex items-center gap-3">
+            <h3 className="text-sm font-semibold text-white">Carrd Widgets</h3>
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <span className="flex items-center gap-1"><StatusDot status="online" size="xs" /> CDN</span>
+              <span className="flex items-center gap-1"><StatusDot status="recent" size="xs" /> Visible</span>
+            </div>
+          </div>
           <a 
             href="https://emuy.carrd.co" 
             target="_blank" 
@@ -188,9 +275,16 @@ export default function Home() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-white truncate">Mention Maker</span>
-                <StatusDot status={health.widgets.mentionMaker} />
+                <div className="flex items-center gap-1">
+                  <StatusDot status={health.widgets.mentionMaker.cdn} size="xs" />
+                  <StatusDot status={health.widgets.mentionMaker.carrd} size="xs" />
+                </div>
               </div>
-              <div className="text-xs text-gray-500">Discord @mentions</div>
+              <div className="text-xs text-gray-500">
+                {health.widgets.mentionMaker.lastPing 
+                  ? `Last seen: ${new Date(health.widgets.mentionMaker.lastPing + 'Z').toLocaleTimeString()}`
+                  : 'Discord @mentions'}
+              </div>
             </div>
           </div>
 
@@ -202,9 +296,16 @@ export default function Home() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-white truncate">Event Parser</span>
-                <StatusDot status={health.widgets.eventParser} />
+                <div className="flex items-center gap-1">
+                  <StatusDot status={health.widgets.eventParser.cdn} size="xs" />
+                  <StatusDot status={health.widgets.eventParser.carrd} size="xs" />
+                </div>
               </div>
-              <div className="text-xs text-gray-500">Log parsing</div>
+              <div className="text-xs text-gray-500">
+                {health.widgets.eventParser.lastPing 
+                  ? `Last seen: ${new Date(health.widgets.eventParser.lastPing + 'Z').toLocaleTimeString()}`
+                  : 'Log parsing'}
+              </div>
             </div>
           </div>
 
@@ -216,9 +317,16 @@ export default function Home() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-white truncate">Infographic Maker</span>
-                <StatusDot status={health.widgets.infographicMaker} />
+                <div className="flex items-center gap-1">
+                  <StatusDot status={health.widgets.infographicMaker.cdn} size="xs" />
+                  <StatusDot status={health.widgets.infographicMaker.carrd} size="xs" />
+                </div>
               </div>
-              <div className="text-xs text-gray-500">OSRS graphics</div>
+              <div className="text-xs text-gray-500">
+                {health.widgets.infographicMaker.lastPing 
+                  ? `Last seen: ${new Date(health.widgets.infographicMaker.lastPing + 'Z').toLocaleTimeString()}`
+                  : 'OSRS graphics'}
+              </div>
             </div>
           </div>
         </div>
@@ -300,6 +408,7 @@ export default function Home() {
                 { icon: '⚡', label: 'Cloudflare Workers', desc: 'API backend', status: health.api },
                 { icon: '🗄️', label: 'Cloudflare D1', desc: 'SQLite database', status: health.api },
                 { icon: '📦', label: 'jsDelivr CDN', desc: 'Widget delivery', status: health.cdn },
+                { icon: '🌐', label: 'Carrd Widgets', desc: 'Widget visibility', status: health.carrd },
                 { icon: '🔐', label: 'Discord OAuth2', desc: 'Authentication', status: user ? 'online' as ServiceStatus : 'offline' as ServiceStatus },
               ].map((item) => (
                 <div key={item.label} className="flex items-center gap-3">
