@@ -66,11 +66,11 @@ export default function Nav() {
                   />
                 ) : (
                   <div className="w-7 h-7 rounded-full bg-yume-teal/20 flex items-center justify-center text-sm">
-                    {(user.global_name || user.username).charAt(0).toUpperCase()}
+                    {(user.global_name || user.username || 'U').charAt(0).toUpperCase()}
                   </div>
                 )}
                 <span className="text-sm text-slate-300 group-hover:text-white hidden sm:inline">
-                  {user.global_name || user.username}
+                  {user.global_name || user.username || 'User'}
                 </span>
               </button>
             </div>
