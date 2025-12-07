@@ -7,10 +7,10 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Modern dark theme with lime accent
+        // Modern dark theme with soft mint accent
         'yume': {
-          'accent': '#d4ff00',        // Bright lime/yellow
-          'accent-dim': '#b8e600',    // Slightly dimmer accent
+          'accent': '#a8e6cf',        // Soft pastel mint
+          'accent-dim': '#88d4ab',    // Slightly dimmer accent
           'bg': '#141414',            // Main background
           'bg-light': '#1a1a1a',      // Lighter background
           'card': '#1e1e1e',          // Card background

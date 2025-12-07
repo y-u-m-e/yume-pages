@@ -6,8 +6,8 @@
 
 /* Base styles */
 :root {
-  --color-accent: #d4ff00;
-  --color-accent-dim: #b8e600;
+  --color-accent: #a8e6cf;
+  --color-accent-dim: #88d4ab;
   --color-bg: #141414;
   --color-bg-light: #1a1a1a;
   --color-card: #1e1e1e;
@@ -63,7 +63,7 @@ body {
   .btn-primary:hover {
     @apply transform -translate-y-0.5;
     background: var(--color-accent-dim);
-    box-shadow: 0 4px 20px rgba(212, 255, 0, 0.25);
+    box-shadow: 0 4px 20px rgba(168, 230, 207, 0.3);
   }
 
   .btn-secondary {
@@ -150,7 +150,7 @@ body {
 
 /* Selection */
 ::selection {
-  background: rgba(212, 255, 0, 0.3);
+  background: rgba(168, 230, 207, 0.3);
   color: white;
 }
 
