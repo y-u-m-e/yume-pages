@@ -75,37 +75,34 @@ export default function Home() {
         { key: 'infographicMaker', path: 'infographic-maker/infographic-maker.js', heartbeatKey: 'infographic-maker' },
       ];
 
-      let cdnOnline = true;
-      for (const widget of widgetChecks) {
-        try {
-          // Use no-cors mode for CDN check - we just need to know if it's reachable
-          // With no-cors, response.ok is always false but type will be 'opaque' if successful
-          const res = await fetch(`${CDN_BASE}/${widget.path}`, { 
-            method: 'GET',
-            mode: 'no-cors' 
-          });
-          // With no-cors, a successful request returns type 'opaque'
-          const cdnStatus = res.type === 'opaque' || res.ok ? 'online' : 'offline';
-          setHealth(prev => ({
-            ...prev,
-            widgets: { 
-              ...prev.widgets, 
-              [widget.key]: { ...prev.widgets[widget.key as keyof typeof prev.widgets], cdn: cdnStatus } 
-            },
-          }));
-          if (res.type !== 'opaque' && !res.ok) cdnOnline = false;
-        } catch {
-          setHealth(prev => ({
-            ...prev,
-            widgets: { 
-              ...prev.widgets, 
-              [widget.key]: { ...prev.widgets[widget.key as keyof typeof prev.widgets], cdn: 'offline' } 
-            },
-          }));
-          cdnOnline = false;
-        }
+      // Check CDN via API proxy (avoids CORS issues)
+      // The API already proxies these files, so we check if API can reach them
+      try {
+        const cdnRes = await fetch(`${API_BASE}/cdn/mention-widget.js`, { method: 'HEAD' });
+        const cdnStatus: ServiceStatus = cdnRes.ok ? 'online' : 'offline';
+        // If API CDN proxy works, all widgets should work (same source)
+        setHealth(prev => ({
+          ...prev,
+          cdn: cdnStatus,
+          widgets: {
+            ...prev.widgets,
+            mentionMaker: { ...prev.widgets.mentionMaker, cdn: cdnStatus },
+            eventParser: { ...prev.widgets.eventParser, cdn: cdnStatus },
+            infographicMaker: { ...prev.widgets.infographicMaker, cdn: cdnStatus },
+          },
+        }));
+      } catch {
+        setHealth(prev => ({
+          ...prev,
+          cdn: 'offline',
+          widgets: {
+            ...prev.widgets,
+            mentionMaker: { ...prev.widgets.mentionMaker, cdn: 'offline' },
+            eventParser: { ...prev.widgets.eventParser, cdn: 'offline' },
+            infographicMaker: { ...prev.widgets.infographicMaker, cdn: 'offline' },
+          },
+        }));
       }
-      setHealth(prev => ({ ...prev, cdn: cdnOnline ? 'online' : 'degraded' }));
 
       // Check widget heartbeats (are they actually visible on Carrd?)
       try {
