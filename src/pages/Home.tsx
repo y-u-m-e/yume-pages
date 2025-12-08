@@ -253,13 +253,7 @@ export default function Home() {
       {/* Carrd Widgets Status Row */}
       <div className="bg-yume-card rounded-2xl border border-yume-border p-5">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <h3 className="text-sm font-semibold text-white">Carrd Widgets</h3>
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
-              <span className="flex items-center gap-1"><StatusDot status="online" size="xs" /> CDN</span>
-              <span className="flex items-center gap-1"><StatusDot status="recent" size="xs" /> Visible</span>
-            </div>
-          </div>
+          <h3 className="text-sm font-semibold text-white">Carrd Widgets</h3>
           <a 
             href="https://yumes-tools.itai.gg" 
             target="_blank" 
@@ -278,10 +272,7 @@ export default function Home() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-white truncate">Mention Maker</span>
-                <div className="flex items-center gap-1">
-                  <StatusDot status={health.widgets.mentionMaker.cdn} size="xs" />
-                  <StatusDot status={health.widgets.mentionMaker.carrd} size="xs" />
-                </div>
+                <StatusDot status={getWidgetStatus(health.widgets.mentionMaker)} />
               </div>
               <div className="text-xs text-gray-500">
                 {health.widgets.mentionMaker.lastPing 
@@ -299,10 +290,7 @@ export default function Home() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-white truncate">Event Parser</span>
-                <div className="flex items-center gap-1">
-                  <StatusDot status={health.widgets.eventParser.cdn} size="xs" />
-                  <StatusDot status={health.widgets.eventParser.carrd} size="xs" />
-                </div>
+                <StatusDot status={getWidgetStatus(health.widgets.eventParser)} />
               </div>
               <div className="text-xs text-gray-500">
                 {health.widgets.eventParser.lastPing 
@@ -320,10 +308,7 @@ export default function Home() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-white truncate">Infographic Maker</span>
-                <div className="flex items-center gap-1">
-                  <StatusDot status={health.widgets.infographicMaker.cdn} size="xs" />
-                  <StatusDot status={health.widgets.infographicMaker.carrd} size="xs" />
-                </div>
+                <StatusDot status={getWidgetStatus(health.widgets.infographicMaker)} />
               </div>
               <div className="text-xs text-gray-500">
                 {health.widgets.infographicMaker.lastPing 
