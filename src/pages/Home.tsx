@@ -23,13 +23,6 @@ const tools = [
 // Service status type
 type ServiceStatus = 'checking' | 'online' | 'offline' | 'degraded' | 'recent' | 'stale';
 
-interface WidgetHeartbeat {
-  status: string;
-  lastPing: string;
-  source: string;
-  pingCount: number;
-}
-
 interface ServiceHealth {
   api: ServiceStatus;
   cdn: ServiceStatus;
@@ -42,7 +35,6 @@ interface ServiceHealth {
 }
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
-const CDN_BASE = 'https://cdn.jsdelivr.net/gh/y-u-m-e/yume-tools@main/dist';
 
 export default function Home() {
   const { user, login, isAdmin } = useAuth();
