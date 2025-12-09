@@ -80,6 +80,8 @@ export default function DevOps() {
   const [loadingSecrets, setLoadingSecrets] = useState(true);
   const [cfDeployments, setCfDeployments] = useState<CFDeployment[]>([]);
   const [expandedWorkflows, setExpandedWorkflows] = useState<Record<string, boolean>>({});
+  const [heartbeatStatus, setHeartbeatStatus] = useState<Record<string, { status: string; lastPing: string; source: string }>>({});
+  const [pingingCarrd, setPingingCarrd] = useState(false);
 
   // Try to load token from server first, then localStorage
   useEffect(() => {
@@ -131,6 +133,13 @@ export default function DevOps() {
     }
   }, [tokenSaved, githubToken]);
 
+  // Fetch heartbeat status on mount and periodically
+  useEffect(() => {
+    fetchHeartbeatStatus();
+    const interval = setInterval(fetchHeartbeatStatus, 30000); // Refresh every 30s
+    return () => clearInterval(interval);
+  }, []);
+
   // Fetch Cloudflare Pages deployments
   const fetchCFDeployments = async () => {
     try {
@@ -144,6 +153,43 @@ export default function DevOps() {
     } catch {
       // Ignore errors - CF deployments are optional
     }
+  };
+
+  // Fetch widget heartbeat status
+  const fetchHeartbeatStatus = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/widget/status`);
+      if (res.ok) {
+        const data = await res.json();
+        setHeartbeatStatus(data.widgets || {});
+      }
+    } catch {
+      // Ignore errors
+    }
+  };
+
+  // Ping Carrd page to trigger widget heartbeats
+  const pingCarrdWidgets = async () => {
+    setPingingCarrd(true);
+    
+    // Open Carrd page in a popup window
+    const popup = window.open(
+      'https://yumes-tools.itai.gg',
+      'carrd_ping',
+      'width=800,height=600,left=100,top=100'
+    );
+    
+    // Wait for widgets to load and send heartbeats
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    
+    // Close the popup
+    if (popup && !popup.closed) {
+      popup.close();
+    }
+    
+    // Refresh heartbeat status
+    await fetchHeartbeatStatus();
+    setPingingCarrd(false);
   };
 
   const saveToken = () => {
@@ -566,6 +612,78 @@ export default function DevOps() {
           ))}
         </div>
       )}
+
+      {/* Widget Heartbeats */}
+      <div className="glass-panel p-6 mt-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-white">💓 Widget Heartbeats</h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={fetchHeartbeatStatus}
+              className="text-xs text-gray-400 hover:text-white transition-colors"
+            >
+              🔄 Refresh
+            </button>
+            <button
+              onClick={pingCarrdWidgets}
+              disabled={pingingCarrd}
+              className="bg-yume-accent hover:bg-yume-accent/80 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2"
+            >
+              {pingingCarrd ? (
+                <>
+                  <span className="animate-spin">⏳</span>
+                  Pinging...
+                </>
+              ) : (
+                <>
+                  🌐 Ping Carrd Widgets
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+        <p className="text-gray-400 text-sm mb-4">
+          Opens the Carrd page briefly to trigger widget heartbeats. This refreshes the "Last seen" timestamps on the Home page.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            { key: 'mention-maker', name: 'Mention Maker', icon: '@' },
+            { key: 'event-parser', name: 'Event Parser', icon: '📋' },
+            { key: 'infographic-maker', name: 'Infographic Maker', icon: '🖼️' },
+          ].map(widget => {
+            const hb = heartbeatStatus[widget.key];
+            const statusColor = hb?.status === 'online' ? 'bg-emerald-400' 
+              : hb?.status === 'recent' ? 'bg-emerald-300'
+              : hb?.status === 'stale' ? 'bg-yellow-400' 
+              : 'bg-red-400';
+            return (
+              <div key={widget.key} className="bg-slate-800/50 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center text-lg">
+                    {widget.icon}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-medium text-sm">{widget.name}</span>
+                      <div className={`w-2 h-2 rounded-full ${statusColor}`} />
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {hb?.lastPing 
+                        ? `Last ping: ${new Date(hb.lastPing + 'Z').toLocaleString()}`
+                        : 'No heartbeat data'}
+                    </div>
+                    {hb?.source && (
+                      <div className="text-xs text-gray-600">
+                        From: {hb.source}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Quick Links */}
       <div className="glass-panel p-6 mt-8">
