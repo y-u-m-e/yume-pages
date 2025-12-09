@@ -1,5 +1,6 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useState, useRef, useEffect } from 'react';
 
 // Public pages visible to everyone
 const publicNavItems = [
@@ -20,6 +21,20 @@ const adminNavItems = [
 
 export default function Nav() {
   const { user, loading, login, logout, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   
   // Combine nav items based on auth status
   let navItems = [...publicNavItems];
@@ -79,26 +94,52 @@ export default function Nav() {
             {loading ? (
               <div className="w-9 h-9 rounded-full bg-yume-card animate-pulse" />
             ) : user ? (
-              <button 
-                onClick={logout}
-                className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-yume-card border border-yume-border hover:border-yume-border-accent transition-all group"
-                title="Click to logout"
-              >
-                {user.avatar ? (
-                  <img
-                    src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=32`}
-                    alt=""
-                    className="w-7 h-7 rounded-full"
-                  />
-                ) : (
-                  <div className="w-7 h-7 rounded-full bg-yume-accent flex items-center justify-center text-sm font-semibold text-yume-bg">
-                    {(user.global_name || user.username || 'U').charAt(0).toUpperCase()}
+              <div className="relative" ref={menuRef}>
+                <button 
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-yume-card border border-yume-border hover:border-yume-border-accent transition-all group"
+                >
+                  {user.avatar ? (
+                    <img
+                      src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=32`}
+                      alt=""
+                      className="w-7 h-7 rounded-full"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-yume-accent flex items-center justify-center text-sm font-semibold text-yume-bg">
+                      {(user.global_name || user.username || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="text-sm text-gray-300 group-hover:text-white hidden sm:inline">
+                    {user.global_name || user.username || 'User'}
+                  </span>
+                </button>
+
+                {/* User Dropdown Menu */}
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-48 py-2 bg-yume-card rounded-xl border border-yume-border shadow-xl z-50">
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        navigate('/profile');
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-yume-bg-light hover:text-white transition-colors flex items-center gap-2"
+                    >
+                      <span>👤</span> Profile
+                    </button>
+                    <div className="border-t border-yume-border my-1" />
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        logout();
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2"
+                    >
+                      <span>🚪</span> Sign Out
+                    </button>
                   </div>
                 )}
-                <span className="text-sm text-gray-300 group-hover:text-white hidden sm:inline">
-                  {user.global_name || user.username || 'User'}
-                </span>
-              </button>
+              </div>
             ) : (
               <button 
                 onClick={login} 

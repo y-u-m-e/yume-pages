@@ -15,7 +15,7 @@ export default function CruddyPanel() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   
-  const [activeTab, setActiveTab] = useState<Tab>('records');
+  const [activeTab, setActiveTab] = useState<Tab>('events');
   const [recordsData, setRecordsData] = useState<AttendanceRecord[]>([]);
   const [eventGroups, setEventGroups] = useState<EventGroup[]>([]);
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
