@@ -100,9 +100,7 @@ export default function Profile() {
   }
 
   const displayName = user.global_name || user.username;
-  const fullUsername = user.discriminator === '0' 
-    ? `@${user.username}` 
-    : `${user.username}#${user.discriminator}`;
+  const fullUsername = `@${user.username}`;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
