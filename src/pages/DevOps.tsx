@@ -840,7 +840,7 @@ export default function DevOps() {
                       <div className="flex items-center gap-2">
                         <span className="text-slate-500 text-xs">
                           {hb?.lastPing 
-                            ? new Date(hb.lastPing).toLocaleTimeString()
+                            ? new Date(hb.lastPing.replace(' ', 'T') + 'Z').toLocaleString()
                             : 'No data'}
                         </span>
                         <div className={`w-2 h-2 rounded-full ${getHeartbeatColor(hb?.status)}`} />
