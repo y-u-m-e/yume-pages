@@ -46,6 +46,30 @@ interface CFDeployment {
   };
 }
 
+interface SeshWorkerStatus {
+  configured: boolean;
+  worker?: string;
+  status?: string;
+  timestamp?: string;
+  error?: string;
+}
+
+interface SeshWorkerConfig {
+  guildId?: string;
+  spreadsheetId?: string;
+  sheetName?: string;
+  serviceAccountConfigured?: boolean;
+  privateKeyConfigured?: boolean;
+}
+
+interface SeshSyncResult {
+  success: boolean;
+  eventsCount?: number;
+  duration?: number;
+  timestamp?: string;
+  error?: string;
+}
+
 const REPOS = [
   { 
     name: 'yume-tools', 
@@ -82,6 +106,13 @@ export default function DevOps() {
   const [expandedWorkflows, setExpandedWorkflows] = useState<Record<string, boolean>>({});
   const [heartbeatStatus, setHeartbeatStatus] = useState<Record<string, { status: string; lastPing: string; source: string }>>({});
   const [pingingCarrd, setPingingCarrd] = useState(false);
+  
+  // Sesh Calendar Worker state
+  const [seshWorkerStatus, setSeshWorkerStatus] = useState<SeshWorkerStatus | null>(null);
+  const [seshWorkerConfig, setSeshWorkerConfig] = useState<SeshWorkerConfig | null>(null);
+  const [seshSyncing, setSeshSyncing] = useState(false);
+  const [seshLastSync, setSeshLastSync] = useState<SeshSyncResult | null>(null);
+  const [seshExpanded, setSeshExpanded] = useState(true);
 
   // Try to load token from server first, then localStorage
   useEffect(() => {
@@ -133,6 +164,13 @@ export default function DevOps() {
     }
   }, [tokenSaved, githubToken]);
 
+  // Fetch Sesh worker status when user is authenticated
+  useEffect(() => {
+    if (user) {
+      fetchSeshWorkerStatus();
+    }
+  }, [user]);
+
   // Fetch heartbeat status on mount and periodically
   useEffect(() => {
     fetchHeartbeatStatus();
@@ -165,6 +203,51 @@ export default function DevOps() {
       }
     } catch {
       // Ignore errors
+    }
+  };
+
+  // Fetch Sesh Worker status
+  const fetchSeshWorkerStatus = async () => {
+    try {
+      const [statusRes, configRes] = await Promise.all([
+        fetch(`${API_BASE}/admin/sesh-worker/status`, { credentials: 'include' }),
+        fetch(`${API_BASE}/admin/sesh-worker/config`, { credentials: 'include' })
+      ]);
+      
+      if (statusRes.ok) {
+        const data = await statusRes.json();
+        setSeshWorkerStatus(data);
+      }
+      
+      if (configRes.ok) {
+        const data = await configRes.json();
+        setSeshWorkerConfig(data);
+      }
+    } catch {
+      setSeshWorkerStatus({ configured: false, error: 'Failed to fetch status' });
+    }
+  };
+
+  // Trigger Sesh Calendar sync
+  const triggerSeshSync = async () => {
+    setSeshSyncing(true);
+    setSeshLastSync(null);
+    
+    try {
+      const res = await fetch(`${API_BASE}/admin/sesh-worker/sync`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      const data = await res.json();
+      setSeshLastSync(data);
+      
+      // Refresh status after sync
+      await fetchSeshWorkerStatus();
+    } catch (err) {
+      setSeshLastSync({ success: false, error: 'Failed to trigger sync' });
+    } finally {
+      setSeshSyncing(false);
     }
   };
 
@@ -683,6 +766,135 @@ export default function DevOps() {
             );
           })}
         </div>
+      </div>
+
+      {/* Sesh Calendar Worker */}
+      <div className="glass-panel p-6 mt-8">
+        <button 
+          onClick={() => setSeshExpanded(!seshExpanded)}
+          className="flex items-center justify-between w-full text-left mb-4 group"
+        >
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <span className={`transition-transform ${seshExpanded ? 'rotate-90' : ''}`}>▶</span>
+            📅 Sesh Calendar Worker
+          </h2>
+          <div className="flex items-center gap-2">
+            {seshWorkerStatus?.configured ? (
+              <span className="text-xs text-green-400">● Connected</span>
+            ) : (
+              <span className="text-xs text-yellow-400">● Not Configured</span>
+            )}
+          </div>
+        </button>
+        
+        {seshExpanded && (
+          <div className="animate-fadeIn">
+            <p className="text-slate-400 text-sm mb-4">
+              Syncs clan calendar events from sesh.fyi to Google Sheets. Runs automatically on a cron schedule.
+            </p>
+            
+            {/* Worker Status */}
+            <div className="bg-slate-800/50 rounded-lg p-4 mb-4">
+              <h3 className="text-sm font-medium text-slate-400 mb-3">Worker Configuration</h3>
+              {seshWorkerConfig ? (
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-slate-500">Guild ID:</span>
+                    <span className="text-white ml-2 font-mono">{seshWorkerConfig.guildId || 'Not set'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Sheet:</span>
+                    <span className="text-white ml-2">{seshWorkerConfig.sheetName || 'Not set'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Service Account:</span>
+                    <span className={`ml-2 ${seshWorkerConfig.serviceAccountConfigured ? 'text-green-400' : 'text-red-400'}`}>
+                      {seshWorkerConfig.serviceAccountConfigured ? '✅ Configured' : '❌ Missing'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Private Key:</span>
+                    <span className={`ml-2 ${seshWorkerConfig.privateKeyConfigured ? 'text-green-400' : 'text-red-400'}`}>
+                      {seshWorkerConfig.privateKeyConfigured ? '✅ Configured' : '❌ Missing'}
+                    </span>
+                  </div>
+                </div>
+              ) : seshWorkerStatus?.error ? (
+                <p className="text-red-400 text-sm">{seshWorkerStatus.error}</p>
+              ) : (
+                <p className="text-slate-500 text-sm">Loading configuration...</p>
+              )}
+            </div>
+            
+            {/* Manual Sync */}
+            <div className="flex items-center gap-4">
+              <button
+                onClick={triggerSeshSync}
+                disabled={seshSyncing || !seshWorkerStatus?.configured}
+                className="btn-primary flex items-center gap-2"
+              >
+                {seshSyncing ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    Syncing...
+                  </>
+                ) : (
+                  <>
+                    🔄 Sync Now
+                  </>
+                )}
+              </button>
+              
+              <button
+                onClick={fetchSeshWorkerStatus}
+                className="btn-secondary text-sm"
+              >
+                🔄 Refresh Status
+              </button>
+              
+              <a
+                href="https://docs.google.com/spreadsheets/d/1ME5MvznNQy_F9RYIl8tqFTzw-6dSDyv7EX-Ln_Sq7HI"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-yume-mint hover:underline text-sm"
+              >
+                📊 Open Sheet →
+              </a>
+            </div>
+            
+            {/* Last Sync Result */}
+            {seshLastSync && (
+              <div className={`mt-4 p-3 rounded-lg ${seshLastSync.success ? 'bg-green-900/30 border border-green-700' : 'bg-red-900/30 border border-red-700'}`}>
+                {seshLastSync.success ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-green-400">
+                      ✅ Synced {seshLastSync.eventsCount} events in {seshLastSync.duration}ms
+                    </span>
+                    <span className="text-slate-500 text-xs">
+                      {seshLastSync.timestamp && new Date(seshLastSync.timestamp).toLocaleString()}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-red-400">❌ {seshLastSync.error}</span>
+                )}
+              </div>
+            )}
+            
+            {/* Help Text */}
+            {!seshWorkerStatus?.configured && (
+              <div className="mt-4 p-3 rounded-lg bg-yellow-900/20 border border-yellow-700/50">
+                <p className="text-yellow-400 text-sm">
+                  ⚠️ Worker not deployed yet. To set up:
+                </p>
+                <ol className="text-slate-400 text-sm mt-2 list-decimal list-inside space-y-1">
+                  <li>Deploy the worker: <code className="text-yume-mint">cd sesh-calendar-worker && npm run deploy</code></li>
+                  <li>Set secrets: <code className="text-yume-mint">npx wrangler secret put GOOGLE_SERVICE_ACCOUNT_EMAIL</code></li>
+                  <li>Set secrets: <code className="text-yume-mint">npx wrangler secret put GOOGLE_PRIVATE_KEY</code></li>
+                </ol>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Quick Links */}
