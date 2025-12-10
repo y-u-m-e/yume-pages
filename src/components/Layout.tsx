@@ -7,7 +7,7 @@ export default function Layout() {
     <div className="min-h-screen flex flex-col bg-yume-bg">
       <Nav />
       
-      <main className="flex-1 px-4 sm:px-6 py-6">
+      <main className="flex-1 px-4 sm:px-6 py-6 pb-24 md:pb-6">
         <Outlet />
       </main>
 
