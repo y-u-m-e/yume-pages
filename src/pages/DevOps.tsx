@@ -73,19 +73,32 @@ interface SeshSyncResult {
 const REPOS = [
   { 
     name: 'yume-tools', 
-    displayName: '📦 Widgets (yume-tools)',
-    description: 'CDN widgets: nav-bar, how-to, infographic-maker, etc.'
+    displayName: 'Widgets',
+    icon: '📦',
+    description: 'CDN widgets for Carrd site'
   },
   { 
     name: 'yume-api', 
-    displayName: '⚡ API Worker (yume-api)',
-    description: 'Cloudflare Worker API backend'
+    displayName: 'API Worker',
+    icon: '⚡',
+    description: 'Cloudflare Worker backend'
   },
   { 
     name: 'yume-pages', 
-    displayName: '🌐 Frontend (yume-pages)',
-    description: 'React frontend on Cloudflare Pages'
+    displayName: 'Frontend',
+    icon: '🌐',
+    description: 'React app on CF Pages'
   },
+];
+
+const CRON_SCHEDULES = [
+  { value: '0 * * * *', label: 'Every hour', description: 'Runs at the top of every hour' },
+  { value: '0 */2 * * *', label: 'Every 2 hours', description: 'Runs every 2 hours' },
+  { value: '0 */4 * * *', label: 'Every 4 hours', description: 'Runs 6 times a day' },
+  { value: '0 */6 * * *', label: 'Every 6 hours', description: 'Runs 4 times a day (default)' },
+  { value: '0 */12 * * *', label: 'Every 12 hours', description: 'Runs twice a day' },
+  { value: '0 0 * * *', label: 'Daily (midnight)', description: 'Runs once at midnight UTC' },
+  { value: '0 12 * * *', label: 'Daily (noon)', description: 'Runs once at noon UTC' },
 ];
 
 const GITHUB_ORG = 'y-u-m-e';
@@ -104,7 +117,7 @@ export default function DevOps() {
   const [loadingSecrets, setLoadingSecrets] = useState(true);
   const [cfDeployments, setCfDeployments] = useState<CFDeployment[]>([]);
   const [expandedWorkflows, setExpandedWorkflows] = useState<Record<string, boolean>>({});
-  const [heartbeatStatus, setHeartbeatStatus] = useState<Record<string, { status: string; lastPing: string; source: string }>>({});
+  const [heartbeatStatus, setHeartbeatStatus] = useState<Record<string, { status: string; last_ping: string; source_domain: string }>>({});
   const [pingingCarrd, setPingingCarrd] = useState(false);
   
   // Sesh Calendar Worker state
@@ -112,14 +125,17 @@ export default function DevOps() {
   const [seshWorkerConfig, setSeshWorkerConfig] = useState<SeshWorkerConfig | null>(null);
   const [seshSyncing, setSeshSyncing] = useState(false);
   const [seshLastSync, setSeshLastSync] = useState<SeshSyncResult | null>(null);
-  const [seshExpanded, setSeshExpanded] = useState(true);
+  const [selectedSchedule, setSelectedSchedule] = useState('0 */6 * * *');
+  const [showScheduleInfo, setShowScheduleInfo] = useState(false);
+
+  // Active tab for mobile/responsive
+  const [activeTab, setActiveTab] = useState<'repos' | 'tools'>('repos');
 
   // Try to load token from server first, then localStorage
   useEffect(() => {
     const loadToken = async () => {
       setLoadingSecrets(true);
       
-      // Try server first
       try {
         const res = await fetch(`${API_BASE}/admin/secrets`, {
           credentials: 'include'
@@ -138,7 +154,6 @@ export default function DevOps() {
         // Server token not available
       }
       
-      // Fallback to localStorage
       const saved = localStorage.getItem('github_pat');
       if (saved) {
         setGithubToken(saved);
@@ -174,11 +189,10 @@ export default function DevOps() {
   // Fetch heartbeat status on mount and periodically
   useEffect(() => {
     fetchHeartbeatStatus();
-    const interval = setInterval(fetchHeartbeatStatus, 30000); // Refresh every 30s
+    const interval = setInterval(fetchHeartbeatStatus, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch Cloudflare Pages deployments
   const fetchCFDeployments = async () => {
     try {
       const res = await fetch(`${API_BASE}/admin/cf-deployments?project=yume-pages`, {
@@ -189,11 +203,10 @@ export default function DevOps() {
         setCfDeployments(data.deployments || []);
       }
     } catch {
-      // Ignore errors - CF deployments are optional
+      // Ignore errors
     }
   };
 
-  // Fetch widget heartbeat status
   const fetchHeartbeatStatus = async () => {
     try {
       const res = await fetch(`${API_BASE}/widget/status`);
@@ -206,7 +219,6 @@ export default function DevOps() {
     }
   };
 
-  // Fetch Sesh Worker status
   const fetchSeshWorkerStatus = async () => {
     try {
       const [statusRes, configRes] = await Promise.all([
@@ -228,7 +240,6 @@ export default function DevOps() {
     }
   };
 
-  // Trigger Sesh Calendar sync
   const triggerSeshSync = async () => {
     setSeshSyncing(true);
     setSeshLastSync(null);
@@ -241,36 +252,29 @@ export default function DevOps() {
       
       const data = await res.json();
       setSeshLastSync(data);
-      
-      // Refresh status after sync
       await fetchSeshWorkerStatus();
-    } catch (err) {
+    } catch {
       setSeshLastSync({ success: false, error: 'Failed to trigger sync' });
     } finally {
       setSeshSyncing(false);
     }
   };
 
-  // Ping Carrd page to trigger widget heartbeats
   const pingCarrdWidgets = async () => {
     setPingingCarrd(true);
     
-    // Open Carrd page in a popup window
     const popup = window.open(
       'https://yumes-tools.itai.gg',
       'carrd_ping',
       'width=800,height=600,left=100,top=100'
     );
     
-    // Wait for widgets to load and send heartbeats
     await new Promise(resolve => setTimeout(resolve, 5000));
     
-    // Close the popup
     if (popup && !popup.closed) {
       popup.close();
     }
     
-    // Refresh heartbeat status
     await fetchHeartbeatStatus();
     setPingingCarrd(false);
   };
@@ -298,7 +302,6 @@ export default function DevOps() {
     ));
 
     try {
-      // Fetch latest commit
       const commitRes = await fetch(
         `https://api.github.com/repos/${GITHUB_ORG}/${repoName}/commits/main`,
         { headers: { Authorization: `Bearer ${githubToken}` } }
@@ -307,7 +310,6 @@ export default function DevOps() {
       if (!commitRes.ok) throw new Error('Failed to fetch commits');
       const commitData = await commitRes.json();
 
-      // Fetch recent workflow runs
       const workflowRes = await fetch(
         `https://api.github.com/repos/${GITHUB_ORG}/${repoName}/actions/runs?per_page=5`,
         { headers: { Authorization: `Bearer ${githubToken}` } }
@@ -332,7 +334,7 @@ export default function DevOps() {
           workflows: workflowRuns,
         } : r
       ));
-    } catch (error) {
+    } catch {
       setRepos(prev => prev.map(r => 
         r.name === repoName ? { ...r, loading: false, error: 'Failed to fetch' } : r
       ));
@@ -364,7 +366,7 @@ export default function DevOps() {
     setTriggeringWorkflow(`${repoName}-${workflowId}`);
     
     try {
-      const body: any = { ref: 'main' };
+      const body: Record<string, unknown> = { ref: 'main' };
       if (inputs) body.inputs = inputs;
 
       const res = await fetch(
@@ -380,7 +382,6 @@ export default function DevOps() {
       );
 
       if (res.status === 204) {
-        // Success - wait a bit then refresh
         setTimeout(() => {
           fetchRepoData(repoName);
           setTriggeringWorkflow(null);
@@ -388,7 +389,7 @@ export default function DevOps() {
       } else {
         throw new Error('Failed to trigger workflow');
       }
-    } catch (error) {
+    } catch {
       alert('Failed to trigger workflow. Make sure your token has workflow permissions.');
       setTriggeringWorkflow(null);
     }
@@ -402,7 +403,6 @@ export default function DevOps() {
     );
   }
 
-  // Only allow admin
   if (user.id !== '166201366228762624') {
     return (
       <div className="max-w-xl mx-auto text-center py-20">
@@ -428,518 +428,453 @@ export default function DevOps() {
     return '⚪';
   };
 
+  const getHeartbeatColor = (status?: string) => {
+    if (status === 'online') return 'bg-emerald-400';
+    if (status === 'recent') return 'bg-emerald-300';
+    if (status === 'stale') return 'bg-yellow-400';
+    return 'bg-red-400';
+  };
+
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-yume-mint mb-2">🚀 DevOps Control Panel</h1>
-        <p className="text-slate-400">Monitor and control deployments across all repositories.</p>
+    <div className="max-w-7xl mx-auto px-4">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-white mb-1">🚀 DevOps Control Panel</h1>
+        <p className="text-slate-400 text-sm">Monitor and manage deployments across your infrastructure</p>
       </div>
 
       {/* GitHub Token Setup */}
       {loadingSecrets ? (
-        <div className="glass-panel p-6 mb-8 flex items-center gap-3">
+        <div className="glass-panel p-4 mb-6 flex items-center gap-3">
           <div className="w-5 h-5 border-2 border-yume-mint border-t-transparent rounded-full animate-spin" />
           <span className="text-slate-400">Loading configuration...</span>
         </div>
       ) : !tokenSaved ? (
-        <div className="glass-panel p-6 mb-8">
-          <h2 className="text-xl font-semibold text-white mb-4">🔑 GitHub Token Required</h2>
-          <p className="text-slate-400 text-sm mb-4">
-            No server token configured. Enter a GitHub PAT manually, or add <code className="text-yume-mint">GITHUB_PAT</code> to Worker secrets.
-            <br />
-            Required scopes: <code className="text-yume-mint">repo</code>, <code className="text-yume-mint">workflow</code>
-          </p>
-          <div className="flex gap-3">
-            <input
-              type="password"
-              value={githubToken}
-              onChange={(e) => setGithubToken(e.target.value)}
-              placeholder="ghp_xxxxxxxxxxxx"
-              className="flex-1 px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:border-yume-mint text-white"
-            />
-            <button onClick={saveToken} className="btn-primary">
-              Save Locally
-            </button>
+        <div className="glass-panel p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">🔑</span>
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-white mb-2">GitHub Token Required</h2>
+              <p className="text-slate-400 text-sm mb-3">
+                Enter a GitHub PAT with <code className="text-yume-mint">repo</code> and <code className="text-yume-mint">workflow</code> scopes.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={githubToken}
+                  onChange={(e) => setGithubToken(e.target.value)}
+                  placeholder="ghp_xxxxxxxxxxxx"
+                  className="flex-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:border-yume-mint text-white text-sm"
+                />
+                <button onClick={saveToken} className="btn-primary text-sm px-4">
+                  Save
+                </button>
+              </div>
+            </div>
           </div>
-          <p className="text-slate-500 text-xs mt-2">
-            Token will be stored in your browser. For persistent storage, run: <code className="text-yume-mint">npx wrangler secret put GITHUB_PAT</code>
-          </p>
         </div>
       ) : (
-        <div className="flex justify-between items-center mb-6">
-          <span className="text-green-400 text-sm">
-            ✅ GitHub token configured 
-            <span className="text-slate-500 ml-2">
-              ({tokenSource === 'server' ? '🔒 from server' : '💾 from browser'})
+        <div className="flex justify-between items-center mb-4">
+          <span className="text-green-400 text-sm flex items-center gap-2">
+            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+            GitHub connected
+            <span className="text-slate-500">
+              ({tokenSource === 'server' ? 'server' : 'local'})
             </span>
           </span>
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <button 
-              onClick={() => { fetchAllRepoData(); fetchCFDeployments(); }} 
-              className="btn-secondary text-sm"
+              onClick={() => { fetchAllRepoData(); fetchCFDeployments(); fetchSeshWorkerStatus(); }} 
+              className="btn-secondary text-xs px-3 py-1"
             >
-              🔄 Refresh All
+              🔄 Refresh
             </button>
             {tokenSource === 'local' && (
-              <button 
-                onClick={clearToken} 
-                className="text-slate-400 hover:text-red-400 text-sm"
-              >
-                Clear Token
+              <button onClick={clearToken} className="text-slate-400 hover:text-red-400 text-xs">
+                Clear
               </button>
             )}
           </div>
         </div>
       )}
 
-      {/* Repo Cards */}
+      {/* Mobile Tab Switcher */}
+      <div className="lg:hidden flex mb-4 bg-slate-800/50 rounded-lg p-1">
+        <button
+          onClick={() => setActiveTab('repos')}
+          className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+            activeTab === 'repos' ? 'bg-yume-mint text-black' : 'text-slate-400'
+          }`}
+        >
+          Repositories
+        </button>
+        <button
+          onClick={() => setActiveTab('tools')}
+          className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
+            activeTab === 'tools' ? 'bg-yume-mint text-black' : 'text-slate-400'
+          }`}
+        >
+          Tools
+        </button>
+      </div>
+
       {tokenSaved && (
-        <div className="space-y-6">
-          {repos.map((repo) => (
-            <div key={repo.name} className="glass-panel p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h2 className="text-xl font-semibold text-white">{repo.displayName}</h2>
-                  <p className="text-slate-400 text-sm">{repo.description}</p>
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Left Column - Repositories */}
+          <div className={`flex-1 space-y-4 ${activeTab !== 'repos' ? 'hidden lg:block' : ''}`}>
+            <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wider hidden lg:block">Repositories</h2>
+            
+            {repos.map((repo) => (
+              <div key={repo.name} className="glass-panel p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-xl">
+                      {REPOS.find(r => r.name === repo.name)?.icon}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-white">{repo.displayName}</h3>
+                      <p className="text-slate-500 text-xs">{repo.description}</p>
+                    </div>
+                  </div>
+                  <a
+                    href={`https://github.com/${GITHUB_ORG}/${repo.name}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-slate-500 hover:text-yume-mint text-xs"
+                  >
+                    GitHub →
+                  </a>
                 </div>
-                <a
-                  href={`https://github.com/${GITHUB_ORG}/${repo.name}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-slate-400 hover:text-yume-mint text-sm"
-                >
-                  View on GitHub →
-                </a>
-              </div>
 
-              {repo.loading ? (
-                <div className="flex items-center gap-2 text-slate-400">
-                  <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                  Loading...
-                </div>
-              ) : repo.error ? (
-                <p className="text-red-400">{repo.error}</p>
-              ) : (
-                <>
-                  {/* Latest Commit */}
-                  {repo.lastCommit && (
-                    <div className="bg-slate-800/50 rounded-lg p-4 mb-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <span className="text-yume-mint font-mono text-sm">{repo.lastCommit.sha}</span>
-                          <span className="text-slate-500 mx-2">•</span>
-                          <span className="text-slate-300">{repo.lastCommit.message}</span>
+                {repo.loading ? (
+                  <div className="flex items-center gap-2 text-slate-400 text-sm">
+                    <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                    Loading...
+                  </div>
+                ) : repo.error ? (
+                  <p className="text-red-400 text-sm">{repo.error}</p>
+                ) : (
+                  <>
+                    {/* Latest Commit */}
+                    {repo.lastCommit && (
+                      <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-yume-mint font-mono">{repo.lastCommit.sha}</span>
+                          <span className="text-slate-300 truncate flex-1">{repo.lastCommit.message}</span>
                         </div>
-                        <span className="text-slate-500 text-sm">{repo.lastCommit.date}</span>
+                        <p className="text-slate-500 text-xs mt-1">
+                          {repo.lastCommit.author} • {repo.lastCommit.date}
+                        </p>
                       </div>
-                      <p className="text-slate-500 text-sm mt-1">by {repo.lastCommit.author}</p>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Recent Workflow Runs (for non-Pages repos) */}
-                  {repo.name !== 'yume-pages' && repo.workflows && repo.workflows.length > 0 && (
-                    <div className="mb-4">
-                      <button 
-                        onClick={() => setExpandedWorkflows(prev => ({ ...prev, [repo.name]: !prev[repo.name] }))}
-                        className="flex items-center justify-between w-full text-left mb-2 group"
-                      >
-                        <h3 className="text-sm font-medium text-slate-400 group-hover:text-slate-300">
-                          <span className={`inline-block transition-transform mr-1 ${expandedWorkflows[repo.name] ? 'rotate-90' : ''}`}>▶</span>
-                          Recent Workflows ({repo.workflows.length})
-                        </h3>
-                      </button>
-                      {expandedWorkflows[repo.name] && (
-                        <div className="space-y-2 animate-fadeIn">
-                          {repo.workflows.slice(0, 3).map((run) => (
-                            <a
-                              key={run.id}
-                              href={run.html_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center justify-between bg-slate-800/30 rounded-lg p-3 hover:bg-slate-800/50 transition-colors"
-                            >
-                              <div className="flex items-center gap-2">
-                                <span>{getStatusIcon(run.status, run.conclusion)}</span>
-                                <span className={`text-sm ${getStatusColor(run.status, run.conclusion)}`}>
-                                  {run.name}
+                    {/* Workflows/Deployments */}
+                    {repo.name !== 'yume-pages' && repo.workflows && repo.workflows.length > 0 && (
+                      <div className="mb-3">
+                        <button 
+                          onClick={() => setExpandedWorkflows(prev => ({ ...prev, [repo.name]: !prev[repo.name] }))}
+                          className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
+                        >
+                          <span className={`transition-transform ${expandedWorkflows[repo.name] ? 'rotate-90' : ''}`}>▶</span>
+                          Workflows ({repo.workflows.length})
+                        </button>
+                        {expandedWorkflows[repo.name] && (
+                          <div className="mt-2 space-y-1">
+                            {repo.workflows.slice(0, 3).map((run) => (
+                              <a
+                                key={run.id}
+                                href={run.html_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-between bg-slate-800/30 rounded p-2 hover:bg-slate-800/50 text-xs"
+                              >
+                                <span className="flex items-center gap-2">
+                                  <span>{getStatusIcon(run.status, run.conclusion)}</span>
+                                  <span className={getStatusColor(run.status, run.conclusion)}>{run.name}</span>
                                 </span>
-                              </div>
-                              <span className="text-slate-500 text-xs">
-                                {new Date(run.created_at).toLocaleString()}
-                              </span>
-                            </a>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                                <span className="text-slate-500">{new Date(run.created_at).toLocaleDateString()}</span>
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-                  {/* Cloudflare Pages Deployments (for yume-pages) */}
-                  {repo.name === 'yume-pages' && (
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
+                    {/* CF Pages Deployments */}
+                    {repo.name === 'yume-pages' && (
+                      <div className="mb-3">
                         <button 
                           onClick={() => setExpandedWorkflows(prev => ({ ...prev, 'yume-pages': !prev['yume-pages'] }))}
-                          className="flex items-center text-left group"
+                          className="text-xs text-slate-400 hover:text-white flex items-center gap-1"
                         >
-                          <h3 className="text-sm font-medium text-slate-400 group-hover:text-slate-300">
-                            <span className={`inline-block transition-transform mr-1 ${expandedWorkflows['yume-pages'] ? 'rotate-90' : ''}`}>▶</span>
-                            ☁️ Recent Deployments ({cfDeployments.length})
-                          </h3>
+                          <span className={`transition-transform ${expandedWorkflows['yume-pages'] ? 'rotate-90' : ''}`}>▶</span>
+                          ☁️ Deployments ({cfDeployments.length})
                         </button>
-                        <button 
-                          onClick={fetchCFDeployments}
-                          className="text-slate-500 hover:text-yume-mint text-xs"
-                        >
-                          🔄 Refresh
-                        </button>
-                      </div>
-                      {expandedWorkflows['yume-pages'] && (
-                        cfDeployments.length > 0 ? (
-                          <div className="space-y-2 animate-fadeIn">
+                        {expandedWorkflows['yume-pages'] && cfDeployments.length > 0 && (
+                          <div className="mt-2 space-y-1">
                             {cfDeployments.slice(0, 3).map((deploy) => (
                               <a
                                 key={deploy.id}
                                 href={deploy.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center justify-between bg-slate-800/30 rounded-lg p-3 hover:bg-slate-800/50 transition-colors"
+                                className="flex items-center justify-between bg-slate-800/30 rounded p-2 hover:bg-slate-800/50 text-xs"
                               >
-                                <div className="flex items-center gap-2">
+                                <span className="flex items-center gap-2">
                                   <span>{deploy.status === 'success' ? '✅' : deploy.status === 'failure' ? '❌' : '🔄'}</span>
-                                  <span className={`text-sm ${deploy.status === 'success' ? 'text-green-400' : deploy.status === 'failure' ? 'text-red-400' : 'text-yellow-400'}`}>
-                                    {deploy.source?.commit_message || 'Deployment'}
+                                  <span className={deploy.status === 'success' ? 'text-green-400' : deploy.status === 'failure' ? 'text-red-400' : 'text-yellow-400'}>
+                                    {deploy.source?.commit_message?.slice(0, 30) || 'Deployment'}
                                   </span>
-                                  <span className="text-slate-500 text-xs font-mono">
-                                    {deploy.source?.commit_hash}
-                                  </span>
-                                </div>
-                                <div className="text-right">
-                                  <span className="text-slate-500 text-xs block">
-                                    {new Date(deploy.created_at).toLocaleString()}
-                                  </span>
-                                  <span className="text-xs text-yume-mint">
-                                    {deploy.environment}
-                                  </span>
-                                </div>
+                                </span>
+                                <span className="text-yume-mint">{deploy.environment}</span>
                               </a>
                             ))}
                           </div>
-                        ) : (
-                          <p className="text-slate-500 text-sm italic animate-fadeIn">No deployments found or CF API token not configured</p>
-                        )
-                      )}
-                    </div>
-                  )}
+                        )}
+                      </div>
+                    )}
 
-                  {/* Workflow Triggers */}
-                  {workflows[repo.name] && workflows[repo.name].length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-medium text-slate-400 mb-2">Actions</h3>
+                    {/* Actions */}
+                    {workflows[repo.name] && workflows[repo.name].length > 0 && (
                       <div className="flex flex-wrap gap-2">
                         {repo.name === 'yume-tools' && (
-                          <>
-                            <button
-                              onClick={() => {
-                                const workflow = workflows[repo.name]?.find(w => w.name === 'Widget CI/CD');
-                                if (workflow) {
-                                  triggerWorkflow(repo.name, workflow.id, { action: 'promote-to-production' });
-                                }
-                              }}
-                              disabled={triggeringWorkflow !== null}
-                              className="btn-primary text-sm"
-                            >
-                              {triggeringWorkflow === `${repo.name}-promote` ? '🔄 Promoting...' : '🚀 Promote to Production'}
-                            </button>
-                          </>
+                          <button
+                            onClick={() => {
+                              const workflow = workflows[repo.name]?.find(w => w.name === 'Widget CI/CD');
+                              if (workflow) triggerWorkflow(repo.name, workflow.id, { action: 'promote-to-production' });
+                            }}
+                            disabled={triggeringWorkflow !== null}
+                            className="btn-primary text-xs px-3 py-1"
+                          >
+                            🚀 Promote
+                          </button>
                         )}
                         {repo.name === 'yume-api' && (
                           <>
                             <button
                               onClick={() => {
                                 const workflow = workflows[repo.name]?.find(w => w.name === 'Deploy Worker');
-                                if (workflow) {
-                                  triggerWorkflow(repo.name, workflow.id, { environment: 'staging' });
-                                }
+                                if (workflow) triggerWorkflow(repo.name, workflow.id, { environment: 'staging' });
                               }}
                               disabled={triggeringWorkflow !== null}
-                              className="btn-secondary text-sm"
+                              className="btn-secondary text-xs px-3 py-1"
                             >
-                              🧪 Deploy Staging
+                              🧪 Staging
                             </button>
                             <button
                               onClick={() => {
                                 const workflow = workflows[repo.name]?.find(w => w.name === 'Deploy Worker');
-                                if (workflow) {
-                                  triggerWorkflow(repo.name, workflow.id, { environment: 'production' });
-                                }
+                                if (workflow) triggerWorkflow(repo.name, workflow.id, { environment: 'production' });
                               }}
                               disabled={triggeringWorkflow !== null}
-                              className="btn-primary text-sm"
+                              className="btn-primary text-xs px-3 py-1"
                             >
-                              🚀 Deploy Production
+                              🚀 Production
                             </button>
                           </>
                         )}
                         {repo.name === 'yume-pages' && (
-                          <span className="text-slate-500 text-sm italic">
-                            Auto-deploys on push to main
-                          </span>
+                          <span className="text-slate-500 text-xs italic py-1">Auto-deploys on push</span>
                         )}
                       </div>
-                    </div>
+                    )}
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Right Column - Tools */}
+          <div className={`lg:w-96 space-y-4 ${activeTab !== 'tools' ? 'hidden lg:block' : ''}`}>
+            <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wider hidden lg:block">Tools & Automation</h2>
+
+            {/* Sesh Calendar Worker Card */}
+            <div className="glass-panel p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-xl">
+                    📅
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white">Sesh Calendar</h3>
+                    <p className="text-slate-500 text-xs">Auto-sync to Google Sheets</p>
+                  </div>
+                </div>
+                {seshWorkerStatus?.configured ? (
+                  <span className="text-xs text-green-400 flex items-center gap-1">
+                    <span className="w-2 h-2 bg-green-400 rounded-full" /> Online
+                  </span>
+                ) : (
+                  <span className="text-xs text-yellow-400">Not configured</span>
+                )}
+              </div>
+
+              {/* Schedule Configuration */}
+              <div className="mb-4">
+                <label className="text-xs text-slate-400 block mb-2">Schedule</label>
+                <div className="relative">
+                  <select
+                    value={selectedSchedule}
+                    onChange={(e) => {
+                      setSelectedSchedule(e.target.value);
+                      setShowScheduleInfo(true);
+                    }}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white text-sm appearance-none cursor-pointer focus:outline-none focus:border-yume-mint"
+                  >
+                    {CRON_SCHEDULES.map(schedule => (
+                      <option key={schedule.value} value={schedule.value}>
+                        {schedule.label}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                    ▼
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  {CRON_SCHEDULES.find(s => s.value === selectedSchedule)?.description}
+                </p>
+                
+                {showScheduleInfo && selectedSchedule !== '0 */6 * * *' && (
+                  <div className="mt-2 p-2 rounded bg-yellow-900/20 border border-yellow-700/50">
+                    <p className="text-xs text-yellow-400">
+                      ⚠️ To apply this schedule, update <code className="text-yume-mint">wrangler.jsonc</code> and redeploy:
+                    </p>
+                    <code className="text-xs text-slate-300 block mt-1 font-mono">
+                      "crons": ["{selectedSchedule}"]
+                    </code>
+                  </div>
+                )}
+              </div>
+
+              {/* Config Status */}
+              {seshWorkerConfig && (
+                <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
+                  <div className="bg-slate-800/50 rounded p-2">
+                    <span className="text-slate-500 block">Service Account</span>
+                    <span className={seshWorkerConfig.serviceAccountConfigured ? 'text-green-400' : 'text-red-400'}>
+                      {seshWorkerConfig.serviceAccountConfigured ? '✓ Set' : '✗ Missing'}
+                    </span>
+                  </div>
+                  <div className="bg-slate-800/50 rounded p-2">
+                    <span className="text-slate-500 block">Private Key</span>
+                    <span className={seshWorkerConfig.privateKeyConfigured ? 'text-green-400' : 'text-red-400'}>
+                      {seshWorkerConfig.privateKeyConfigured ? '✓ Set' : '✗ Missing'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                <button
+                  onClick={triggerSeshSync}
+                  disabled={seshSyncing || !seshWorkerStatus?.configured}
+                  className="btn-primary flex-1 text-sm flex items-center justify-center gap-2"
+                >
+                  {seshSyncing ? (
+                    <><span className="animate-spin">⏳</span> Syncing...</>
+                  ) : (
+                    <>🔄 Sync Now</>
                   )}
-                </>
+                </button>
+                <a
+                  href="https://docs.google.com/spreadsheets/d/1ME5MvznNQy_F9RYIl8tqFTzw-6dSDyv7EX-Ln_Sq7HI"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary text-sm px-3"
+                >
+                  📊
+                </a>
+              </div>
+
+              {/* Last Sync Result */}
+              {seshLastSync && (
+                <div className={`mt-3 p-2 rounded text-xs ${seshLastSync.success ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>
+                  {seshLastSync.success 
+                    ? `✅ Synced ${seshLastSync.eventsCount} events (${seshLastSync.duration}ms)`
+                    : `❌ ${seshLastSync.error}`
+                  }
+                </div>
               )}
             </div>
-          ))}
+
+            {/* Widget Heartbeats Card */}
+            <div className="glass-panel p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center text-xl">
+                    💓
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white">Widget Heartbeats</h3>
+                    <p className="text-slate-500 text-xs">Carrd widget status</p>
+                  </div>
+                </div>
+                <button
+                  onClick={pingCarrdWidgets}
+                  disabled={pingingCarrd}
+                  className="text-xs text-yume-mint hover:underline"
+                >
+                  {pingingCarrd ? '⏳ Pinging...' : '🌐 Ping'}
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {[
+                  { key: 'mention-maker', name: 'Mention Maker', icon: '@' },
+                  { key: 'event-parser', name: 'Event Parser', icon: '📋' },
+                  { key: 'infographic-maker', name: 'Infographic', icon: '🖼️' },
+                ].map(widget => {
+                  const hb = heartbeatStatus[widget.key];
+                  return (
+                    <div key={widget.key} className="flex items-center justify-between bg-slate-800/50 rounded p-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">{widget.icon}</span>
+                        <span className="text-white text-sm">{widget.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-500 text-xs">
+                          {hb?.last_ping 
+                            ? new Date(hb.last_ping + 'Z').toLocaleTimeString()
+                            : 'No data'}
+                        </span>
+                        <div className={`w-2 h-2 rounded-full ${getHeartbeatColor(hb?.status)}`} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Quick Links Card */}
+            <div className="glass-panel p-4">
+              <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+                <span>🔗</span> Quick Links
+              </h3>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { href: 'https://dash.cloudflare.com', icon: '☁️', label: 'Cloudflare' },
+                  { href: `https://github.com/${GITHUB_ORG}`, icon: '🐙', label: 'GitHub' },
+                  { href: 'https://api.itai.gg/health', icon: '💚', label: 'API Health' },
+                  { href: 'https://yumes-tools.itai.gg', icon: '🎴', label: 'Carrd Site' },
+                ].map(link => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-slate-800/50 rounded-lg p-3 hover:bg-slate-700/50 transition-colors text-center"
+                  >
+                    <div className="text-xl mb-1">{link.icon}</div>
+                    <div className="text-slate-300 text-xs">{link.label}</div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
-
-      {/* Widget Heartbeats */}
-      <div className="glass-panel p-6 mt-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-white">💓 Widget Heartbeats</h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={fetchHeartbeatStatus}
-              className="text-xs text-gray-400 hover:text-white transition-colors"
-            >
-              🔄 Refresh
-            </button>
-            <button
-              onClick={pingCarrdWidgets}
-              disabled={pingingCarrd}
-              className="bg-yume-accent hover:bg-yume-accent/80 disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-2"
-            >
-              {pingingCarrd ? (
-                <>
-                  <span className="animate-spin">⏳</span>
-                  Pinging...
-                </>
-              ) : (
-                <>
-                  🌐 Ping Carrd Widgets
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-        <p className="text-gray-400 text-sm mb-4">
-          Opens the Carrd page briefly to trigger widget heartbeats. This refreshes the "Last seen" timestamps on the Home page.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[
-            { key: 'mention-maker', name: 'Mention Maker', icon: '@' },
-            { key: 'event-parser', name: 'Event Parser', icon: '📋' },
-            { key: 'infographic-maker', name: 'Infographic Maker', icon: '🖼️' },
-          ].map(widget => {
-            const hb = heartbeatStatus[widget.key];
-            const statusColor = hb?.status === 'online' ? 'bg-emerald-400' 
-              : hb?.status === 'recent' ? 'bg-emerald-300'
-              : hb?.status === 'stale' ? 'bg-yellow-400' 
-              : 'bg-red-400';
-            return (
-              <div key={widget.key} className="bg-slate-800/50 rounded-lg p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-slate-700 flex items-center justify-center text-lg">
-                    {widget.icon}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-medium text-sm">{widget.name}</span>
-                      <div className={`w-2 h-2 rounded-full ${statusColor}`} />
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {hb?.lastPing 
-                        ? `Last ping: ${new Date(hb.lastPing + 'Z').toLocaleString()}`
-                        : 'No heartbeat data'}
-                    </div>
-                    {hb?.source && (
-                      <div className="text-xs text-gray-600">
-                        From: {hb.source}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Sesh Calendar Worker */}
-      <div className="glass-panel p-6 mt-8">
-        <button 
-          onClick={() => setSeshExpanded(!seshExpanded)}
-          className="flex items-center justify-between w-full text-left mb-4 group"
-        >
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-            <span className={`transition-transform ${seshExpanded ? 'rotate-90' : ''}`}>▶</span>
-            📅 Sesh Calendar Worker
-          </h2>
-          <div className="flex items-center gap-2">
-            {seshWorkerStatus?.configured ? (
-              <span className="text-xs text-green-400">● Connected</span>
-            ) : (
-              <span className="text-xs text-yellow-400">● Not Configured</span>
-            )}
-          </div>
-        </button>
-        
-        {seshExpanded && (
-          <div className="animate-fadeIn">
-            <p className="text-slate-400 text-sm mb-4">
-              Syncs clan calendar events from sesh.fyi to Google Sheets. Runs automatically on a cron schedule.
-            </p>
-            
-            {/* Worker Status */}
-            <div className="bg-slate-800/50 rounded-lg p-4 mb-4">
-              <h3 className="text-sm font-medium text-slate-400 mb-3">Worker Configuration</h3>
-              {seshWorkerConfig ? (
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-slate-500">Guild ID:</span>
-                    <span className="text-white ml-2 font-mono">{seshWorkerConfig.guildId || 'Not set'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Sheet:</span>
-                    <span className="text-white ml-2">{seshWorkerConfig.sheetName || 'Not set'}</span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Service Account:</span>
-                    <span className={`ml-2 ${seshWorkerConfig.serviceAccountConfigured ? 'text-green-400' : 'text-red-400'}`}>
-                      {seshWorkerConfig.serviceAccountConfigured ? '✅ Configured' : '❌ Missing'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-slate-500">Private Key:</span>
-                    <span className={`ml-2 ${seshWorkerConfig.privateKeyConfigured ? 'text-green-400' : 'text-red-400'}`}>
-                      {seshWorkerConfig.privateKeyConfigured ? '✅ Configured' : '❌ Missing'}
-                    </span>
-                  </div>
-                </div>
-              ) : seshWorkerStatus?.error ? (
-                <p className="text-red-400 text-sm">{seshWorkerStatus.error}</p>
-              ) : (
-                <p className="text-slate-500 text-sm">Loading configuration...</p>
-              )}
-            </div>
-            
-            {/* Manual Sync */}
-            <div className="flex items-center gap-4">
-              <button
-                onClick={triggerSeshSync}
-                disabled={seshSyncing || !seshWorkerStatus?.configured}
-                className="btn-primary flex items-center gap-2"
-              >
-                {seshSyncing ? (
-                  <>
-                    <span className="animate-spin">⏳</span>
-                    Syncing...
-                  </>
-                ) : (
-                  <>
-                    🔄 Sync Now
-                  </>
-                )}
-              </button>
-              
-              <button
-                onClick={fetchSeshWorkerStatus}
-                className="btn-secondary text-sm"
-              >
-                🔄 Refresh Status
-              </button>
-              
-              <a
-                href="https://docs.google.com/spreadsheets/d/1ME5MvznNQy_F9RYIl8tqFTzw-6dSDyv7EX-Ln_Sq7HI"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-yume-mint hover:underline text-sm"
-              >
-                📊 Open Sheet →
-              </a>
-            </div>
-            
-            {/* Last Sync Result */}
-            {seshLastSync && (
-              <div className={`mt-4 p-3 rounded-lg ${seshLastSync.success ? 'bg-green-900/30 border border-green-700' : 'bg-red-900/30 border border-red-700'}`}>
-                {seshLastSync.success ? (
-                  <div className="flex items-center justify-between">
-                    <span className="text-green-400">
-                      ✅ Synced {seshLastSync.eventsCount} events in {seshLastSync.duration}ms
-                    </span>
-                    <span className="text-slate-500 text-xs">
-                      {seshLastSync.timestamp && new Date(seshLastSync.timestamp).toLocaleString()}
-                    </span>
-                  </div>
-                ) : (
-                  <span className="text-red-400">❌ {seshLastSync.error}</span>
-                )}
-              </div>
-            )}
-            
-            {/* Help Text */}
-            {!seshWorkerStatus?.configured && (
-              <div className="mt-4 p-3 rounded-lg bg-yellow-900/20 border border-yellow-700/50">
-                <p className="text-yellow-400 text-sm">
-                  ⚠️ Worker not deployed yet. To set up:
-                </p>
-                <ol className="text-slate-400 text-sm mt-2 list-decimal list-inside space-y-1">
-                  <li>Deploy the worker: <code className="text-yume-mint">cd sesh-calendar-worker && npm run deploy</code></li>
-                  <li>Set secrets: <code className="text-yume-mint">npx wrangler secret put GOOGLE_SERVICE_ACCOUNT_EMAIL</code></li>
-                  <li>Set secrets: <code className="text-yume-mint">npx wrangler secret put GOOGLE_PRIVATE_KEY</code></li>
-                </ol>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Quick Links */}
-      <div className="glass-panel p-6 mt-8">
-        <h2 className="text-lg font-semibold text-white mb-4">🔗 Quick Links</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <a
-            href="https://dash.cloudflare.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-slate-800/50 rounded-lg p-4 hover:bg-slate-800 transition-colors text-center"
-          >
-            <div className="text-2xl mb-2">☁️</div>
-            <div className="text-white text-sm">Cloudflare</div>
-          </a>
-          <a
-            href={`https://github.com/${GITHUB_ORG}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-slate-800/50 rounded-lg p-4 hover:bg-slate-800 transition-colors text-center"
-          >
-            <div className="text-2xl mb-2">🐙</div>
-            <div className="text-white text-sm">GitHub Org</div>
-          </a>
-          <a
-            href="https://api.itai.gg/health"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-slate-800/50 rounded-lg p-4 hover:bg-slate-800 transition-colors text-center"
-          >
-            <div className="text-2xl mb-2">💚</div>
-            <div className="text-white text-sm">API Health</div>
-          </a>
-          <a
-            href="https://api-staging.itai.gg/health"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-slate-800/50 rounded-lg p-4 hover:bg-slate-800 transition-colors text-center"
-          >
-            <div className="text-2xl mb-2">🧪</div>
-            <div className="text-white text-sm">Staging Health</div>
-          </a>
-        </div>
-      </div>
     </div>
   );
 }
-
