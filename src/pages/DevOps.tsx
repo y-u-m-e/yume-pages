@@ -117,7 +117,7 @@ export default function DevOps() {
   const [loadingSecrets, setLoadingSecrets] = useState(true);
   const [cfDeployments, setCfDeployments] = useState<CFDeployment[]>([]);
   const [expandedWorkflows, setExpandedWorkflows] = useState<Record<string, boolean>>({});
-  const [heartbeatStatus, setHeartbeatStatus] = useState<Record<string, { status: string; last_ping: string; source_domain: string }>>({});
+  const [heartbeatStatus, setHeartbeatStatus] = useState<Record<string, { status: string; lastPing: string; source: string }>>({});
   const [pingingCarrd, setPingingCarrd] = useState(false);
   
   // Sesh Calendar Worker state
@@ -263,20 +263,24 @@ export default function DevOps() {
   const pingCarrdWidgets = async () => {
     setPingingCarrd(true);
     
-    const popup = window.open(
-      'https://yumes-tools.itai.gg',
-      'carrd_ping',
-      'width=800,height=600,left=100,top=100'
-    );
-    
-    await new Promise(resolve => setTimeout(resolve, 5000));
-    
-    if (popup && !popup.closed) {
-      popup.close();
+    try {
+      // Use server-side admin endpoint to update heartbeats
+      const res = await fetch(`${API_BASE}/admin/widget/ping`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to ping');
+      }
+      
+      // Refresh heartbeat status
+      await fetchHeartbeatStatus();
+    } catch (err) {
+      console.error('Ping failed:', err);
+    } finally {
+      setPingingCarrd(false);
     }
-    
-    await fetchHeartbeatStatus();
-    setPingingCarrd(false);
   };
 
   const saveToken = () => {
@@ -835,8 +839,8 @@ export default function DevOps() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-slate-500 text-xs">
-                          {hb?.last_ping 
-                            ? new Date(hb.last_ping + 'Z').toLocaleTimeString()
+                          {hb?.lastPing 
+                            ? new Date(hb.lastPing).toLocaleTimeString()
                             : 'No data'}
                         </span>
                         <div className={`w-2 h-2 rounded-full ${getHeartbeatColor(hb?.status)}`} />
