@@ -47,6 +47,31 @@ interface UserStats {
 }
 
 /**
+ * Service usage data for billing tracking
+ */
+interface ServiceUsage {
+  cloudflare?: {
+    workersRequests?: number;
+    workersLimit?: number;
+    pagesBuilds?: number;
+    pagesLimit?: number;
+    d1Reads?: number;
+    d1Writes?: number;
+    r2Storage?: string;
+  };
+  github?: {
+    actionsMinutes?: number;
+    actionsLimit?: number;
+  };
+  railway?: {
+    usage?: number;
+    limit?: number;
+  };
+  loading: boolean;
+  error?: string;
+}
+
+/**
  * Profile Page Component
  * 
  * User profile dashboard with Discord info, permissions overview,
@@ -65,6 +90,10 @@ export default function Profile() {
   
   const [stats, setStats] = useState<UserStats>({});
   const [loadingStats, setLoadingStats] = useState(false);
+  
+  // Service usage state (admin only)
+  const [serviceUsage, setServiceUsage] = useState<ServiceUsage>({ loading: false });
+  const [showUsageSection, setShowUsageSection] = useState(false);
 
   // ==========================================================================
   // EFFECTS
@@ -79,6 +108,15 @@ export default function Profile() {
       fetchUserStats();
     }
   }, [user, access]);
+
+  /**
+   * Fetch service usage data for admin users
+   */
+  useEffect(() => {
+    if (user && isAdmin) {
+      setShowUsageSection(true);
+    }
+  }, [user, isAdmin]);
 
   // ==========================================================================
   // DATA FETCHING
@@ -106,6 +144,47 @@ export default function Profile() {
       // Silently fail - stats are optional
     }
     setLoadingStats(false);
+  };
+
+  /**
+   * Fetch service usage data from various APIs
+   * Only available for admin users
+   */
+  const fetchServiceUsage = async () => {
+    setServiceUsage(prev => ({ ...prev, loading: true, error: undefined }));
+    
+    try {
+      // Fetch GitHub Actions usage
+      const githubToken = localStorage.getItem('github_pat');
+      let githubData = undefined;
+      
+      if (githubToken) {
+        try {
+          const ghRes = await fetch('https://api.github.com/orgs/y-u-m-e/settings/billing/actions', {
+            headers: { Authorization: `Bearer ${githubToken}` }
+          });
+          if (ghRes.ok) {
+            const data = await ghRes.json();
+            githubData = {
+              actionsMinutes: data.total_minutes_used || 0,
+              actionsLimit: data.included_minutes || 2000
+            };
+          }
+        } catch {
+          // GitHub billing API may not be accessible
+        }
+      }
+
+      setServiceUsage({
+        github: githubData,
+        loading: false
+      });
+    } catch (err) {
+      setServiceUsage({
+        loading: false,
+        error: err instanceof Error ? err.message : 'Failed to fetch usage'
+      });
+    }
   };
 
   // ==========================================================================
@@ -450,6 +529,258 @@ export default function Profile() {
           </a>
         </div>
       </div>
+
+      {/* ========== SERVICE USAGE & BILLING (Admin Only) ========== */}
+      {showUsageSection && (
+        <div className="glass-panel p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              <span>💰</span> Service Usage & Billing
+            </h2>
+            <button
+              onClick={fetchServiceUsage}
+              disabled={serviceUsage.loading}
+              className="text-xs text-yume-accent hover:underline flex items-center gap-1"
+            >
+              {serviceUsage.loading ? '⏳ Loading...' : '🔄 Refresh'}
+            </button>
+          </div>
+          
+          <p className="text-gray-500 text-sm mb-4">
+            Track your usage across services to avoid unexpected charges.
+          </p>
+
+          {/* Service Cards Grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            
+            {/* Cursor Card */}
+            <div className="bg-yume-bg-light rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-white font-medium">Cursor</h3>
+                  <p className="text-gray-500 text-xs">AI IDE</p>
+                </div>
+              </div>
+              <div className="space-y-2 mb-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Premium Requests</span>
+                  <span className="text-gray-300">Check in app</span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  Free: ~500/month • Pro: Unlimited fast
+                </div>
+              </div>
+              <a
+                href="https://cursor.com/settings"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full text-center py-2 bg-yume-bg rounded-lg text-sm text-yume-accent hover:bg-yume-card transition-colors"
+              >
+                View Usage →
+              </a>
+            </div>
+
+            {/* Cloudflare Card */}
+            <div className="bg-yume-bg-light rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white text-xl">
+                  ☁️
+                </div>
+                <div>
+                  <h3 className="text-white font-medium">Cloudflare</h3>
+                  <p className="text-gray-500 text-xs">Workers, Pages, D1, R2</p>
+                </div>
+              </div>
+              <div className="space-y-2 mb-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Workers</span>
+                  <span className="text-gray-300">100K req/day</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Pages</span>
+                  <span className="text-gray-300">500 builds/mo</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">D1</span>
+                  <span className="text-gray-300">5M reads/day</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">R2</span>
+                  <span className="text-gray-300">10GB storage</span>
+                </div>
+              </div>
+              <a
+                href="https://dash.cloudflare.com/?to=/:account/workers/overview"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full text-center py-2 bg-yume-bg rounded-lg text-sm text-yume-accent hover:bg-yume-card transition-colors"
+              >
+                View Dashboard →
+              </a>
+            </div>
+
+            {/* Railway Card */}
+            <div className="bg-yume-bg-light rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-xl">
+                  🚂
+                </div>
+                <div>
+                  <h3 className="text-white font-medium">Railway</h3>
+                  <p className="text-gray-500 text-xs">Bot Hosting</p>
+                </div>
+              </div>
+              <div className="space-y-2 mb-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Monthly Credit</span>
+                  <span className="text-gray-300">$5/month</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Compute</span>
+                  <span className="text-gray-300">~500 hrs/mo</span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  Hobby plan • Auto-scale pricing
+                </div>
+              </div>
+              <a
+                href="https://railway.app/account/usage"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full text-center py-2 bg-yume-bg rounded-lg text-sm text-yume-accent hover:bg-yume-card transition-colors"
+              >
+                View Usage →
+              </a>
+            </div>
+
+            {/* GitHub Card */}
+            <div className="bg-yume-bg-light rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-white text-xl">
+                  🐙
+                </div>
+                <div>
+                  <h3 className="text-white font-medium">GitHub</h3>
+                  <p className="text-gray-500 text-xs">Actions & Storage</p>
+                </div>
+              </div>
+              <div className="space-y-2 mb-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Actions Minutes</span>
+                  <span className="text-gray-300">
+                    {serviceUsage.github?.actionsMinutes !== undefined 
+                      ? `${serviceUsage.github.actionsMinutes} / ${serviceUsage.github.actionsLimit}`
+                      : '2,000/mo'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">LFS Storage</span>
+                  <span className="text-gray-300">1GB free</span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  Free for public repos
+                </div>
+              </div>
+              <a
+                href="https://github.com/settings/billing/summary"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full text-center py-2 bg-yume-bg rounded-lg text-sm text-yume-accent hover:bg-yume-card transition-colors"
+              >
+                View Billing →
+              </a>
+            </div>
+
+            {/* Discord Card */}
+            <div className="bg-yume-bg-light rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white text-xl">
+                  🎮
+                </div>
+                <div>
+                  <h3 className="text-white font-medium">Discord</h3>
+                  <p className="text-gray-500 text-xs">Bot API</p>
+                </div>
+              </div>
+              <div className="space-y-2 mb-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Status</span>
+                  <span className="text-green-400">Free ✓</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Rate Limits</span>
+                  <span className="text-gray-300">Per-route</span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  No billing • Just rate limits
+                </div>
+              </div>
+              <a
+                href="https://discord.com/developers/applications"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full text-center py-2 bg-yume-bg rounded-lg text-sm text-yume-accent hover:bg-yume-card transition-colors"
+              >
+                Developer Portal →
+              </a>
+            </div>
+
+            {/* jsDelivr Card */}
+            <div className="bg-yume-bg-light rounded-xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center text-white text-xl">
+                  📦
+                </div>
+                <div>
+                  <h3 className="text-white font-medium">jsDelivr</h3>
+                  <p className="text-gray-500 text-xs">CDN (Widgets)</p>
+                </div>
+              </div>
+              <div className="space-y-2 mb-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Status</span>
+                  <span className="text-green-400">Free ✓</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Bandwidth</span>
+                  <span className="text-gray-300">Unlimited</span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  Free for open source
+                </div>
+              </div>
+              <a
+                href="https://www.jsdelivr.com/package/gh/y-u-m-e/yume-tools"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full text-center py-2 bg-yume-bg rounded-lg text-sm text-yume-accent hover:bg-yume-card transition-colors"
+              >
+                View Stats →
+              </a>
+            </div>
+
+          </div>
+
+          {/* Summary Footer */}
+          <div className="mt-6 p-4 bg-yume-bg rounded-xl border border-yume-border">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">💡</span>
+              <div>
+                <h4 className="text-white font-medium">Free Tier Summary</h4>
+                <p className="text-gray-500 text-sm">
+                  With current setup, you're using mostly free tiers. Railway's $5/month credit covers the Discord bot.
+                  Monitor Cloudflare Workers requests if traffic grows.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
