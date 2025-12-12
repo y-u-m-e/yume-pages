@@ -30,7 +30,22 @@ interface ScanResult {
   suggestion?: string;
   requireAll?: boolean;
   wouldAutoApprove?: boolean;
+  debug?: {
+    promptStyle: string;
+    promptUsed: string;
+    rawResponse: unknown;
+    model: string;
+  };
 }
+
+// Available prompt styles for testing
+const PROMPT_STYLES = [
+  { id: 'ocr', name: 'OCR Mode', desc: 'Strict text extraction only' },
+  { id: 'simple', name: 'Simple', desc: 'Basic "read the text" prompt' },
+  { id: 'game', name: 'OSRS Focused', desc: 'Optimized for OSRS screenshots' },
+  { id: 'describe', name: 'Describe All', desc: 'Full image description (for comparison)' },
+  { id: 'minimal', name: 'Minimal', desc: 'Just "What text is in this image?"' }
+];
 
 export default function AIDebug() {
   const { user, isAdmin } = useAuth();
@@ -51,6 +66,9 @@ export default function AIDebug() {
   
   // State for test keywords
   const [testKeywords, setTestKeywords] = useState('');
+  
+  // State for prompt style
+  const [promptStyle, setPromptStyle] = useState('game');
   
   // State for scan results
   const [scanning, setScanning] = useState(false);
@@ -134,6 +152,7 @@ export default function AIDebug() {
       const formData = new FormData();
       formData.append('image', selectedFile);
       formData.append('keywords', testKeywords);
+      formData.append('promptStyle', promptStyle);
       
       const res = await fetch(`${API_BASE}/admin/ai-debug/scan`, {
         method: 'POST',
@@ -346,6 +365,43 @@ export default function AIDebug() {
               )}
             </div>
 
+            {/* Prompt Style Selector */}
+            <div className="bg-yume-card rounded-xl border border-yume-border p-5">
+              <h2 className="text-lg font-semibold text-white mb-4">🧪 Prompt Style</h2>
+              <div className="grid grid-cols-1 gap-2">
+                {PROMPT_STYLES.map(style => (
+                  <label
+                    key={style.id}
+                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                      promptStyle === style.id 
+                        ? 'bg-yume-accent/20 border border-yume-accent' 
+                        : 'bg-yume-bg-light border border-transparent hover:border-yume-border'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="promptStyle"
+                      value={style.id}
+                      checked={promptStyle === style.id}
+                      onChange={(e) => setPromptStyle(e.target.value)}
+                      className="sr-only"
+                    />
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                      promptStyle === style.id ? 'border-yume-accent' : 'border-gray-500'
+                    }`}>
+                      {promptStyle === style.id && (
+                        <div className="w-2 h-2 rounded-full bg-yume-accent" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="text-white text-sm font-medium">{style.name}</div>
+                      <div className="text-gray-500 text-xs">{style.desc}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
             {/* Test Keywords */}
             <div className="bg-yume-card rounded-xl border border-yume-border p-5">
               <h2 className="text-lg font-semibold text-white mb-4">🔑 Test Keywords</h2>
@@ -494,6 +550,39 @@ export default function AIDebug() {
                           {kw}
                         </span>
                       ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Debug Info */}
+                {result.debug && (
+                  <div className="bg-yume-card rounded-xl border border-yume-border p-5">
+                    <h2 className="text-lg font-semibold text-white mb-3">🔧 Debug Info</h2>
+                    <div className="space-y-3 text-sm">
+                      <div>
+                        <span className="text-gray-400">Model:</span>{' '}
+                        <code className="text-blue-400">{result.debug.model}</code>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">Prompt Style:</span>{' '}
+                        <code className="text-yellow-400">{result.debug.promptStyle}</code>
+                      </div>
+                      <details className="mt-2">
+                        <summary className="text-gray-400 cursor-pointer hover:text-gray-300">
+                          Prompt Used (click to expand)
+                        </summary>
+                        <pre className="mt-2 p-3 bg-yume-bg-light rounded text-xs text-gray-400 whitespace-pre-wrap overflow-auto max-h-40">
+                          {result.debug.promptUsed}
+                        </pre>
+                      </details>
+                      <details className="mt-2">
+                        <summary className="text-gray-400 cursor-pointer hover:text-gray-300">
+                          Raw API Response (click to expand)
+                        </summary>
+                        <pre className="mt-2 p-3 bg-yume-bg-light rounded text-xs text-gray-400 whitespace-pre-wrap overflow-auto max-h-60">
+                          {JSON.stringify(result.debug.rawResponse, null, 2)}
+                        </pre>
+                      </details>
                     </div>
                   </div>
                 )}
