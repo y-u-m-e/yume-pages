@@ -923,7 +923,7 @@ export default function TileEventAdmin() {
                             </div>
                           </div>
                           
-                          {/* Screenshot Preview */}
+                          {/* Screenshot Preview - Uses crossOrigin for authenticated R2 access */}
                           <div className="mb-3">
                             <a 
                               href={submission.image_url} 
@@ -934,6 +934,7 @@ export default function TileEventAdmin() {
                               <img
                                 src={submission.image_url}
                                 alt="Submission"
+                                crossOrigin="use-credentials"
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📷</text></svg>';
