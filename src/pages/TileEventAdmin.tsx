@@ -45,6 +45,7 @@ interface TileEvent {
   is_active: number;            // 1 = active, 0 = ended
   google_sheet_id?: string;     // Google Sheet ID for sync
   google_sheet_tab?: string;    // Sheet tab name for sync
+  required_keyword?: string;    // Mandatory keyword for OCR verification
   tile_count: number;           // Number of tiles in event
   participant_count: number;    // Number of participants
   created_at: string;           // ISO timestamp
@@ -102,7 +103,7 @@ export default function TileEventAdmin() {
   const [tiles, setTiles] = useState<Tile[]>([]);                  // Selected event's tiles
   const [participants, setParticipants] = useState<Participant[]>([]); // Participants
   const [loading, setLoading] = useState(true);                    // Initial load state
-  const [activeTab, setActiveTab] = useState<'tiles' | 'participants' | 'submissions'>('tiles');
+  const [activeTab, setActiveTab] = useState<'tiles' | 'participants' | 'submissions' | 'settings'>('tiles');
   
   // Submissions state
   interface Submission {
@@ -130,6 +131,7 @@ export default function TileEventAdmin() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newEventName, setNewEventName] = useState('');
   const [newEventDesc, setNewEventDesc] = useState('');
+  const [newEventRequiredKeyword, setNewEventRequiredKeyword] = useState('');
   
   // Tile editing
   const [editingTile, setEditingTile] = useState<Tile | null>(null);
@@ -274,13 +276,15 @@ export default function TileEventAdmin() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: newEventName,
-          description: newEventDesc
+          description: newEventDesc,
+          required_keyword: newEventRequiredKeyword
         })
       });
       
       if (res.ok) {
         setNewEventName('');
         setNewEventDesc('');
+        setNewEventRequiredKeyword('');
         setShowCreateForm(false);
         fetchEvents();
       } else {
@@ -603,6 +607,14 @@ export default function TileEventAdmin() {
                     {selectedEvent.description && (
                       <p className="text-gray-400 text-sm mt-1">{selectedEvent.description}</p>
                     )}
+                    {selectedEvent.required_keyword && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-xs text-gray-500">🔐 Required:</span>
+                        <code className="text-xs bg-yume-bg-light px-2 py-0.5 rounded text-emerald-400">
+                          {selectedEvent.required_keyword}
+                        </code>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -660,6 +672,16 @@ export default function TileEventAdmin() {
                         {submissionCounts.pending}
                       </span>
                     )}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('settings')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeTab === 'settings'
+                        ? 'bg-yume-accent text-yume-bg'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    ⚙️ Settings
                   </button>
                 </div>
               </div>
@@ -998,6 +1020,126 @@ export default function TileEventAdmin() {
                   )}
                 </div>
               )}
+
+              {/* Settings Tab */}
+              {activeTab === 'settings' && (
+                <div className="bg-yume-card rounded-xl border border-yume-border p-5">
+                  <h3 className="font-semibold text-white mb-4">Event Settings</h3>
+                  
+                  <div className="space-y-4">
+                    {/* Event Name */}
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">Event Name</label>
+                      <input
+                        type="text"
+                        defaultValue={selectedEvent.name}
+                        id="settings-name"
+                        className="w-full px-4 py-2 rounded-lg bg-yume-bg-light border border-yume-border text-white focus:border-yume-accent outline-none"
+                      />
+                    </div>
+                    
+                    {/* Description */}
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">Description</label>
+                      <textarea
+                        defaultValue={selectedEvent.description || ''}
+                        id="settings-description"
+                        rows={3}
+                        className="w-full px-4 py-2 rounded-lg bg-yume-bg-light border border-yume-border text-white focus:border-yume-accent outline-none resize-none"
+                      />
+                    </div>
+                    
+                    {/* Required Keyword */}
+                    <div>
+                      <label className="block text-sm text-gray-400 mb-1">
+                        🔐 Required Keyword <span className="text-gray-500">(event identifier)</span>
+                      </label>
+                      <input
+                        type="text"
+                        defaultValue={selectedEvent.required_keyword || ''}
+                        id="settings-required-keyword"
+                        placeholder="e.g., clan event december 2024"
+                        className="w-full px-4 py-2 rounded-lg bg-yume-bg-light border border-yume-border text-white placeholder:text-gray-500 focus:border-yume-accent outline-none"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        This phrase MUST appear in all screenshots to prove they're from this event. 
+                        Leave empty to skip this verification.
+                      </p>
+                    </div>
+                    
+                    {/* Google Sheet Config */}
+                    <div className="border-t border-yume-border pt-4 mt-4">
+                      <h4 className="text-sm font-medium text-white mb-3">Google Sheet Sync</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm text-gray-400 mb-1">Sheet ID</label>
+                          <input
+                            type="text"
+                            defaultValue={selectedEvent.google_sheet_id || ''}
+                            id="settings-sheet-id"
+                            placeholder="1ABC..."
+                            className="w-full px-4 py-2 rounded-lg bg-yume-bg-light border border-yume-border text-white placeholder:text-gray-500 focus:border-yume-accent outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm text-gray-400 mb-1">Tab Name</label>
+                          <input
+                            type="text"
+                            defaultValue={selectedEvent.google_sheet_tab || ''}
+                            id="settings-sheet-tab"
+                            placeholder="Sheet1"
+                            className="w-full px-4 py-2 rounded-lg bg-yume-bg-light border border-yume-border text-white placeholder:text-gray-500 focus:border-yume-accent outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Save Button */}
+                    <div className="pt-4">
+                      <button
+                        onClick={async () => {
+                          const name = (document.getElementById('settings-name') as HTMLInputElement)?.value;
+                          const description = (document.getElementById('settings-description') as HTMLTextAreaElement)?.value;
+                          const requiredKeyword = (document.getElementById('settings-required-keyword') as HTMLInputElement)?.value;
+                          const googleSheetId = (document.getElementById('settings-sheet-id') as HTMLInputElement)?.value;
+                          const googleSheetTab = (document.getElementById('settings-sheet-tab') as HTMLInputElement)?.value;
+                          
+                          try {
+                            const res = await fetch(`${API_BASE}/admin/tile-events/${selectedEvent.id}`, {
+                              method: 'PUT',
+                              credentials: 'include',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                name,
+                                description,
+                                required_keyword: requiredKeyword,
+                                google_sheet_id: googleSheetId,
+                                google_sheet_tab: googleSheetTab,
+                                is_active: selectedEvent.is_active
+                              })
+                            });
+                            
+                            if (res.ok) {
+                              fetchEvents();
+                              fetchEventDetails(selectedEvent.id);
+                              alert('Settings saved!');
+                            } else {
+                              const data = await res.json();
+                              alert(`Error: ${data.error}`);
+                            }
+                          } catch (err) {
+                            console.error('Failed to save settings:', err);
+                            alert('Failed to save settings');
+                          }
+                        }}
+                        className="w-full btn-primary"
+                      >
+                        Save Settings
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="bg-yume-card rounded-xl border border-yume-border p-12 text-center">
@@ -1077,6 +1219,22 @@ export default function TileEventAdmin() {
                   className="w-full px-4 py-2 rounded-lg bg-yume-bg-light border border-yume-border text-white placeholder:text-gray-500 focus:border-yume-accent outline-none resize-none"
                 />
               </div>
+              
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  🔐 Required Keyword <span className="text-gray-500">(event identifier)</span>
+                </label>
+                <input
+                  type="text"
+                  value={newEventRequiredKeyword}
+                  onChange={e => setNewEventRequiredKeyword(e.target.value)}
+                  placeholder="e.g., clan event december 2024"
+                  className="w-full px-4 py-2 rounded-lg bg-yume-bg-light border border-yume-border text-white placeholder:text-gray-500 focus:border-yume-accent outline-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  This phrase MUST appear in all screenshots for auto-approval
+                </p>
+              </div>
             </div>
             
             <div className="flex gap-3 mt-6">
@@ -1140,20 +1298,20 @@ export default function TileEventAdmin() {
                 />
               </div>
               
-              {/* AI Auto-Approval Keywords */}
+              {/* Drop Keywords for this tile */}
               <div>
                 <label className="block text-sm text-gray-400 mb-1">
-                  🤖 OCR Keywords <span className="text-gray-500">(comma-separated)</span>
+                  🎯 Drop Keywords <span className="text-gray-500">(comma-separated)</span>
                 </label>
                 <input
                   type="text"
                   value={editingTile.unlock_keywords || ''}
                   onChange={e => setEditingTile({ ...editingTile, unlock_keywords: e.target.value })}
-                  placeholder="exact:You have a funny feeling, dragon warhammer"
+                  placeholder="dragon axe, warrior ring, berserker ring"
                   className="w-full px-4 py-2 rounded-lg bg-yume-bg-light border border-yume-border text-white placeholder:text-gray-500 focus:border-yume-accent outline-none"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Keywords matched as whole words. Use <code className="text-yellow-400">exact:</code> for phrases, <code className="text-yellow-400">all:</code> to require ALL matches
+                  At least ONE of these must appear in the screenshot (with the event's required keyword)
                 </p>
               </div>
               

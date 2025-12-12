@@ -290,24 +290,25 @@ export default function TileEvent() {
     }
   };
 
-  const isTileAccessible = (position: number) => {
-    if (!progress) return position === 0;
-    // Tile is accessible if the previous tile is unlocked
-    if (position === 0) return true;
-    return progress.tiles_unlocked.includes(position - 1);
+  // All tiles are now accessible from the start (no sequential unlocking required)
+  const isTileAccessible = (_position: number) => {
+    return true; // All tiles are always accessible
   };
 
-  const getTileStatus = (position: number): 'locked' | 'accessible' | 'completed' | 'current' => {
+  const getTileStatus = (position: number): 'accessible' | 'completed' | 'current' => {
     if (!progress) {
-      return position === 0 ? 'current' : 'locked';
+      // Not joined yet - all tiles are accessible but show first as "current"
+      return position === 0 ? 'current' : 'accessible';
     }
     if (progress.tiles_unlocked.includes(position)) {
       return 'completed';
     }
-    if (isTileAccessible(position)) {
-      return position === progress.current_tile + 1 ? 'current' : 'accessible';
+    // Find the next uncompleted tile to mark as "current"
+    const nextTile = tiles.find(t => !progress.tiles_unlocked.includes(t.position));
+    if (nextTile && nextTile.position === position) {
+      return 'current';
     }
-    return 'locked';
+    return 'accessible';
   };
 
   // Generate snake path coordinates
@@ -439,17 +440,14 @@ export default function TileEvent() {
             return (
               <button
                 key={tile.id}
-                onClick={() => status !== 'locked' && setSelectedTile(tile)}
-                disabled={status === 'locked'}
+                onClick={() => setSelectedTile(tile)}
                 className={`
                   absolute w-[100px] h-[100px] rounded-xl border-2 transition-all duration-300
-                  flex flex-col items-center justify-center gap-1 text-center p-2
-                  ${status === 'locked' 
-                    ? 'bg-gray-800/50 border-gray-700 cursor-not-allowed opacity-50' 
-                    : status === 'completed'
-                    ? 'bg-emerald-500/20 border-emerald-500/50 hover:border-emerald-400 cursor-pointer'
+                  flex flex-col items-center justify-center gap-1 text-center p-2 cursor-pointer
+                  ${status === 'completed'
+                    ? 'bg-emerald-500/20 border-emerald-500/50 hover:border-emerald-400'
                     : status === 'current'
-                    ? 'bg-yume-accent/20 border-yume-accent animate-pulse cursor-pointer hover:scale-105'
+                    ? 'bg-yume-accent/20 border-yume-accent animate-pulse hover:scale-105'
                     : 'bg-yume-bg-light border-yume-border hover:border-yume-accent cursor-pointer hover:scale-105'
                   }
                 `}
@@ -469,11 +467,8 @@ export default function TileEvent() {
                 </div>
                 
                 {/* Tile title (truncated) */}
-                <div className={`
-                  text-xs font-medium line-clamp-2
-                  ${status === 'locked' ? 'text-gray-500' : 'text-white'}
-                `}>
-                  {status === 'locked' ? '???' : tile.title}
+                <div className="text-xs font-medium line-clamp-2 text-white">
+                  {tile.title}
                 </div>
                 
                 {/* Start/End indicators */}
