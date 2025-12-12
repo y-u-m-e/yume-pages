@@ -6,12 +6,14 @@
  * - Enter test keywords
  * - See the raw AI response (what text it extracts)
  * - See keyword matching results
+ * - Auto-compress large images using Canvas API
  * 
  * Useful for tuning keywords before setting them on tiles
  */
 
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { compressImage, MAX_AI_SIZE } from '../utils/imageCompression';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
 
@@ -33,7 +35,17 @@ export default function AIDebug() {
   
   // State for file upload
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [originalFile, setOriginalFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  
+  // State for compression
+  const [autoCompress, setAutoCompress] = useState(true);
+  const [compressing, setCompressing] = useState(false);
+  const [compressionInfo, setCompressionInfo] = useState<{
+    originalSize: number;
+    compressedSize: number;
+    wasCompressed: boolean;
+  } | null>(null);
   
   // State for test keywords
   const [testKeywords, setTestKeywords] = useState('');
@@ -44,15 +56,52 @@ export default function AIDebug() {
   const [error, setError] = useState<string | null>(null);
 
   /**
+   * Process a file - compress if needed and update state
+   */
+  const processFile = async (file: File) => {
+    setOriginalFile(file);
+    setResult(null);
+    setError(null);
+    setCompressionInfo(null);
+    
+    // Show preview of original immediately
+    setPreviewUrl(URL.createObjectURL(file));
+    
+    if (autoCompress && file.size > MAX_AI_SIZE) {
+      setCompressing(true);
+      try {
+        const result = await compressImage(file);
+        setSelectedFile(result.file);
+        setCompressionInfo({
+          originalSize: result.originalSize,
+          compressedSize: result.compressedSize,
+          wasCompressed: result.wasCompressed
+        });
+        // Update preview with compressed version
+        setPreviewUrl(URL.createObjectURL(result.file));
+      } catch (err) {
+        console.error('Compression failed:', err);
+        setSelectedFile(file);
+      } finally {
+        setCompressing(false);
+      }
+    } else {
+      setSelectedFile(file);
+      setCompressionInfo({
+        originalSize: file.size,
+        compressedSize: file.size,
+        wasCompressed: false
+      });
+    }
+  };
+
+  /**
    * Handle file selection - creates preview and stores file
    */
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-      setResult(null);
-      setError(null);
+      processFile(file);
     }
   };
 
@@ -63,10 +112,7 @@ export default function AIDebug() {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
     if (file && file.type.startsWith('image/')) {
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-      setResult(null);
-      setError(null);
+      processFile(file);
     }
   };
 
@@ -129,9 +175,35 @@ export default function AIDebug() {
    */
   const handleClear = () => {
     setSelectedFile(null);
+    setOriginalFile(null);
     setPreviewUrl(null);
     setResult(null);
     setError(null);
+    setCompressionInfo(null);
+  };
+  
+  /**
+   * Re-process file when auto-compress toggle changes
+   */
+  const handleAutoCompressToggle = () => {
+    const newValue = !autoCompress;
+    setAutoCompress(newValue);
+    
+    // Re-process with original file if we have one
+    if (originalFile) {
+      if (newValue) {
+        processFile(originalFile);
+      } else {
+        // Use original uncompressed
+        setSelectedFile(originalFile);
+        setPreviewUrl(URL.createObjectURL(originalFile));
+        setCompressionInfo({
+          originalSize: originalFile.size,
+          compressedSize: originalFile.size,
+          wasCompressed: false
+        });
+      }
+    }
   };
 
   // Only allow admins
@@ -163,7 +235,26 @@ export default function AIDebug() {
           <div className="space-y-6">
             {/* Image Upload */}
             <div className="bg-yume-card rounded-xl border border-yume-border p-5">
-              <h2 className="text-lg font-semibold text-white mb-4">📸 Test Image</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-white">📸 Test Image</h2>
+                
+                {/* Auto-compress toggle */}
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <span className="text-sm text-gray-400">Auto-compress</span>
+                  <button
+                    onClick={handleAutoCompressToggle}
+                    className={`relative w-10 h-5 rounded-full transition-colors ${
+                      autoCompress ? 'bg-emerald-500' : 'bg-gray-600'
+                    }`}
+                  >
+                    <span 
+                      className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+                        autoCompress ? 'translate-x-5' : ''
+                      }`}
+                    />
+                  </button>
+                </label>
+              </div>
               
               {!previewUrl ? (
                 <div
@@ -186,6 +277,14 @@ export default function AIDebug() {
               ) : (
                 <div className="space-y-4">
                   <div className="relative">
+                    {compressing && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg z-10">
+                        <div className="text-center">
+                          <div className="animate-spin text-2xl mb-2">⚙️</div>
+                          <div className="text-white text-sm">Compressing...</div>
+                        </div>
+                      </div>
+                    )}
                     <img
                       src={previewUrl}
                       alt="Preview"
@@ -198,23 +297,46 @@ export default function AIDebug() {
                       ✕
                     </button>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-gray-500">
+                  
+                  {/* File size info */}
+                  <div className="flex items-center justify-between text-sm">
+                    <p className="text-gray-500 truncate max-w-[60%]">
                       {selectedFile?.name}
                     </p>
-                    <span className={`text-sm font-mono px-2 py-0.5 rounded ${
-                      (selectedFile?.size || 0) > 1024 * 1024 
-                        ? 'bg-red-500/20 text-red-400' 
-                        : 'bg-emerald-500/20 text-emerald-400'
-                    }`}>
-                      {((selectedFile?.size || 0) / 1024).toFixed(0)} KB
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {compressionInfo?.wasCompressed && (
+                        <>
+                          <span className="text-gray-500 line-through font-mono">
+                            {Math.round(compressionInfo.originalSize / 1024)}KB
+                          </span>
+                          <span className="text-gray-500">→</span>
+                        </>
+                      )}
+                      <span className={`font-mono px-2 py-0.5 rounded ${
+                        (selectedFile?.size || 0) > MAX_AI_SIZE 
+                          ? 'bg-red-500/20 text-red-400' 
+                          : 'bg-emerald-500/20 text-emerald-400'
+                      }`}>
+                        {Math.round((selectedFile?.size || 0) / 1024)}KB
+                      </span>
+                    </div>
                   </div>
-                  {(selectedFile?.size || 0) > 1024 * 1024 && (
+                  
+                  {/* Compression success message */}
+                  {compressionInfo?.wasCompressed && (
+                    <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3 text-sm">
+                      <div className="text-emerald-400 font-medium">
+                        ✨ Auto-compressed: {Math.round((1 - compressionInfo.compressedSize / compressionInfo.originalSize) * 100)}% smaller
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Warning if still too large */}
+                  {(selectedFile?.size || 0) > MAX_AI_SIZE && (
                     <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-sm">
-                      <div className="text-red-400 font-medium mb-1">⚠️ Image too large for AI</div>
+                      <div className="text-red-400 font-medium mb-1">⚠️ Still too large for AI</div>
                       <p className="text-gray-400">
-                        Max size: 1MB. Use <a href="https://squoosh.app" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">squoosh.app</a> to compress.
+                        Try using <a href="https://squoosh.app" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">squoosh.app</a> for more compression.
                       </p>
                     </div>
                   )}

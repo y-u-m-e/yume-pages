@@ -33,6 +33,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { compressImage, MAX_AI_SIZE } from '@/utils/imageCompression';
 
 // API base URL from environment
 const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
@@ -181,7 +182,8 @@ export default function TileEvent() {
 
   /**
    * Handle screenshot upload for tile completion
-   * Uploads image to R2, triggers OCR verification
+   * Auto-compresses large images before uploading to R2
+   * Triggers OCR verification for auto-approval
    */
   const handleSubmitProof = async (tileId: number, file: File) => {
     setUploading(true);
@@ -189,8 +191,26 @@ export default function TileEvent() {
     setUploadSuccess(null);
     
     try {
+      // Auto-compress large images for better AI processing
+      let uploadFile = file;
+      let compressionNote = '';
+      
+      if (file.size > MAX_AI_SIZE) {
+        try {
+          const result = await compressImage(file);
+          if (result.wasCompressed) {
+            uploadFile = result.file;
+            const savings = Math.round((1 - result.compressedSize / result.originalSize) * 100);
+            compressionNote = ` (compressed ${savings}%)`;
+            console.log(`Image compressed: ${Math.round(result.originalSize/1024)}KB → ${Math.round(result.compressedSize/1024)}KB`);
+          }
+        } catch (compressErr) {
+          console.warn('Compression failed, using original:', compressErr);
+        }
+      }
+      
       const formData = new FormData();
-      formData.append('image', file);
+      formData.append('image', uploadFile);
       
       const res = await fetch(`${API_BASE}/tile-events/${eventId}/tiles/${tileId}/submit`, {
         method: 'POST',
@@ -205,7 +225,7 @@ export default function TileEvent() {
         return;
       }
       
-      setUploadSuccess(data.message);
+      setUploadSuccess(data.message + compressionNote);
       
       // Refresh progress and submissions
       await Promise.all([fetchProgress(), fetchSubmissions()]);
