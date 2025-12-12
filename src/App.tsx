@@ -35,6 +35,7 @@ import Profile from '@/pages/Profile'        // User profile page
 import TileEvents from '@/pages/TileEvents'  // List of tile events
 import TileEvent from '@/pages/TileEvent'    // Single tile event view/play
 import TileEventAdmin from '@/pages/TileEventAdmin' // Tile event management
+import AIDebug from '@/pages/AIDebug'        // AI scan debug/testing (admin)
 
 /**
  * Main Application Component
@@ -69,6 +70,7 @@ function App() {
           <Route path="admin" element={<Admin />} />             {/* /admin - User mgmt */}
           <Route path="devops" element={<DevOps />} />           {/* /devops - System status */}
           <Route path="admin/tile-events" element={<TileEventAdmin />} /> {/* Event management */}
+          <Route path="admin/ai-debug" element={<AIDebug />} />  {/* AI scan testing */}
           
         </Route>
       </Routes>
