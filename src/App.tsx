@@ -36,6 +36,7 @@ import TileEvents from '@/pages/TileEvents'  // List of tile events
 import TileEvent from '@/pages/TileEvent'    // Single tile event view/play
 import TileEventAdmin from '@/pages/TileEventAdmin' // Tile event management
 import AIDebug from '@/pages/AIDebug'        // AI scan debug/testing (admin)
+import Architecture from '@/pages/Architecture' // System architecture diagrams
 
 /**
  * Main Application Component
@@ -60,6 +61,7 @@ function App() {
           {/* PROTECTED ROUTES - Require authentication */}
           <Route path="cruddy-panel" element={<CruddyPanel />} /> {/* /cruddy-panel */}
           <Route path="docs" element={<Docs />} />               {/* /docs */}
+          <Route path="architecture" element={<Architecture />} /> {/* /architecture */}
           <Route path="profile" element={<Profile />} />         {/* /profile */}
           
           {/* TILE EVENTS - Require authentication */}

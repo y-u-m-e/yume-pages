@@ -12,6 +12,7 @@ const protectedNavItems = [
   { to: '/cruddy-panel', label: 'Cruddy', icon: '◉' },
   { to: '/tile-events', label: 'Events', icon: '🎯' },
   { to: '/docs', label: 'Docs', icon: '📄' },
+  { to: '/architecture', label: 'Arch', icon: '🗺️' },
 ];
 
 // Admin pages - only for admins
