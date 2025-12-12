@@ -1383,8 +1383,7 @@ export default function TileEventAdmin() {
                         <th className="text-left py-1 px-2 border-b border-yume-border">A: Title</th>
                         <th className="text-left py-1 px-2 border-b border-yume-border">B: Description</th>
                         <th className="text-left py-1 px-2 border-b border-yume-border">C: Image URL</th>
-                        <th className="text-left py-1 px-2 border-b border-yume-border">D: Reward</th>
-                        <th className="text-left py-1 px-2 border-b border-yume-border">E: 🤖 Keywords</th>
+                        <th className="text-left py-1 px-2 border-b border-yume-border">D: 🤖 Keywords</th>
                       </tr>
                     </thead>
                     <tbody className="text-gray-300">
