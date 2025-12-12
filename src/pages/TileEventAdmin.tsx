@@ -123,9 +123,13 @@ export default function TileEventAdmin() {
         setNewEventDesc('');
         setShowCreateForm(false);
         fetchEvents();
+      } else {
+        const data = await res.json();
+        alert(`Failed to create event: ${data.error || res.statusText}`);
       }
     } catch (err) {
       console.error('Failed to create event:', err);
+      alert('Failed to create event. Check console for details.');
     }
   };
 
