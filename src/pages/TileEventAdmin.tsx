@@ -55,13 +55,14 @@ interface TileEvent {
  * Can be created manually or synced from Google Sheets
  */
 interface Tile {
-  id?: number;          // Database ID (undefined for new tiles)
-  position: number;     // Order in the snake path (0-indexed)
-  title: string;        // Tile name/title
-  description?: string; // Detailed description
-  image_url?: string;   // Optional image URL
-  is_start?: number;    // 1 if first tile
-  is_end?: number;      // 1 if final tile
+  id?: number;            // Database ID (undefined for new tiles)
+  position: number;       // Order in the snake path (0-indexed)
+  title: string;          // Tile name/title
+  description?: string;   // Detailed description
+  image_url?: string;     // Optional image URL
+  is_start?: number;      // 1 if first tile
+  is_end?: number;        // 1 if final tile
+  unlock_keywords?: string; // Comma-separated keywords for AI auto-approval
 }
 
 /**
@@ -362,7 +363,8 @@ export default function TileEventAdmin() {
       position: tiles.length,
       title: '',
       description: '',
-      image_url: ''
+      image_url: '',
+      unlock_keywords: ''
     };
     setEditingTile(newTile);
     setShowTileForm(true);
@@ -1138,6 +1140,23 @@ export default function TileEventAdmin() {
                 />
               </div>
               
+              {/* AI Auto-Approval Keywords */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  🤖 AI Keywords <span className="text-gray-500">(comma-separated)</span>
+                </label>
+                <input
+                  type="text"
+                  value={editingTile.unlock_keywords || ''}
+                  onChange={e => setEditingTile({ ...editingTile, unlock_keywords: e.target.value })}
+                  placeholder="dragon, pet, rare drop, barrows..."
+                  className="w-full px-4 py-2 rounded-lg bg-yume-bg-light border border-yume-border text-white placeholder:text-gray-500 focus:border-yume-accent outline-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  If any keyword is found in the screenshot, submission is auto-approved
+                </p>
+              </div>
+              
             </div>
             
             <div className="flex gap-3 mt-6">
@@ -1199,23 +1218,31 @@ export default function TileEventAdmin() {
               
               <div className="bg-yume-bg-light rounded-lg p-4">
                 <h4 className="text-sm font-medium text-white mb-2">Expected Sheet Format</h4>
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="text-gray-400">
-                      <th className="text-left py-1 px-2 border-b border-yume-border">A: Title</th>
-                      <th className="text-left py-1 px-2 border-b border-yume-border">B: Description</th>
-                      <th className="text-left py-1 px-2 border-b border-yume-border">C: Image URL</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-gray-300">
-                    <tr>
-                      <td className="py-1 px-2">Get 10 Kills</td>
-                      <td className="py-1 px-2">Kill any boss</td>
-                      <td className="py-1 px-2">https://...</td>
-                      <td className="py-1 px-2">5M GP</td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs min-w-[500px]">
+                    <thead>
+                      <tr className="text-gray-400">
+                        <th className="text-left py-1 px-2 border-b border-yume-border">A: Title</th>
+                        <th className="text-left py-1 px-2 border-b border-yume-border">B: Description</th>
+                        <th className="text-left py-1 px-2 border-b border-yume-border">C: Image URL</th>
+                        <th className="text-left py-1 px-2 border-b border-yume-border">D: Reward</th>
+                        <th className="text-left py-1 px-2 border-b border-yume-border">E: 🤖 Keywords</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-gray-300">
+                      <tr>
+                        <td className="py-1 px-2">Get a Drop</td>
+                        <td className="py-1 px-2">Any rare drop</td>
+                        <td className="py-1 px-2">https://...</td>
+                        <td className="py-1 px-2">5M GP</td>
+                        <td className="py-1 px-2 text-emerald-400">dragon, pet</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  🤖 Keywords column E: Comma-separated words for AI auto-approval
+                </p>
               </div>
             </div>
             
