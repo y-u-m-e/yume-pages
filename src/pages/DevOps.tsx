@@ -91,6 +91,14 @@ interface ErrorLogSummary {
   unresolved: number;
 }
 
+// Railway deployment status
+interface RailwayStatus {
+  status: 'online' | 'offline' | 'unknown';
+  lastChecked: string;
+  latency?: number;
+  error?: string;
+}
+
 const REPOS = [
   { 
     name: 'yume-tools', 
@@ -109,6 +117,12 @@ const REPOS = [
     displayName: 'Frontend',
     icon: '🌐',
     description: 'React app on CF Pages'
+  },
+  { 
+    name: 'yume-bot', 
+    displayName: 'Discord Bot',
+    icon: '🤖',
+    description: 'Discord.js bot on Railway'
   },
 ];
 
@@ -161,6 +175,10 @@ export default function DevOps() {
   const [errorTypeFilter, setErrorTypeFilter] = useState<string>('');
   const [showResolvedLogs, setShowResolvedLogs] = useState(false);
   const [expandedLogId, setExpandedLogId] = useState<number | null>(null);
+
+  // Railway/Discord Bot state
+  const [railwayStatus, setRailwayStatus] = useState<RailwayStatus>({ status: 'unknown', lastChecked: '' });
+  const [checkingRailway, setCheckingRailway] = useState(false);
 
   // Try to load token from server first, then localStorage
   useEffect(() => {
@@ -231,6 +249,11 @@ export default function DevOps() {
     }
   }, [user, showResolvedLogs, errorTypeFilter]);
 
+  // Check Railway/Bot status on mount
+  useEffect(() => {
+    checkRailwayStatus();
+  }, []);
+
   const fetchCFDeployments = async () => {
     try {
       const res = await fetch(`${API_BASE}/admin/cf-deployments?project=yume-pages`, {
@@ -254,6 +277,41 @@ export default function DevOps() {
       }
     } catch {
       // Ignore errors
+    }
+  };
+
+  const checkRailwayStatus = async () => {
+    setCheckingRailway(true);
+    const startTime = Date.now();
+    
+    try {
+      // Check if the API is healthy - the bot connects to this
+      const res = await fetch(`${API_BASE}/health`, { 
+        signal: AbortSignal.timeout(5000) 
+      });
+      const latency = Date.now() - startTime;
+      
+      if (res.ok) {
+        setRailwayStatus({
+          status: 'online',
+          lastChecked: new Date().toISOString(),
+          latency
+        });
+      } else {
+        setRailwayStatus({
+          status: 'offline',
+          lastChecked: new Date().toISOString(),
+          error: 'API returned error'
+        });
+      }
+    } catch (err) {
+      setRailwayStatus({
+        status: 'offline',
+        lastChecked: new Date().toISOString(),
+        error: err instanceof Error ? err.message : 'Connection failed'
+      });
+    } finally {
+      setCheckingRailway(false);
     }
   };
 
@@ -754,7 +812,40 @@ export default function DevOps() {
                     )}
 
                     {/* Actions */}
-                    {workflows[repo.name] && workflows[repo.name].length > 0 && (
+                    {repo.name === 'yume-bot' ? (
+                      <div className="space-y-2">
+                        {/* Railway Status Badge */}
+                        <div className="flex items-center justify-between bg-slate-800/30 rounded p-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-purple-400">🚂</span>
+                            <span className="text-white text-sm">Railway</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {railwayStatus.status === 'online' ? (
+                              <span className="text-green-400 text-xs flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                                Online
+                              </span>
+                            ) : railwayStatus.status === 'offline' ? (
+                              <span className="text-red-400 text-xs">Offline</span>
+                            ) : (
+                              <span className="text-slate-400 text-xs">Unknown</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <a
+                            href="https://railway.app/dashboard"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-primary text-xs px-3 py-1 flex-1 text-center"
+                          >
+                            🚂 Dashboard
+                          </a>
+                          <span className="text-slate-500 text-xs italic py-1">Auto-deploys on push</span>
+                        </div>
+                      </div>
+                    ) : workflows[repo.name] && workflows[repo.name].length > 0 && (
                       <div className="flex flex-wrap gap-2">
                         {repo.name === 'yume-tools' && (
                           <button
@@ -966,6 +1057,108 @@ export default function DevOps() {
               </div>
             </div>
 
+            {/* Railway Discord Bot Card */}
+            <div className="glass-panel p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xl">
+                    🤖
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white">Discord Bot</h3>
+                    <p className="text-slate-500 text-xs">yume-bot on Railway</p>
+                  </div>
+                </div>
+                {railwayStatus.status === 'online' ? (
+                  <span className="text-xs text-green-400 flex items-center gap-1">
+                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" /> Online
+                  </span>
+                ) : railwayStatus.status === 'offline' ? (
+                  <span className="text-xs text-red-400 flex items-center gap-1">
+                    <span className="w-2 h-2 bg-red-400 rounded-full" /> Offline
+                  </span>
+                ) : (
+                  <span className="text-xs text-slate-400">Unknown</span>
+                )}
+              </div>
+
+              {/* Status Details */}
+              <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
+                <div className="bg-slate-800/50 rounded p-2">
+                  <span className="text-slate-500 block">Platform</span>
+                  <span className="text-purple-400 flex items-center gap-1">
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M.113 5.883a.5.5 0 0 1 .5-.5h22.774a.5.5 0 0 1 .5.5v12.234a.5.5 0 0 1-.5.5H.613a.5.5 0 0 1-.5-.5V5.883z"/>
+                    </svg>
+                    Railway
+                  </span>
+                </div>
+                <div className="bg-slate-800/50 rounded p-2">
+                  <span className="text-slate-500 block">API Latency</span>
+                  <span className={railwayStatus.latency ? 'text-green-400' : 'text-slate-400'}>
+                    {railwayStatus.latency ? `${railwayStatus.latency}ms` : 'N/A'}
+                  </span>
+                </div>
+                <div className="bg-slate-800/50 rounded p-2">
+                  <span className="text-slate-500 block">Runtime</span>
+                  <span className="text-blue-400">Node.js 20</span>
+                </div>
+                <div className="bg-slate-800/50 rounded p-2">
+                  <span className="text-slate-500 block">Framework</span>
+                  <span className="text-indigo-400">Discord.js v14</span>
+                </div>
+              </div>
+
+              {/* Bot Commands Preview */}
+              <div className="mb-4">
+                <span className="text-slate-500 text-xs block mb-2">Bot Commands</span>
+                <div className="flex flex-wrap gap-1">
+                  {['/ping', '/leaderboard', '/lookup', '/tileevent', '/record', '/help'].map(cmd => (
+                    <span key={cmd} className="px-2 py-0.5 bg-slate-800/80 rounded text-xs text-slate-300 font-mono">
+                      {cmd}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                <button
+                  onClick={checkRailwayStatus}
+                  disabled={checkingRailway}
+                  className="btn-secondary flex-1 text-sm flex items-center justify-center gap-2"
+                >
+                  {checkingRailway ? (
+                    <><span className="animate-spin">⏳</span> Checking...</>
+                  ) : (
+                    <>🔄 Check Status</>
+                  )}
+                </button>
+                <a
+                  href="https://railway.app/dashboard"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary text-sm px-3 flex items-center gap-1"
+                >
+                  🚂 Railway
+                </a>
+              </div>
+
+              {/* Last Checked */}
+              {railwayStatus.lastChecked && (
+                <p className="text-slate-500 text-xs mt-3 text-center">
+                  Last checked: {new Date(railwayStatus.lastChecked).toLocaleString()}
+                </p>
+              )}
+
+              {/* Error Display */}
+              {railwayStatus.error && (
+                <div className="mt-3 p-2 rounded text-xs bg-red-900/30 text-red-400">
+                  ❌ {railwayStatus.error}
+                </div>
+              )}
+            </div>
+
             {/* Error Logs Card */}
             <div className="glass-panel p-4">
               <div className="flex items-center justify-between mb-3">
@@ -1115,21 +1308,23 @@ export default function DevOps() {
               <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
                 <span>🔗</span> Quick Links
               </h3>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {[
                   { href: 'https://dash.cloudflare.com', icon: '☁️', label: 'Cloudflare' },
+                  { href: 'https://railway.app/dashboard', icon: '🚂', label: 'Railway' },
                   { href: `https://github.com/${GITHUB_ORG}`, icon: '🐙', label: 'GitHub' },
                   { href: 'https://api.emuy.gg/health', icon: '💚', label: 'API Health' },
                   { href: 'https://yumes-tools.emuy.gg', icon: '🎴', label: 'Carrd Site' },
+                  { href: 'https://discord.com/developers/applications', icon: '🎮', label: 'Discord' },
                 ].map(link => (
                   <a
                     key={link.href}
                     href={link.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="bg-slate-800/50 rounded-lg p-3 hover:bg-slate-700/50 transition-colors text-center"
+                    className="bg-slate-800/50 rounded-lg p-2 hover:bg-slate-700/50 transition-colors text-center"
                   >
-                    <div className="text-xl mb-1">{link.icon}</div>
+                    <div className="text-lg mb-1">{link.icon}</div>
                     <div className="text-slate-300 text-xs">{link.label}</div>
                   </a>
                 ))}
