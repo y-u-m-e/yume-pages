@@ -38,13 +38,14 @@ interface ScanResult {
   };
 }
 
-// Available prompt styles for testing
+// Available OCR services and prompt styles for testing
 const PROMPT_STYLES = [
-  { id: 'ocr', name: 'OCR Mode', desc: 'Strict text extraction only' },
-  { id: 'simple', name: 'Simple', desc: 'Basic "read the text" prompt' },
-  { id: 'game', name: 'OSRS Focused', desc: 'Optimized for OSRS screenshots' },
-  { id: 'describe', name: 'Describe All', desc: 'Full image description (for comparison)' },
-  { id: 'minimal', name: 'Minimal', desc: 'Just "What text is in this image?"' }
+  { id: 'ocrspace', name: '⭐ OCR.space', desc: 'Dedicated OCR service (recommended)', recommended: true },
+  { id: 'game', name: 'LLaVA: OSRS', desc: 'Vision AI optimized for OSRS' },
+  { id: 'ocr', name: 'LLaVA: OCR', desc: 'Vision AI in strict OCR mode' },
+  { id: 'simple', name: 'LLaVA: Simple', desc: 'Vision AI basic prompt' },
+  { id: 'describe', name: 'LLaVA: Describe', desc: 'Vision AI full description' },
+  { id: 'minimal', name: 'LLaVA: Minimal', desc: 'Vision AI minimal prompt' }
 ];
 
 export default function AIDebug() {
@@ -67,8 +68,8 @@ export default function AIDebug() {
   // State for test keywords
   const [testKeywords, setTestKeywords] = useState('');
   
-  // State for prompt style
-  const [promptStyle, setPromptStyle] = useState('game');
+  // State for prompt style - default to OCR.space (dedicated OCR service)
+  const [promptStyle, setPromptStyle] = useState('ocrspace');
   
   // State for scan results
   const [scanning, setScanning] = useState(false);
