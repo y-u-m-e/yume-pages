@@ -57,6 +57,12 @@ export default function TileEventAdmin() {
   const [newEventDesc, setNewEventDesc] = useState('');
   const [editingTile, setEditingTile] = useState<Tile | null>(null);
   const [showTileForm, setShowTileForm] = useState(false);
+  
+  // Sheet sync states
+  const [sheetId, setSheetId] = useState('');
+  const [sheetTab, setSheetTab] = useState('');
+  const [syncing, setSyncing] = useState(false);
+  const [showSheetConfig, setShowSheetConfig] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -93,6 +99,9 @@ export default function TileEventAdmin() {
         const data = await eventRes.json();
         setSelectedEvent(data.event);
         setTiles(data.tiles || []);
+        // Set sheet config from event
+        setSheetId(data.event.google_sheet_id || '');
+        setSheetTab(data.event.google_sheet_tab || '');
       }
       
       if (participantsRes.ok) {
@@ -280,6 +289,69 @@ export default function TileEventAdmin() {
     }
   };
 
+  const saveSheetConfig = async () => {
+    if (!selectedEvent) return;
+    
+    try {
+      const res = await fetch(`${API_BASE}/admin/tile-events/${selectedEvent.id}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...selectedEvent,
+          google_sheet_id: sheetId,
+          google_sheet_tab: sheetTab
+        })
+      });
+      
+      if (res.ok) {
+        setShowSheetConfig(false);
+        fetchEventDetails(selectedEvent.id);
+        alert('Sheet configuration saved!');
+      } else {
+        const data = await res.json();
+        alert(`Failed to save: ${data.error}`);
+      }
+    } catch (err) {
+      console.error('Failed to save sheet config:', err);
+      alert('Failed to save sheet configuration');
+    }
+  };
+
+  const syncFromSheet = async () => {
+    if (!selectedEvent) return;
+    
+    if (!sheetId || !sheetTab) {
+      setShowSheetConfig(true);
+      return;
+    }
+    
+    if (!confirm(`This will replace all existing tiles with data from the Google Sheet. Continue?`)) return;
+    
+    setSyncing(true);
+    try {
+      const res = await fetch(`${API_BASE}/admin/tile-events/${selectedEvent.id}/sync-sheet`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        alert(data.message || `Synced ${data.tilesImported} tiles from sheet!`);
+        fetchEventDetails(selectedEvent.id);
+        fetchEvents();
+      } else {
+        alert(`Sync failed: ${data.error}`);
+      }
+    } catch (err) {
+      console.error('Failed to sync from sheet:', err);
+      alert('Failed to sync from Google Sheet');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   if (!isAdmin) {
     return null;
   }
@@ -415,6 +487,20 @@ export default function TileEventAdmin() {
                     <h3 className="font-semibold text-white">Tile Path</h3>
                     <div className="flex gap-2">
                       <button
+                        onClick={() => setShowSheetConfig(true)}
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors"
+                        title="Configure Google Sheet"
+                      >
+                        ⚙️ Sheet
+                      </button>
+                      <button
+                        onClick={syncFromSheet}
+                        disabled={syncing}
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-colors disabled:opacity-50"
+                      >
+                        {syncing ? '⏳ Syncing...' : '📥 Sync from Sheet'}
+                      </button>
+                      <button
                         onClick={addTile}
                         className="px-3 py-1.5 rounded-lg text-sm font-medium bg-yume-bg-light text-white hover:bg-yume-accent hover:text-yume-bg transition-colors"
                       >
@@ -429,10 +515,17 @@ export default function TileEventAdmin() {
                     </div>
                   </div>
                   
+                  {/* Sheet config indicator */}
+                  {(sheetId || sheetTab) && (
+                    <div className="mb-4 px-3 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg text-sm text-blue-300">
+                      📊 Sheet: <span className="font-mono">{sheetId || '(not set)'}</span> / Tab: <span className="font-mono">{sheetTab || '(not set)'}</span>
+                    </div>
+                  )}
+                  
                   {tiles.length === 0 ? (
                     <div className="text-center py-8 text-gray-400">
                       <div className="text-4xl mb-2">🎯</div>
-                      <p>No tiles yet. Add your first tile to get started!</p>
+                      <p>No tiles yet. Add your first tile or sync from a Google Sheet!</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -701,6 +794,83 @@ export default function TileEventAdmin() {
                 className="flex-1 btn-primary disabled:opacity-50"
               >
                 Save Tile
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sheet Config Modal */}
+      {showSheetConfig && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-yume-card rounded-2xl border border-yume-border max-w-lg w-full p-6">
+            <h3 className="text-xl font-bold text-white mb-4">📊 Google Sheet Configuration</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Spreadsheet ID *</label>
+                <input
+                  type="text"
+                  value={sheetId}
+                  onChange={e => setSheetId(e.target.value)}
+                  placeholder="e.g., 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
+                  className="w-full px-4 py-2 rounded-lg bg-yume-bg-light border border-yume-border text-white placeholder:text-gray-500 focus:border-yume-accent outline-none font-mono text-sm"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Find this in the Google Sheet URL: docs.google.com/spreadsheets/d/<span className="text-yume-accent">[ID]</span>/edit
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Tab/Sheet Name *</label>
+                <input
+                  type="text"
+                  value={sheetTab}
+                  onChange={e => setSheetTab(e.target.value)}
+                  placeholder="e.g., Tiles"
+                  className="w-full px-4 py-2 rounded-lg bg-yume-bg-light border border-yume-border text-white placeholder:text-gray-500 focus:border-yume-accent outline-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  The name of the tab at the bottom of your spreadsheet
+                </p>
+              </div>
+              
+              <div className="bg-yume-bg-light rounded-lg p-4">
+                <h4 className="text-sm font-medium text-white mb-2">Expected Sheet Format</h4>
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-gray-400">
+                      <th className="text-left py-1 px-2 border-b border-yume-border">A: Title</th>
+                      <th className="text-left py-1 px-2 border-b border-yume-border">B: Description</th>
+                      <th className="text-left py-1 px-2 border-b border-yume-border">C: Image URL</th>
+                      <th className="text-left py-1 px-2 border-b border-yume-border">D: Reward</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-gray-300">
+                    <tr>
+                      <td className="py-1 px-2">Get 10 Kills</td>
+                      <td className="py-1 px-2">Kill any boss</td>
+                      <td className="py-1 px-2">https://...</td>
+                      <td className="py-1 px-2">5M GP</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowSheetConfig(false)}
+                className="flex-1 px-4 py-2 rounded-lg border border-yume-border text-gray-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveSheetConfig}
+                disabled={!sheetId.trim() || !sheetTab.trim()}
+                className="flex-1 btn-primary disabled:opacity-50"
+              >
+                Save Configuration
               </button>
             </div>
           </div>
