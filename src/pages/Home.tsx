@@ -1,19 +1,53 @@
+/**
+ * =============================================================================
+ * HOME PAGE - Landing Page & Dashboard
+ * =============================================================================
+ * 
+ * The main landing page for Yume Tools. Shows different content based on
+ * authentication state:
+ * 
+ * - Logged out: Welcome message with Discord login button
+ * - Logged in: Personalized dashboard with quick links to tools
+ * - Admin: Additional admin panel link
+ * 
+ * Also displays a simple API health status indicator.
+ * 
+ * @module Home
+ */
+
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
 
+// API base URL from environment or default to production
 const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
 
-// Quick links for logged-in users
+/**
+ * Quick navigation links displayed to logged-in users
+ * Each link shows an icon, title, and description
+ */
 const quickLinks = [
   { to: '/cruddy-panel', icon: '◉', title: 'Cruddy Panel', desc: 'Event attendance tracking' },
   { to: '/docs', icon: '◫', title: 'Documentation', desc: 'API & integration guides' },
 ];
 
+/**
+ * Home Page Component
+ * 
+ * Renders the landing page with:
+ * - Hero section with logo and tagline
+ * - API status indicator
+ * - Login prompt OR user dashboard
+ * - Quick links to tools (for authenticated users)
+ */
 export default function Home() {
+  // Get auth state from context
   const { user, login, isAdmin } = useAuth();
+  
+  // API health status: checking -> online/offline
   const [apiStatus, setApiStatus] = useState<'checking' | 'online' | 'offline'>('checking');
 
+  // Check API health on component mount
   useEffect(() => {
     fetch(`${API_BASE}/health`)
       .then(res => setApiStatus(res.ok ? 'online' : 'offline'))

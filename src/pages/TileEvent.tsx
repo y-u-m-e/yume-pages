@@ -1,51 +1,113 @@
+/**
+ * =============================================================================
+ * TILE EVENT PAGE - Snake-Style Progression Game
+ * =============================================================================
+ * 
+ * Displays a single tile event with a snake-pattern game board.
+ * Users can:
+ * - View event details and tiles
+ * - Join/leave events
+ * - Track their progress through tiles
+ * - View tile details (description, reward, image)
+ * 
+ * The tiles are displayed in a snake pattern (left-to-right, then right-to-left)
+ * and users must unlock tiles sequentially - completing one unlocks the next.
+ * 
+ * Visual states for tiles:
+ * - Locked (gray): Cannot be accessed yet
+ * - Accessible (highlighted): Previous tile completed, can work on this
+ * - Current (pulsing): The tile user should focus on
+ * - Completed (green): Already done
+ * 
+ * @module TileEvent
+ */
+
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
+// API base URL from environment
 const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
 
+// =============================================================================
+// TYPE DEFINITIONS
+// =============================================================================
+
+/**
+ * Individual tile in the event
+ * Each tile represents a task/challenge to complete
+ */
 interface Tile {
-  id: number;
-  position: number;
-  title: string;
-  description?: string;
-  image_url?: string;
-  reward?: string;
-  is_start: number;
-  is_end: number;
+  id: number;           // Database ID
+  position: number;     // Position in snake path (0-indexed)
+  title: string;        // Short title displayed on tile
+  description?: string; // Detailed description shown in modal
+  image_url?: string;   // Optional image for the tile
+  reward?: string;      // What the user gets for completing
+  is_start: number;     // 1 if this is the first tile
+  is_end: number;       // 1 if this is the final tile
 }
 
+/**
+ * Event metadata from the database
+ */
 interface TileEventData {
-  id: number;
-  name: string;
-  description?: string;
-  is_active: number;
-  google_sheet_id?: string;
+  id: number;                 // Event ID
+  name: string;               // Display name
+  description?: string;       // Event description
+  is_active: number;          // 1 if event is ongoing, 0 if ended
+  google_sheet_id?: string;   // Source sheet (if synced from Google Sheets)
 }
 
+/**
+ * User's progress on an event
+ * Tracks which tiles they've unlocked
+ */
 interface UserProgress {
-  current_tile: number;
-  tiles_unlocked: number[];
-  completed_at?: string;
+  current_tile: number;       // Highest tile position unlocked
+  tiles_unlocked: number[];   // Array of unlocked tile positions
+  completed_at?: string;      // ISO timestamp if event is completed
 }
 
+/**
+ * Tile Event Page Component
+ * 
+ * Main page for viewing and participating in a tile event.
+ * Handles:
+ * - Loading event data and tiles
+ * - User join/leave functionality
+ * - Progress tracking
+ * - Interactive tile board
+ */
 export default function TileEvent() {
+  // Get event ID from URL params (/tile-events/:eventId)
   const { eventId } = useParams<{ eventId: string }>();
   const { user } = useAuth();
-  const [event, setEvent] = useState<TileEventData | null>(null);
-  const [tiles, setTiles] = useState<Tile[]>([]);
-  const [progress, setProgress] = useState<UserProgress | null>(null);
-  const [joined, setJoined] = useState(false);
-  const [joining, setJoining] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [selectedTile, setSelectedTile] = useState<Tile | null>(null);
+  
+  // ==========================================================================
+  // STATE
+  // ==========================================================================
+  
+  const [event, setEvent] = useState<TileEventData | null>(null);  // Event data
+  const [tiles, setTiles] = useState<Tile[]>([]);                  // All tiles
+  const [progress, setProgress] = useState<UserProgress | null>(null); // User's progress
+  const [joined, setJoined] = useState(false);      // Has user joined this event?
+  const [joining, setJoining] = useState(false);    // Is join request in progress?
+  const [loading, setLoading] = useState(true);     // Initial data loading
+  const [selectedTile, setSelectedTile] = useState<Tile | null>(null); // Tile detail modal
 
+  // ==========================================================================
+  // EFFECTS
+  // ==========================================================================
+  
+  // Fetch event data when eventId changes
   useEffect(() => {
     if (eventId) {
       fetchEventData();
     }
   }, [eventId]);
 
+  // Fetch user's progress when they're logged in
   useEffect(() => {
     if (eventId && user) {
       fetchProgress();

@@ -1,60 +1,115 @@
+/**
+ * =============================================================================
+ * TILE EVENT ADMIN - Event Management Dashboard
+ * =============================================================================
+ * 
+ * Admin interface for creating and managing tile events.
+ * Requires 'events' permission or admin access.
+ * 
+ * Features:
+ * - Create/edit/delete tile events
+ * - Add/edit/reorder tiles manually
+ * - Sync tiles from Google Sheets (public sheets only)
+ * - View and manage participants
+ * - Unlock tiles for specific users
+ * - Reset or remove participants
+ * 
+ * Layout:
+ * - Left sidebar: List of events
+ * - Right panel: Selected event details
+ *   - Tiles tab: Manage tile path
+ *   - Participants tab: View/manage participants
+ * 
+ * @module TileEventAdmin
+ */
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
+// API base URL from environment
 const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
 
+// =============================================================================
+// TYPE DEFINITIONS
+// =============================================================================
+
+/**
+ * Tile event summary (from list endpoint)
+ * Includes aggregate counts for display
+ */
 interface TileEvent {
-  id: number;
-  name: string;
-  description?: string;
-  is_active: number;
-  google_sheet_id?: string;
-  google_sheet_tab?: string;
-  tile_count: number;
-  participant_count: number;
-  created_at: string;
+  id: number;                   // Database ID
+  name: string;                 // Event name
+  description?: string;         // Optional description
+  is_active: number;            // 1 = active, 0 = ended
+  google_sheet_id?: string;     // Google Sheet ID for sync
+  google_sheet_tab?: string;    // Sheet tab name for sync
+  tile_count: number;           // Number of tiles in event
+  participant_count: number;    // Number of participants
+  created_at: string;           // ISO timestamp
 }
 
+/**
+ * Individual tile in an event
+ * Can be created manually or synced from Google Sheets
+ */
 interface Tile {
-  id?: number;
-  position: number;
-  title: string;
-  description?: string;
-  image_url?: string;
-  reward?: string;
-  is_start?: number;
-  is_end?: number;
+  id?: number;          // Database ID (undefined for new tiles)
+  position: number;     // Order in the snake path (0-indexed)
+  title: string;        // Tile name/title
+  description?: string; // Detailed description
+  image_url?: string;   // Optional image URL
+  reward?: string;      // Reward for completing tile
+  is_start?: number;    // 1 if first tile
+  is_end?: number;      // 1 if final tile
 }
 
+/**
+ * Participant progress data
+ * Includes Discord user info from admin_users table
+ */
 interface Participant {
-  id: number;
-  discord_id: string;
-  discord_username: string;
-  username?: string;
-  global_name?: string;
-  avatar?: string;
-  current_tile: number;
-  tiles_unlocked: number[];
-  completed_at?: string;
-  updated_at: string;
+  id: number;                   // Progress record ID
+  discord_id: string;           // Discord user ID
+  discord_username: string;     // Discord username
+  username?: string;            // From admin_users table
+  global_name?: string;         // Discord display name
+  avatar?: string;              // Discord avatar hash
+  current_tile: number;         // Highest tile position
+  tiles_unlocked: number[];     // Array of completed tile positions
+  completed_at?: string;        // ISO timestamp if finished
+  updated_at: string;           // Last activity timestamp
 }
 
+/**
+ * Tile Event Admin Page Component
+ * 
+ * Full admin dashboard for tile event management.
+ * Redirects non-admins to home page.
+ */
 export default function TileEventAdmin() {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
   
-  const [events, setEvents] = useState<TileEvent[]>([]);
-  const [selectedEvent, setSelectedEvent] = useState<TileEvent | null>(null);
-  const [tiles, setTiles] = useState<Tile[]>([]);
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [loading, setLoading] = useState(true);
+  // ==========================================================================
+  // STATE MANAGEMENT
+  // ==========================================================================
+  
+  // Event list and selection
+  const [events, setEvents] = useState<TileEvent[]>([]);           // All events
+  const [selectedEvent, setSelectedEvent] = useState<TileEvent | null>(null); // Current
+  const [tiles, setTiles] = useState<Tile[]>([]);                  // Selected event's tiles
+  const [participants, setParticipants] = useState<Participant[]>([]); // Participants
+  const [loading, setLoading] = useState(true);                    // Initial load state
   const [activeTab, setActiveTab] = useState<'tiles' | 'participants'>('tiles');
   
-  // Form states
+  // Event creation/editing form
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newEventName, setNewEventName] = useState('');
   const [newEventDesc, setNewEventDesc] = useState('');
+  
+  // Tile editing
   const [editingTile, setEditingTile] = useState<Tile | null>(null);
   const [showTileForm, setShowTileForm] = useState(false);
   
