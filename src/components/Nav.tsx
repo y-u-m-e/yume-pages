@@ -10,6 +10,7 @@ const publicNavItems = [
 // Protected pages only visible when logged in
 const protectedNavItems = [
   { to: '/cruddy-panel', label: 'Cruddy', icon: '◉' },
+  { to: '/tile-events', label: 'Events', icon: '🎯' },
   { to: '/docs', label: 'Docs', icon: '📄' },
 ];
 

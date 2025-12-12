@@ -7,6 +7,9 @@ import Docs from '@/pages/Docs'
 import Admin from '@/pages/Admin'
 import DevOps from '@/pages/DevOps'
 import Profile from '@/pages/Profile'
+import TileEvents from '@/pages/TileEvents'
+import TileEvent from '@/pages/TileEvent'
+import TileEventAdmin from '@/pages/TileEventAdmin'
 
 function App() {
   return (
@@ -19,6 +22,9 @@ function App() {
           <Route path="admin" element={<Admin />} />
           <Route path="devops" element={<DevOps />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="tile-events" element={<TileEvents />} />
+          <Route path="tile-events/:eventId" element={<TileEvent />} />
+          <Route path="admin/tile-events" element={<TileEventAdmin />} />
         </Route>
       </Routes>
     </AuthProvider>
