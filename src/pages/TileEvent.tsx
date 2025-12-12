@@ -35,6 +35,8 @@ export default function TileEvent() {
   const [event, setEvent] = useState<TileEventData | null>(null);
   const [tiles, setTiles] = useState<Tile[]>([]);
   const [progress, setProgress] = useState<UserProgress | null>(null);
+  const [joined, setJoined] = useState(false);
+  const [joining, setJoining] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedTile, setSelectedTile] = useState<Tile | null>(null);
 
@@ -75,9 +77,49 @@ export default function TileEvent() {
       if (res.ok) {
         const data = await res.json();
         setProgress(data.progress);
+        setJoined(data.joined === true);
       }
     } catch (err) {
       console.error('Failed to fetch progress:', err);
+    }
+  };
+
+  const joinEvent = async () => {
+    setJoining(true);
+    try {
+      const res = await fetch(`${API_BASE}/tile-events/${eventId}/join`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setJoined(true);
+        fetchProgress();
+      } else {
+        alert(data.error || 'Failed to join event');
+      }
+    } catch (err) {
+      console.error('Failed to join event:', err);
+      alert('Failed to join event');
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  const leaveEvent = async () => {
+    if (!confirm('Are you sure you want to leave this event? Your progress will be lost.')) return;
+    
+    try {
+      const res = await fetch(`${API_BASE}/tile-events/${eventId}/leave`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      if (res.ok) {
+        setJoined(false);
+        setProgress(null);
+      }
+    } catch (err) {
+      console.error('Failed to leave event:', err);
     }
   };
 
@@ -182,28 +224,39 @@ export default function TileEvent() {
             )}
           </div>
           
-          {/* Progress indicator */}
-          <div className="flex-shrink-0">
-            <div className="text-right mb-2">
-              <span className="text-2xl font-bold text-yume-accent">{completedCount}</span>
-              <span className="text-gray-500">/{tiles.length} tiles</span>
-            </div>
-            <div className="w-48 h-2 bg-yume-bg-light rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-yume-accent to-emerald-400 transition-all duration-500"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-            {progress?.completed_at && (
-              <div className="text-xs text-emerald-400 mt-1 text-right">
-                ✓ Completed!
+          {/* Progress indicator - only show if joined */}
+          {joined && (
+            <div className="flex-shrink-0">
+              <div className="text-right mb-2">
+                <span className="text-2xl font-bold text-yume-accent">{completedCount}</span>
+                <span className="text-gray-500">/{tiles.length} tiles</span>
               </div>
-            )}
-          </div>
+              <div className="w-48 h-2 bg-yume-bg-light rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-yume-accent to-emerald-400 transition-all duration-500"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+              {progress?.completed_at && (
+                <div className="text-xs text-emerald-400 mt-1 text-right">
+                  ✓ Completed!
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Tile count for non-joined users */}
+          {!joined && (
+            <div className="flex-shrink-0 text-right">
+              <div className="text-2xl font-bold text-gray-400">{tiles.length}</div>
+              <div className="text-sm text-gray-500">tiles</div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Snake Tile Board */}
+      {/* Snake Tile Board - only show if joined */}
+      {joined && (
       <div className="bg-yume-card rounded-2xl border border-yume-border p-6 overflow-x-auto">
         <div 
           className="relative mx-auto"
@@ -304,6 +357,7 @@ export default function TileEvent() {
           </svg>
         </div>
       </div>
+      )}
 
       {/* Selected Tile Details Modal */}
       {selectedTile && (
@@ -390,6 +444,36 @@ export default function TileEvent() {
           <p className="text-gray-400 mb-4">
             Sign in with Discord to save your progress and unlock tiles.
           </p>
+        </div>
+      )}
+
+      {/* Join prompt for logged-in users who haven't joined */}
+      {user && !joined && (
+        <div className="bg-gradient-to-r from-yume-accent/20 to-purple-500/20 rounded-2xl border border-yume-accent/30 p-8 text-center">
+          <div className="text-5xl mb-4">🎯</div>
+          <h3 className="text-xl font-bold text-white mb-2">Join This Event!</h3>
+          <p className="text-gray-300 mb-6 max-w-md mx-auto">
+            Click below to join and start tracking your progress through this tile event.
+          </p>
+          <button
+            onClick={joinEvent}
+            disabled={joining || !event?.is_active}
+            className="btn-primary text-lg px-8 py-3 disabled:opacity-50"
+          >
+            {joining ? 'Joining...' : !event?.is_active ? 'Event Ended' : 'Join Event'}
+          </button>
+        </div>
+      )}
+
+      {/* Leave event option for joined users */}
+      {user && joined && (
+        <div className="text-center">
+          <button
+            onClick={leaveEvent}
+            className="text-sm text-gray-500 hover:text-red-400 transition-colors"
+          >
+            Leave Event
+          </button>
         </div>
       )}
     </div>

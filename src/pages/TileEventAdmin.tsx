@@ -289,6 +289,24 @@ export default function TileEventAdmin() {
     }
   };
 
+  const removeParticipant = async (participant: Participant) => {
+    if (!selectedEvent || !confirm(`Remove ${participant.global_name || participant.discord_username} from this event? Their progress will be deleted.`)) return;
+    
+    try {
+      const res = await fetch(`${API_BASE}/admin/tile-events/${selectedEvent.id}/participants/${participant.discord_id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (res.ok) {
+        fetchEventDetails(selectedEvent.id);
+        fetchEvents();
+      }
+    } catch (err) {
+      console.error('Failed to remove participant:', err);
+    }
+  };
+
   const saveSheetConfig = async () => {
     if (!selectedEvent) return;
     
@@ -623,12 +641,20 @@ export default function TileEventAdmin() {
                                 </div>
                               </div>
                             </div>
-                            <button
-                              onClick={() => resetUserProgress(participant)}
-                              className="text-xs text-red-400 hover:underline"
-                            >
-                              Reset
-                            </button>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => resetUserProgress(participant)}
+                                className="text-xs text-yellow-400 hover:underline"
+                              >
+                                Reset
+                              </button>
+                              <button
+                                onClick={() => removeParticipant(participant)}
+                                className="text-xs text-red-400 hover:underline"
+                              >
+                                Remove
+                              </button>
+                            </div>
                           </div>
                           
                           {/* Tile progress grid */}
