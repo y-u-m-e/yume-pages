@@ -423,8 +423,7 @@ export default function TileEvent() {
         </div>
       </div>
 
-      {/* Snake Tile Board - only show if joined */}
-      {joined && (
+      {/* Snake Tile Board - always visible, but progress requires joining */}
       <div className="bg-yume-card rounded-2xl border border-yume-border p-6 overflow-x-auto">
         <div 
           className="relative mx-auto"
@@ -519,7 +518,6 @@ export default function TileEvent() {
           </svg>
         </div>
       </div>
-      )}
 
       {/* Selected Tile Details Modal */}
       {selectedTile && (
@@ -573,7 +571,36 @@ export default function TileEvent() {
             
             {/* Submission Status & Upload Section */}
             <div className="mt-4 pt-4 border-t border-yume-border">
-              {getTileStatus(selectedTile.position) === 'completed' ? (
+              {/* Not logged in */}
+              {!user ? (
+                <div className="bg-gray-500/10 border border-gray-500/30 rounded-xl p-4 text-center">
+                  <div className="text-gray-400 mb-2">Sign in to participate</div>
+                  <Link 
+                    to="/"
+                    className="text-yume-accent hover:underline text-sm"
+                  >
+                    Sign in with Discord →
+                  </Link>
+                </div>
+              ) : !joined ? (
+                /* Logged in but not joined */
+                <div className="bg-yume-accent/10 border border-yume-accent/30 rounded-xl p-4 text-center">
+                  <div className="text-yume-accent font-medium mb-2">Join to participate!</div>
+                  <p className="text-gray-400 text-sm mb-3">
+                    Join this event to track your progress and submit screenshots.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setSelectedTile(null);
+                      joinEvent();
+                    }}
+                    disabled={joining || !event?.is_active}
+                    className="btn-primary text-sm px-4 py-2 disabled:opacity-50"
+                  >
+                    {joining ? 'Joining...' : 'Join Event'}
+                  </button>
+                </div>
+              ) : getTileStatus(selectedTile.position) === 'completed' ? (
                 <div className="flex items-center gap-2 text-emerald-400">
                   <span className="text-lg">✓</span>
                   <span>Completed!</span>
