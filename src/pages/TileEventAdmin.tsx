@@ -1143,17 +1143,17 @@ export default function TileEventAdmin() {
               {/* AI Auto-Approval Keywords */}
               <div>
                 <label className="block text-sm text-gray-400 mb-1">
-                  🤖 AI Keywords <span className="text-gray-500">(comma-separated)</span>
+                  🤖 OCR Keywords <span className="text-gray-500">(comma-separated)</span>
                 </label>
                 <input
                   type="text"
                   value={editingTile.unlock_keywords || ''}
                   onChange={e => setEditingTile({ ...editingTile, unlock_keywords: e.target.value })}
-                  placeholder="dragon, pet, rare drop, barrows..."
+                  placeholder="exact:You have a funny feeling, dragon warhammer"
                   className="w-full px-4 py-2 rounded-lg bg-yume-bg-light border border-yume-border text-white placeholder:text-gray-500 focus:border-yume-accent outline-none"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  If any keyword is found in the screenshot, submission is auto-approved
+                  Keywords matched as whole words. Use <code className="text-yellow-400">exact:</code> for phrases, <code className="text-yellow-400">all:</code> to require ALL matches
                 </p>
               </div>
               

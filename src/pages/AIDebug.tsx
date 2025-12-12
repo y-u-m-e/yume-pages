@@ -28,6 +28,8 @@ interface ScanResult {
   imageSizeKB?: number;
   error?: string;
   suggestion?: string;
+  requireAll?: boolean;
+  wouldAutoApprove?: boolean;
 }
 
 export default function AIDebug() {
@@ -396,13 +398,13 @@ export default function AIDebug() {
               <>
                 {/* Summary Card */}
                 <div className={`rounded-xl border p-5 ${
-                  result.matchedKeywords?.length > 0 
+                  result.wouldAutoApprove 
                     ? 'bg-emerald-500/10 border-emerald-500/30' 
                     : 'bg-yellow-500/10 border-yellow-500/30'
                 }`}>
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="text-lg font-semibold text-white">
-                      {result.matchedKeywords?.length > 0 ? '✅ Would Auto-Approve' : '⏳ Would Need Review'}
+                      {result.wouldAutoApprove ? '✅ Would Auto-Approve' : '⏳ Would Need Review'}
                     </h2>
                     <div className="flex items-center gap-3 text-sm text-gray-400">
                       {result.imageSizeKB && (
@@ -411,6 +413,13 @@ export default function AIDebug() {
                       <span>{result.processingTime}ms</span>
                     </div>
                   </div>
+                  
+                  {/* Show require all mode if active */}
+                  {result.requireAll && (
+                    <div className="mb-3 text-sm text-orange-400">
+                      ⚠️ Strict mode: ALL keywords must match
+                    </div>
+                  )}
                   
                   {result.aiConfidence !== null && (
                     <div className="mb-3">
@@ -505,15 +514,53 @@ export default function AIDebug() {
 
         {/* Tips Section */}
         <div className="mt-8 bg-yume-card rounded-xl border border-yume-border p-5">
-          <h2 className="text-lg font-semibold text-white mb-3">💡 Tips for Keywords</h2>
-          <ul className="space-y-2 text-gray-400 text-sm">
-            <li>• Use <strong className="text-white">specific item names</strong> like "dragon warhammer", "abyssal whip", "dragon pickaxe"</li>
-            <li>• Include <strong className="text-white">boss names</strong> like "vorkath", "zulrah", "hydra" for boss kill proof</li>
-            <li>• For pets, use keywords like <strong className="text-white">"pet", "You have a funny feeling"</strong></li>
-            <li>• The AI looks for these words in the text it extracts from the screenshot</li>
-            <li>• If a keyword appears anywhere in the AI output, it counts as a match</li>
-            <li>• Multiple keywords work as OR logic - any match triggers auto-approval</li>
-          </ul>
+          <h2 className="text-lg font-semibold text-white mb-3">💡 How OCR Keywords Work</h2>
+          
+          <div className="space-y-4 text-sm">
+            {/* Basic matching */}
+            <div>
+              <h3 className="text-white font-medium mb-2">Basic Keywords (word boundary matching)</h3>
+              <p className="text-gray-400 mb-2">
+                Keywords are matched as whole words. "pet" won't match "carpet" or "compete".
+              </p>
+              <code className="block bg-yume-bg-light rounded p-2 text-emerald-400">
+                dragon, pet, barrows
+              </code>
+            </div>
+            
+            {/* Exact phrases */}
+            <div>
+              <h3 className="text-white font-medium mb-2">Exact Phrases (use <code className="text-yellow-400">exact:</code> prefix)</h3>
+              <p className="text-gray-400 mb-2">
+                For multi-word phrases that must appear exactly as written.
+              </p>
+              <code className="block bg-yume-bg-light rounded p-2 text-emerald-400">
+                exact:You have a funny feeling, exact:received a drop
+              </code>
+            </div>
+            
+            {/* Require all */}
+            <div>
+              <h3 className="text-white font-medium mb-2">Require ALL Keywords (use <code className="text-yellow-400">all:</code> prefix)</h3>
+              <p className="text-gray-400 mb-2">
+                Add <code className="text-yellow-400">all:</code> anywhere in your keywords to require ALL of them to match (stricter).
+              </p>
+              <code className="block bg-yume-bg-light rounded p-2 text-emerald-400">
+                all:, dragon, vorkath
+              </code>
+            </div>
+            
+            {/* Examples */}
+            <div className="pt-2 border-t border-yume-border">
+              <h3 className="text-white font-medium mb-2">Example Keywords</h3>
+              <ul className="space-y-1 text-gray-400">
+                <li>• Pet drops: <code className="text-emerald-400">exact:You have a funny feeling</code></li>
+                <li>• Valuable drops: <code className="text-emerald-400">dragon warhammer, dragon claws, twisted bow</code></li>
+                <li>• Boss kills: <code className="text-emerald-400">vorkath, zulrah, hydra</code></li>
+                <li>• Strict verification: <code className="text-emerald-400">all:, vorkath, killcount</code></li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </div>
