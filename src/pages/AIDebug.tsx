@@ -23,7 +23,9 @@ interface ScanResult {
   matchedKeywords: string[];
   allKeywords: string[];
   processingTime: number;
+  imageSizeKB?: number;
   error?: string;
+  suggestion?: string;
 }
 
 export default function AIDebug() {
@@ -94,7 +96,21 @@ export default function AIDebug() {
       const data = await res.json();
       
       if (!res.ok) {
-        throw new Error(data.error || 'Scan failed');
+        setError(data.error || 'Scan failed');
+        // Store suggestion if provided
+        if (data.suggestion) {
+          setResult({ 
+            success: false, 
+            ocrText: null, 
+            aiResult: null, 
+            aiConfidence: null, 
+            matchedKeywords: [], 
+            allKeywords: [], 
+            processingTime: 0,
+            suggestion: data.suggestion 
+          });
+        }
+        return;
       }
       
       setResult({
@@ -182,9 +198,26 @@ export default function AIDebug() {
                       ✕
                     </button>
                   </div>
-                  <p className="text-sm text-gray-500">
-                    {selectedFile?.name} ({(selectedFile?.size || 0 / 1024).toFixed(1)} KB)
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-500">
+                      {selectedFile?.name}
+                    </p>
+                    <span className={`text-sm font-mono px-2 py-0.5 rounded ${
+                      (selectedFile?.size || 0) > 1024 * 1024 
+                        ? 'bg-red-500/20 text-red-400' 
+                        : 'bg-emerald-500/20 text-emerald-400'
+                    }`}>
+                      {((selectedFile?.size || 0) / 1024).toFixed(0)} KB
+                    </span>
+                  </div>
+                  {(selectedFile?.size || 0) > 1024 * 1024 && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-sm">
+                      <div className="text-red-400 font-medium mb-1">⚠️ Image too large for AI</div>
+                      <p className="text-gray-400">
+                        Max size: 1MB. Use <a href="https://squoosh.app" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">squoosh.app</a> to compress.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -225,9 +258,14 @@ export default function AIDebug() {
           <div className="space-y-6">
             {/* Error Display */}
             {error && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-5 text-red-400">
-                <div className="font-semibold mb-1">❌ Error</div>
-                <div>{error}</div>
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-5">
+                <div className="font-semibold mb-1 text-red-400">❌ Error</div>
+                <div className="text-red-300">{error}</div>
+                {result?.suggestion && (
+                  <p className="text-gray-400 mt-2 text-sm">
+                    💡 {result.suggestion}
+                  </p>
+                )}
               </div>
             )}
 
@@ -244,9 +282,12 @@ export default function AIDebug() {
                     <h2 className="text-lg font-semibold text-white">
                       {result.matchedKeywords?.length > 0 ? '✅ Would Auto-Approve' : '⏳ Would Need Review'}
                     </h2>
-                    <span className="text-sm text-gray-400">
-                      {result.processingTime}ms
-                    </span>
+                    <div className="flex items-center gap-3 text-sm text-gray-400">
+                      {result.imageSizeKB && (
+                        <span className="font-mono">{result.imageSizeKB}KB</span>
+                      )}
+                      <span>{result.processingTime}ms</span>
+                    </div>
                   </div>
                   
                   {result.aiConfidence !== null && (
