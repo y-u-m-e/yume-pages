@@ -290,25 +290,39 @@ export default function TileEvent() {
     }
   };
 
-  // All tiles are now accessible from the start (no sequential unlocking required)
-  const isTileAccessible = (_position: number) => {
-    return true; // All tiles are always accessible
-  };
-
-  const getTileStatus = (position: number): 'accessible' | 'completed' | 'current' => {
+  /**
+   * Determine tile status for visual display
+   * Tiles are visible to everyone but locked until unlocked sequentially
+   * 
+   * Status meanings:
+   * - 'locked': Cannot interact, previous tile not completed
+   * - 'current': The next tile to work on (highlighted)
+   * - 'completed': Already done (green)
+   */
+  const getTileStatus = (position: number): 'locked' | 'current' | 'completed' => {
     if (!progress) {
-      // Not joined yet - all tiles are accessible but show first as "current"
-      return position === 0 ? 'current' : 'accessible';
+      // Not joined yet - show first as current, rest as locked (preview mode)
+      return position === 0 ? 'current' : 'locked';
     }
+    
+    // Check if this tile is completed
     if (progress.tiles_unlocked.includes(position)) {
       return 'completed';
     }
-    // Find the next uncompleted tile to mark as "current"
-    const nextTile = tiles.find(t => !progress.tiles_unlocked.includes(t.position));
-    if (nextTile && nextTile.position === position) {
+    
+    // Check if this is the current tile (next to unlock)
+    // First tile is accessible if nothing unlocked
+    // Otherwise, current tile is one after the highest unlocked
+    const maxUnlocked = progress.tiles_unlocked.length > 0 
+      ? Math.max(...progress.tiles_unlocked) 
+      : -1;
+    
+    if (position === maxUnlocked + 1) {
       return 'current';
     }
-    return 'accessible';
+    
+    // All other tiles are locked
+    return 'locked';
   };
 
   // Generate snake path coordinates
@@ -435,6 +449,7 @@ export default function TileEvent() {
           {tiles.map((tile, index) => {
             const pos = snakePositions[index];
             const status = getTileStatus(tile.position);
+            const isLocked = status === 'locked';
             
             return (
               <button
@@ -447,7 +462,7 @@ export default function TileEvent() {
                     ? 'bg-emerald-500/20 border-emerald-500/50 hover:border-emerald-400'
                     : status === 'current'
                     ? 'bg-yume-accent/20 border-yume-accent animate-pulse hover:scale-105'
-                    : 'bg-yume-bg-light border-yume-border hover:border-yume-accent cursor-pointer hover:scale-105'
+                    : 'bg-gray-800/50 border-gray-700 opacity-60 hover:opacity-80'
                   }
                 `}
                 style={{
@@ -455,18 +470,25 @@ export default function TileEvent() {
                   top: `${pos.y * (100 + 16)}px`
                 }}
               >
+                {/* Lock overlay for locked tiles */}
+                {isLocked && (
+                  <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                    <span className="text-2xl opacity-40">🔒</span>
+                  </div>
+                )}
+                
                 {/* Tile number */}
                 <div className={`
                   text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center
                   ${status === 'completed' ? 'bg-emerald-500 text-white' : 
                     status === 'current' ? 'bg-yume-accent text-yume-bg' :
-                    'bg-gray-600 text-gray-300'}
+                    'bg-gray-700 text-gray-400'}
                 `}>
                   {status === 'completed' ? '✓' : tile.position + 1}
                 </div>
                 
                 {/* Tile title (truncated) */}
-                <div className="text-xs font-medium line-clamp-2 text-white">
+                <div className={`text-xs font-medium line-clamp-2 ${isLocked ? 'text-gray-500' : 'text-white'}`}>
                   {tile.title}
                 </div>
                 
