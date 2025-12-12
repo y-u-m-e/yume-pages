@@ -15,6 +15,7 @@ interface DBUser {
   access_docs: number;
   access_devops: number;
   access_infographic: number;
+  access_events: number;
   is_banned: number;
   notes: string | null;
   last_login: string | null;
@@ -43,6 +44,7 @@ export default function Admin() {
   const [newAccessDocs, setNewAccessDocs] = useState(false);
   const [newAccessDevops, setNewAccessDevops] = useState(false);
   const [newAccessInfographic, setNewAccessInfographic] = useState(false);
+  const [newAccessEvents, setNewAccessEvents] = useState(false);
   const [newIsBanned, setNewIsBanned] = useState(false);
   const [newNotes, setNewNotes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -102,6 +104,7 @@ export default function Admin() {
           access_docs: newAccessDocs,
           access_devops: newAccessDevops,
           access_infographic: newAccessInfographic,
+          access_events: newAccessEvents,
           is_banned: newIsBanned,
           notes: newNotes.trim() || null
         })
@@ -120,6 +123,7 @@ export default function Admin() {
       setNewAccessDocs(false);
       setNewAccessDevops(false);
       setNewAccessInfographic(false);
+      setNewAccessEvents(false);
       setNewIsBanned(false);
       setNewNotes('');
       await fetchUsers();
@@ -139,6 +143,7 @@ export default function Admin() {
     setNewAccessDocs(u.access_docs === 1);
     setNewAccessDevops(u.access_devops === 1);
     setNewAccessInfographic(u.access_infographic === 1);
+    setNewAccessEvents(u.access_events === 1);
     setNewIsBanned(u.is_banned === 1);
     setNewNotes(u.notes || '');
   };
@@ -152,6 +157,7 @@ export default function Admin() {
     setNewAccessDocs(false);
     setNewAccessDevops(false);
     setNewAccessInfographic(false);
+    setNewAccessEvents(false);
     setNewIsBanned(false);
     setNewNotes('');
   };
@@ -188,6 +194,7 @@ export default function Admin() {
           access_docs: field === 'access_docs' ? !currentValue : dbUser.access_docs,
           access_devops: field === 'access_devops' ? !currentValue : dbUser.access_devops,
           access_infographic: field === 'access_infographic' ? !currentValue : dbUser.access_infographic,
+          access_events: field === 'access_events' ? !currentValue : dbUser.access_events,
           is_banned: field === 'is_banned' ? !currentValue : dbUser.is_banned,
           notes: dbUser.notes
         })
@@ -378,6 +385,18 @@ export default function Admin() {
                   </label>
                   
                   <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
+                    newAccessEvents ? 'bg-yellow-500/20 border-yellow-500 text-yellow-300' : 'bg-yume-bg-light border-yume-border text-gray-400'
+                  }`}>
+                    <input
+                      type="checkbox"
+                      checked={newAccessEvents}
+                      onChange={(e) => setNewAccessEvents(e.target.checked)}
+                      className="w-4 h-4 rounded accent-yellow-500"
+                    />
+                    <span className="text-sm">🎯 Events</span>
+                  </label>
+                  
+                  <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
                     newIsBanned ? 'bg-red-500/20 border-red-500 text-red-300' : 'bg-yume-bg-light border-yume-border text-gray-400'
                   }`}>
                     <input
@@ -442,6 +461,7 @@ export default function Admin() {
                       <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="Docs">📄</th>
                       <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="DevOps">🚀</th>
                       <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="Infographic">🎨</th>
+                      <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="Events">🎯</th>
                       <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="Banned">🚫</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Last Login</th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">Actions</th>
@@ -520,6 +540,16 @@ export default function Admin() {
                             }`}
                           >
                             {u.access_infographic ? '✓' : ''}
+                          </button>
+                        </td>
+                        <td className="px-2 py-3 text-center">
+                          <button 
+                            onClick={() => handleTogglePermission(u, 'access_events')}
+                            className={`w-6 h-6 rounded text-xs flex items-center justify-center transition-colors ${
+                              u.access_events ? 'bg-yellow-500 text-white' : 'bg-gray-700 hover:bg-gray-600'
+                            }`}
+                          >
+                            {u.access_events ? '✓' : ''}
                           </button>
                         </td>
                         <td className="px-2 py-3 text-center">

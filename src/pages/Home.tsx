@@ -129,16 +129,13 @@ export default function Home() {
       {/* Footer Links */}
       <div className="flex justify-center gap-6 text-sm text-gray-500 pt-4">
         <a 
-          href="https://yumes-tools.emuy.gg" 
+          href="https://yumes-tools.itai.gg" 
           target="_blank" 
           rel="noopener noreferrer"
           className="hover:text-yume-accent transition-colors"
         >
           Carrd Widgets →
         </a>
-        <Link to="/devops" className="hover:text-yume-accent transition-colors">
-          DevOps Status →
-        </Link>
       </div>
     </div>
   );
