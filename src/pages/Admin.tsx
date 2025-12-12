@@ -1,34 +1,101 @@
+/**
+ * =============================================================================
+ * ADMIN PANEL - User & Permission Management
+ * =============================================================================
+ * 
+ * Super-admin only dashboard for managing users and their granular permissions.
+ * This is the central control panel for access management across the application.
+ * 
+ * Access Control:
+ * - Only users with isAdmin=true can access this page
+ * - Non-admins are redirected to home
+ * 
+ * Features:
+ * - View all users in the D1 database
+ * - Add new users by Discord ID
+ * - Edit existing user permissions
+ * - Toggle individual permissions with one click
+ * - Remove users from the database
+ * - View environment variable users (read-only reference)
+ * - Application settings overview
+ * - Activity logs (placeholder for future implementation)
+ * 
+ * Permission Types:
+ * - is_admin: Full admin access (can access this panel)
+ * - access_cruddy: Attendance tracking system
+ * - access_docs: Documentation access
+ * - access_devops: DevOps control panel
+ * - access_infographic: Infographic maker tool
+ * - access_events: Tile event management
+ * - is_banned: Blocks all access
+ * 
+ * Database Table: admin_users
+ * - discord_id (unique identifier)
+ * - username, global_name, avatar (from Discord)
+ * - Permission flags (is_admin, access_*, is_banned)
+ * - notes, last_login, created_at, updated_at
+ * 
+ * @module Admin
+ */
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
+// API base URL - uses environment variable or production default
 const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
 
+// =============================================================================
+// TYPE DEFINITIONS
+// =============================================================================
+
+/**
+ * Database user record from admin_users table
+ * Contains all permission flags and metadata
+ */
 interface DBUser {
-  id: number;
-  discord_id: string;
-  username: string | null;
-  global_name: string | null;
-  avatar: string | null;
-  is_admin: number;
-  access_cruddy: number;
-  access_docs: number;
-  access_devops: number;
-  access_infographic: number;
-  access_events: number;
-  is_banned: number;
-  notes: string | null;
-  last_login: string | null;
-  created_at: string;
-  updated_at: string | null;
+  id: number;                   // Auto-increment primary key
+  discord_id: string;           // Discord user ID (17-20 digit string)
+  username: string | null;      // Discord username (handle)
+  global_name: string | null;   // Discord display name
+  avatar: string | null;        // Discord avatar hash
+  is_admin: number;             // 1 = admin, 0 = not admin
+  access_cruddy: number;        // 1 = has access, 0 = no access
+  access_docs: number;          // 1 = has access, 0 = no access
+  access_devops: number;        // 1 = has access, 0 = no access
+  access_infographic: number;   // 1 = has access, 0 = no access
+  access_events: number;        // 1 = has access, 0 = no access
+  is_banned: number;            // 1 = banned, 0 = not banned
+  notes: string | null;         // Admin notes about user
+  last_login: string | null;    // Last login timestamp
+  created_at: string;           // Record creation timestamp
+  updated_at: string | null;    // Last update timestamp
 }
 
+/**
+ * Available tabs in the admin panel
+ */
 type Tab = 'users' | 'settings' | 'logs';
 
+/**
+ * Admin Panel Component
+ * 
+ * Main admin interface with tabs for different management functions.
+ * Handles user CRUD operations and permission management.
+ */
 export default function Admin() {
+  // ==========================================================================
+  // AUTH & NAVIGATION
+  // ==========================================================================
+  
   const { user, loading: authLoading, isAdmin } = useAuth();
   const navigate = useNavigate();
   
+  // ==========================================================================
+  // STATE MANAGEMENT
+  // ==========================================================================
+  
+  // Tab and data state
   const [activeTab, setActiveTab] = useState<Tab>('users');
   const [dbUsers, setDbUsers] = useState<DBUser[]>([]);
   const [envUsers, setEnvUsers] = useState<{ cruddy: string[]; docs: string[] }>({ cruddy: [], docs: [] });
@@ -36,7 +103,7 @@ export default function Admin() {
   const [error, setError] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<DBUser | null>(null);
   
-  // Form state
+  // Form state for adding/editing users
   const [newDiscordId, setNewDiscordId] = useState('');
   const [newUsername, setNewUsername] = useState('');
   const [newIsAdmin, setNewIsAdmin] = useState(false);
@@ -49,26 +116,43 @@ export default function Admin() {
   const [newNotes, setNewNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Redirect if not admin
+  // ==========================================================================
+  // EFFECTS
+  // ==========================================================================
+
+  /**
+   * Redirect non-admin users to home page
+   * Runs when auth state changes
+   */
   useEffect(() => {
     if (!authLoading && (!user || !isAdmin)) {
       navigate('/');
     }
   }, [user, authLoading, isAdmin, navigate]);
 
-  // Fetch users on mount
+  /**
+   * Fetch users when admin is authenticated
+   */
   useEffect(() => {
     if (user && isAdmin) {
       fetchUsers();
     }
   }, [user, isAdmin]);
 
+  // ==========================================================================
+  // DATA FETCHING
+  // ==========================================================================
+
+  /**
+   * Fetch all users from the API
+   * Gets both DB users and environment variable users
+   */
   const fetchUsers = async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(`${API_BASE}/admin/users`, {
-        credentials: 'include'
+        credentials: 'include'  // Include auth cookie
       });
       if (!res.ok) throw new Error('Failed to fetch users');
       const data = await res.json();
@@ -81,10 +165,18 @@ export default function Admin() {
     }
   };
 
+  // ==========================================================================
+  // USER MANAGEMENT HANDLERS
+  // ==========================================================================
+
+  /**
+   * Add a new user or update existing user
+   * Uses POST endpoint which handles upsert logic
+   */
   const handleAddUser = async () => {
     if (!newDiscordId.trim()) return;
     
-    // Validate Discord ID format
+    // Validate Discord ID format (17-20 digits)
     if (!/^\d{17,20}$/.test(newDiscordId.trim())) {
       alert('Invalid Discord ID. Must be 17-20 digits.');
       return;
@@ -115,17 +207,8 @@ export default function Admin() {
         throw new Error(data.error || 'Failed to add user');
       }
       
-      // Reset form
-      setNewDiscordId('');
-      setNewUsername('');
-      setNewIsAdmin(false);
-      setNewAccessCruddy(true);
-      setNewAccessDocs(false);
-      setNewAccessDevops(false);
-      setNewAccessInfographic(false);
-      setNewAccessEvents(false);
-      setNewIsBanned(false);
-      setNewNotes('');
+      // Reset form after successful add
+      resetForm();
       await fetchUsers();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to add user');
@@ -134,6 +217,9 @@ export default function Admin() {
     }
   };
   
+  /**
+   * Populate form with existing user data for editing
+   */
   const handleEditUser = (u: DBUser) => {
     setEditingUser(u);
     setNewDiscordId(u.discord_id);
@@ -148,20 +234,35 @@ export default function Admin() {
     setNewNotes(u.notes || '');
   };
   
+  /**
+   * Cancel editing and reset form
+   */
   const handleCancelEdit = () => {
     setEditingUser(null);
+    resetForm();
+  };
+
+  /**
+   * Reset all form fields to defaults
+   */
+  const resetForm = () => {
     setNewDiscordId('');
     setNewUsername('');
     setNewIsAdmin(false);
-    setNewAccessCruddy(true);
+    setNewAccessCruddy(true);  // Default: grant cruddy access
     setNewAccessDocs(false);
     setNewAccessDevops(false);
     setNewAccessInfographic(false);
     setNewAccessEvents(false);
     setNewIsBanned(false);
     setNewNotes('');
+    setEditingUser(null);
   };
 
+  /**
+   * Remove a user from the database
+   * Requires confirmation before deletion
+   */
   const handleRemoveUser = async (discordId: string) => {
     if (!confirm('Are you sure you want to remove this user?')) return;
     
@@ -178,6 +279,10 @@ export default function Admin() {
     }
   };
 
+  /**
+   * Toggle a single permission for a user
+   * Preserves all other permissions while flipping the target one
+   */
   const handleTogglePermission = async (dbUser: DBUser, field: keyof DBUser) => {
     const currentValue = dbUser[field];
     try {
@@ -189,6 +294,7 @@ export default function Admin() {
           discord_id: dbUser.discord_id,
           username: dbUser.username,
           global_name: dbUser.global_name,
+          // Toggle the target field, keep others unchanged
           is_admin: field === 'is_admin' ? !currentValue : dbUser.is_admin,
           access_cruddy: field === 'access_cruddy' ? !currentValue : dbUser.access_cruddy,
           access_docs: field === 'access_docs' ? !currentValue : dbUser.access_docs,
@@ -207,6 +313,11 @@ export default function Admin() {
     }
   };
 
+  // ==========================================================================
+  // LOADING STATES
+  // ==========================================================================
+
+  // Show loading spinner while auth is checking
   if (authLoading || !user || !isAdmin) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -215,20 +326,32 @@ export default function Admin() {
     );
   }
 
+  // ==========================================================================
+  // TAB CONFIGURATION
+  // ==========================================================================
+
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'users', label: 'User Management', icon: '👥' },
     { id: 'settings', label: 'Settings', icon: '⚙' },
     { id: 'logs', label: 'Activity Logs', icon: '📜' },
   ];
 
+  // ==========================================================================
+  // STATISTICS CALCULATIONS
+  // ==========================================================================
+
   const adminCount = dbUsers.filter(u => u.is_admin).length;
   const cruddyCount = dbUsers.filter(u => u.access_cruddy).length + envUsers.cruddy.length;
   const docsCount = dbUsers.filter(u => u.access_docs).length + envUsers.docs.length;
   const bannedCount = dbUsers.filter(u => u.is_banned).length;
 
+  // ==========================================================================
+  // RENDER
+  // ==========================================================================
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* Header */}
+      {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold text-white mb-1">
           <span className="text-yume-accent">⚙</span> Admin Panel
@@ -236,7 +359,7 @@ export default function Admin() {
         <p className="text-gray-400">Manage users, settings, and view activity logs</p>
       </div>
 
-      {/* Stats */}
+      {/* Statistics Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
         <div className="stat-card">
           <div className="text-sm text-gray-400 mb-1">Total Users</div>
@@ -260,7 +383,7 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tab Navigation */}
       <div className="flex gap-2">
         {tabs.map((tab) => (
           <button
@@ -278,7 +401,7 @@ export default function Admin() {
         ))}
       </div>
 
-      {/* Content */}
+      {/* ========== USERS TAB ========== */}
       {activeTab === 'users' && (
         <div className="space-y-6">
           {/* Add/Edit User Form */}
@@ -295,7 +418,7 @@ export default function Admin() {
             </div>
             
             <div className="space-y-4">
-              {/* Row 1: IDs */}
+              {/* Discord ID & Username */}
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Discord User ID *</label>
@@ -305,7 +428,7 @@ export default function Admin() {
                     onChange={(e) => setNewDiscordId(e.target.value)}
                     placeholder="e.g., 166201366228762624"
                     className="input w-full font-mono"
-                    disabled={!!editingUser}
+                    disabled={!!editingUser}  // Can't change ID when editing
                   />
                 </div>
                 <div>
@@ -320,10 +443,11 @@ export default function Admin() {
                 </div>
               </div>
               
-              {/* Row 2: Permissions */}
+              {/* Permission Toggles */}
               <div>
                 <label className="block text-sm text-gray-400 mb-2">Permissions</label>
                 <div className="flex flex-wrap gap-4">
+                  {/* Admin Permission */}
                   <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
                     newIsAdmin ? 'bg-purple-500/20 border-purple-500 text-purple-300' : 'bg-yume-bg-light border-yume-border text-gray-400'
                   }`}>
@@ -336,6 +460,7 @@ export default function Admin() {
                     <span className="text-sm">👑 Admin</span>
                   </label>
                   
+                  {/* Cruddy Permission */}
                   <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
                     newAccessCruddy ? 'bg-green-500/20 border-green-500 text-green-300' : 'bg-yume-bg-light border-yume-border text-gray-400'
                   }`}>
@@ -348,6 +473,7 @@ export default function Admin() {
                     <span className="text-sm">◉ Cruddy</span>
                   </label>
                   
+                  {/* Docs Permission */}
                   <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
                     newAccessDocs ? 'bg-blue-500/20 border-blue-500 text-blue-300' : 'bg-yume-bg-light border-yume-border text-gray-400'
                   }`}>
@@ -360,6 +486,7 @@ export default function Admin() {
                     <span className="text-sm">📄 Docs</span>
                   </label>
                   
+                  {/* DevOps Permission */}
                   <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
                     newAccessDevops ? 'bg-orange-500/20 border-orange-500 text-orange-300' : 'bg-yume-bg-light border-yume-border text-gray-400'
                   }`}>
@@ -372,6 +499,7 @@ export default function Admin() {
                     <span className="text-sm">🚀 DevOps</span>
                   </label>
                   
+                  {/* Infographic Permission */}
                   <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
                     newAccessInfographic ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300' : 'bg-yume-bg-light border-yume-border text-gray-400'
                   }`}>
@@ -384,6 +512,7 @@ export default function Admin() {
                     <span className="text-sm">🎨 Infographic</span>
                   </label>
                   
+                  {/* Events Permission */}
                   <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
                     newAccessEvents ? 'bg-yellow-500/20 border-yellow-500 text-yellow-300' : 'bg-yume-bg-light border-yume-border text-gray-400'
                   }`}>
@@ -396,6 +525,7 @@ export default function Admin() {
                     <span className="text-sm">🎯 Events</span>
                   </label>
                   
+                  {/* Banned Status */}
                   <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
                     newIsBanned ? 'bg-red-500/20 border-red-500 text-red-300' : 'bg-yume-bg-light border-yume-border text-gray-400'
                   }`}>
@@ -410,7 +540,7 @@ export default function Admin() {
                 </div>
               </div>
               
-              {/* Row 3: Notes */}
+              {/* Admin Notes */}
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Notes (optional)</label>
                 <input
@@ -422,7 +552,7 @@ export default function Admin() {
                 />
               </div>
               
-              {/* Submit */}
+              {/* Submit Button */}
               <div className="flex gap-2">
                 <button 
                   onClick={handleAddUser} 
@@ -470,8 +600,10 @@ export default function Admin() {
                   <tbody className="divide-y divide-yume-border">
                     {dbUsers.map((u) => (
                       <tr key={u.id} className={`hover:bg-yume-bg-light/50 ${u.is_banned ? 'opacity-50' : ''}`}>
+                        {/* User Info Cell */}
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
+                            {/* Avatar */}
                             {u.avatar ? (
                               <img
                                 src={`https://cdn.discordapp.com/avatars/${u.discord_id}/${u.avatar}.png?size=32`}
@@ -492,6 +624,8 @@ export default function Admin() {
                             </div>
                           </div>
                         </td>
+                        
+                        {/* Permission Toggle Cells */}
                         <td className="px-2 py-3 text-center">
                           <button 
                             onClick={() => handleTogglePermission(u, 'is_admin')}
@@ -562,11 +696,15 @@ export default function Admin() {
                             {u.is_banned ? '✓' : ''}
                           </button>
                         </td>
+                        
+                        {/* Last Login */}
                         <td className="px-4 py-3 text-sm text-gray-400">
                           {u.last_login 
                             ? new Date(u.last_login.replace(' ', 'T') + 'Z').toLocaleDateString() 
                             : 'Never'}
                         </td>
+                        
+                        {/* Actions */}
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <button
@@ -593,7 +731,7 @@ export default function Admin() {
             )}
           </div>
 
-          {/* Environment Users (Read-only) */}
+          {/* Environment Variable Users (Read-only) */}
           <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
             <h3 className="font-semibold text-white mb-4">Environment Variable Users (Read-only)</h3>
             <p className="text-sm text-gray-400 mb-4">
@@ -617,11 +755,13 @@ export default function Admin() {
         </div>
       )}
 
+      {/* ========== SETTINGS TAB ========== */}
       {activeTab === 'settings' && (
         <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
           <h3 className="font-semibold text-white mb-4">Application Settings</h3>
           
           <div className="space-y-4">
+            {/* API Base URL */}
             <div className="flex items-center justify-between p-4 bg-yume-bg-light rounded-xl">
               <div>
                 <div className="text-white font-medium">API Base URL</div>
@@ -630,6 +770,7 @@ export default function Admin() {
               <span className="badge-success">Active</span>
             </div>
             
+            {/* Discord OAuth */}
             <div className="flex items-center justify-between p-4 bg-yume-bg-light rounded-xl">
               <div>
                 <div className="text-white font-medium">Discord OAuth</div>
@@ -638,6 +779,7 @@ export default function Admin() {
               <span className="badge-success">Connected</span>
             </div>
             
+            {/* D1 Database */}
             <div className="flex items-center justify-between p-4 bg-yume-bg-light rounded-xl">
               <div>
                 <div className="text-white font-medium">D1 Database</div>
@@ -653,10 +795,12 @@ export default function Admin() {
         </div>
       )}
 
+      {/* ========== LOGS TAB ========== */}
       {activeTab === 'logs' && (
         <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
           <h3 className="font-semibold text-white mb-4">Recent Activity</h3>
           
+          {/* Placeholder activity logs */}
           <div className="space-y-2">
             {[
               { action: 'User login', user: 'itai_', time: '2 minutes ago', type: 'auth' },

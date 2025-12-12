@@ -101,7 +101,29 @@ export default function TileEventAdmin() {
   const [tiles, setTiles] = useState<Tile[]>([]);                  // Selected event's tiles
   const [participants, setParticipants] = useState<Participant[]>([]); // Participants
   const [loading, setLoading] = useState(true);                    // Initial load state
-  const [activeTab, setActiveTab] = useState<'tiles' | 'participants'>('tiles');
+  const [activeTab, setActiveTab] = useState<'tiles' | 'participants' | 'submissions'>('tiles');
+  
+  // Submissions state
+  interface Submission {
+    id: number;
+    tile_id: number;
+    discord_id: string;
+    discord_username: string;
+    global_name?: string;
+    avatar?: string;
+    image_url: string;
+    status: string;
+    ocr_text?: string;
+    ai_confidence?: number;
+    admin_notes?: string;
+    created_at: string;
+    tile_title: string;
+    tile_position: number;
+  }
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [submissionCounts, setSubmissionCounts] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
+  const [submissionFilter, setSubmissionFilter] = useState<string>('pending');
+  const [reviewingSubmission, setReviewingSubmission] = useState<Submission | null>(null);
   
   // Event creation/editing form
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -144,9 +166,10 @@ export default function TileEventAdmin() {
 
   const fetchEventDetails = async (eventId: number) => {
     try {
-      const [eventRes, participantsRes] = await Promise.all([
+      const [eventRes, participantsRes, submissionsRes] = await Promise.all([
         fetch(`${API_BASE}/tile-events/${eventId}`, { credentials: 'include' }),
-        fetch(`${API_BASE}/admin/tile-events/${eventId}/participants`, { credentials: 'include' })
+        fetch(`${API_BASE}/admin/tile-events/${eventId}/participants`, { credentials: 'include' }),
+        fetch(`${API_BASE}/admin/tile-events/${eventId}/submissions?status=${submissionFilter}`, { credentials: 'include' })
       ]);
       
       if (eventRes.ok) {
@@ -162,8 +185,81 @@ export default function TileEventAdmin() {
         const data = await participantsRes.json();
         setParticipants(data.participants || []);
       }
+      
+      if (submissionsRes.ok) {
+        const data = await submissionsRes.json();
+        setSubmissions(data.submissions || []);
+        setSubmissionCounts(data.counts || { total: 0, pending: 0, approved: 0, rejected: 0 });
+      }
     } catch (err) {
       console.error('Failed to fetch event details:', err);
+    }
+  };
+  
+  /**
+   * Fetch submissions with current filter
+   */
+  const fetchSubmissions = async () => {
+    if (!selectedEvent) return;
+    try {
+      const res = await fetch(
+        `${API_BASE}/admin/tile-events/${selectedEvent.id}/submissions?status=${submissionFilter}`,
+        { credentials: 'include' }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setSubmissions(data.submissions || []);
+        setSubmissionCounts(data.counts || { total: 0, pending: 0, approved: 0, rejected: 0 });
+      }
+    } catch (err) {
+      console.error('Failed to fetch submissions:', err);
+    }
+  };
+  
+  /**
+   * Review a submission (approve/reject)
+   */
+  const reviewSubmission = async (submissionId: number, status: 'approved' | 'rejected', notes?: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/tile-events/submissions/${submissionId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, notes })
+      });
+      
+      if (res.ok) {
+        setReviewingSubmission(null);
+        fetchSubmissions();
+        if (selectedEvent) {
+          fetchEventDetails(selectedEvent.id);
+        }
+      } else {
+        const data = await res.json();
+        alert(`Failed to update: ${data.error}`);
+      }
+    } catch (err) {
+      console.error('Failed to review submission:', err);
+      alert('Failed to review submission');
+    }
+  };
+  
+  /**
+   * Delete a submission
+   */
+  const deleteSubmission = async (submissionId: number) => {
+    if (!confirm('Delete this submission?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/admin/tile-events/submissions/${submissionId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (res.ok) {
+        fetchSubmissions();
+      }
+    } catch (err) {
+      console.error('Failed to delete submission:', err);
     }
   };
 
@@ -548,6 +644,21 @@ export default function TileEventAdmin() {
                   >
                     Participants ({participants.length})
                   </button>
+                  <button
+                    onClick={() => { setActiveTab('submissions'); fetchSubmissions(); }}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors relative ${
+                      activeTab === 'submissions'
+                        ? 'bg-yume-accent text-yume-bg'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Submissions
+                    {submissionCounts.pending > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                        {submissionCounts.pending}
+                      </span>
+                    )}
+                  </button>
                 </div>
               </div>
 
@@ -738,6 +849,152 @@ export default function TileEventAdmin() {
                   )}
                 </div>
               )}
+
+              {/* Submissions Tab */}
+              {activeTab === 'submissions' && (
+                <div className="bg-yume-card rounded-xl border border-yume-border p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-white">Screenshot Submissions</h3>
+                    <div className="flex gap-2">
+                      <select
+                        value={submissionFilter}
+                        onChange={(e) => { setSubmissionFilter(e.target.value); }}
+                        className="px-3 py-1.5 rounded-lg text-sm bg-yume-bg-light border border-yume-border text-white"
+                      >
+                        <option value="">All ({submissionCounts.total})</option>
+                        <option value="pending">Pending ({submissionCounts.pending})</option>
+                        <option value="approved">Approved ({submissionCounts.approved})</option>
+                        <option value="rejected">Rejected ({submissionCounts.rejected})</option>
+                      </select>
+                      <button
+                        onClick={fetchSubmissions}
+                        className="px-3 py-1.5 rounded-lg text-sm bg-yume-bg-light text-gray-400 hover:text-white"
+                      >
+                        🔄
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {submissions.length === 0 ? (
+                    <div className="text-center py-8 text-gray-400">
+                      <div className="text-4xl mb-2">📸</div>
+                      <p>No submissions {submissionFilter ? `with status "${submissionFilter}"` : 'yet'}.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {submissions.map(submission => (
+                        <div
+                          key={submission.id}
+                          className="p-4 rounded-lg bg-yume-bg-light"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              {submission.avatar ? (
+                                <img
+                                  src={`https://cdn.discordapp.com/avatars/${submission.discord_id}/${submission.avatar}.png?size=32`}
+                                  alt=""
+                                  className="w-8 h-8 rounded-full"
+                                />
+                              ) : (
+                                <div className="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-sm">
+                                  👤
+                                </div>
+                              )}
+                              <div>
+                                <div className="font-medium text-white">
+                                  {submission.global_name || submission.discord_username}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  Tile #{submission.tile_position + 1}: {submission.tile_title}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-0.5 text-xs rounded-full ${
+                                submission.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                                submission.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400' :
+                                'bg-red-500/20 text-red-400'
+                              }`}>
+                                {submission.status}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {new Date(submission.created_at + 'Z').toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* Screenshot Preview */}
+                          <div className="mb-3">
+                            <a 
+                              href={submission.image_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="block w-full h-48 bg-yume-bg rounded-lg overflow-hidden hover:ring-2 hover:ring-yume-accent transition-all"
+                            >
+                              <img
+                                src={submission.image_url}
+                                alt="Submission"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📷</text></svg>';
+                                }}
+                              />
+                            </a>
+                          </div>
+                          
+                          {/* AI Analysis Info */}
+                          {(submission.ai_confidence !== null || submission.ocr_text) && (
+                            <div className="mb-3 p-2 bg-yume-bg rounded text-xs">
+                              {submission.ai_confidence != null && (
+                                <div className="text-gray-400">
+                                  AI Confidence: <span className={(submission.ai_confidence ?? 0) >= 0.8 ? 'text-emerald-400' : (submission.ai_confidence ?? 0) >= 0.5 ? 'text-yellow-400' : 'text-red-400'}>
+                                    {Math.round((submission.ai_confidence ?? 0) * 100)}%
+                                  </span>
+                                </div>
+                              )}
+                              {submission.ocr_text && (
+                                <details className="mt-1">
+                                  <summary className="text-gray-500 cursor-pointer hover:text-gray-300">OCR Text</summary>
+                                  <p className="mt-1 text-gray-400 whitespace-pre-wrap">{submission.ocr_text}</p>
+                                </details>
+                              )}
+                            </div>
+                          )}
+                          
+                          {/* Actions */}
+                          {submission.status === 'pending' && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => reviewSubmission(submission.id, 'approved')}
+                                className="flex-1 px-3 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 text-sm font-medium"
+                              >
+                                ✓ Approve
+                              </button>
+                              <button
+                                onClick={() => setReviewingSubmission(submission)}
+                                className="flex-1 px-3 py-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 text-sm font-medium"
+                              >
+                                ✕ Reject
+                              </button>
+                            </div>
+                          )}
+                          
+                          {submission.status !== 'pending' && (
+                            <div className="flex justify-end">
+                              <button
+                                onClick={() => deleteSubmission(submission.id)}
+                                className="text-xs text-red-400 hover:underline"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <div className="bg-yume-card rounded-xl border border-yume-border p-12 text-center">
@@ -750,6 +1007,44 @@ export default function TileEventAdmin() {
           )}
         </div>
       </div>
+
+      {/* Reject Submission Modal */}
+      {reviewingSubmission && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-yume-card rounded-2xl border border-yume-border max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-white mb-4">Reject Submission</h3>
+            <p className="text-gray-400 mb-4">
+              Rejecting submission from <span className="text-white">{reviewingSubmission.global_name || reviewingSubmission.discord_username}</span> for tile #{reviewingSubmission.tile_position + 1}.
+            </p>
+            <div className="mb-4">
+              <label className="block text-sm text-gray-400 mb-1">Reason (optional)</label>
+              <textarea
+                id="rejectNotes"
+                placeholder="e.g., Screenshot doesn't show the required item..."
+                rows={3}
+                className="w-full px-4 py-2 rounded-lg bg-yume-bg-light border border-yume-border text-white placeholder:text-gray-500 focus:border-yume-accent outline-none resize-none"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setReviewingSubmission(null)}
+                className="flex-1 px-4 py-2 rounded-lg border border-yume-border text-gray-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const notes = (document.getElementById('rejectNotes') as HTMLTextAreaElement)?.value;
+                  reviewSubmission(reviewingSubmission.id, 'rejected', notes);
+                }}
+                className="flex-1 px-4 py-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 font-medium"
+              >
+                Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create Event Modal */}
       {showCreateForm && (

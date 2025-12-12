@@ -9,9 +9,17 @@
  * - Join/leave events
  * - Track their progress through tiles
  * - View tile details (description, image)
+ * - Upload screenshot proof to unlock tiles
  * 
  * The tiles are displayed in a snake pattern (left-to-right, then right-to-left)
  * and users must unlock tiles sequentially - completing one unlocks the next.
+ * 
+ * Screenshot Verification Flow:
+ * 1. User clicks on their current tile
+ * 2. User uploads a screenshot proving completion
+ * 3. System runs OCR/AI to check for keywords (if configured)
+ * 4. If high confidence match, tile auto-unlocks
+ * 5. Otherwise, submission goes to admin review queue
  * 
  * Visual states for tiles:
  * - Locked (gray): Cannot be accessed yet
@@ -22,7 +30,7 @@
  * @module TileEvent
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -94,6 +102,13 @@ export default function TileEvent() {
   const [joining, setJoining] = useState(false);    // Is join request in progress?
   const [loading, setLoading] = useState(true);     // Initial data loading
   const [selectedTile, setSelectedTile] = useState<Tile | null>(null); // Tile detail modal
+  
+  // Screenshot submission state
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const [submissions, setSubmissions] = useState<{id: number; tile_id: number; status: string; created_at: string}[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ==========================================================================
   // EFFECTS
@@ -110,6 +125,7 @@ export default function TileEvent() {
   useEffect(() => {
     if (eventId && user) {
       fetchProgress();
+      fetchSubmissions();
     }
   }, [eventId, user]);
 
@@ -143,6 +159,76 @@ export default function TileEvent() {
     } catch (err) {
       console.error('Failed to fetch progress:', err);
     }
+  };
+
+  /**
+   * Fetch user's submissions for this event
+   * Shows pending/approved/rejected status
+   */
+  const fetchSubmissions = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/tile-events/${eventId}/submissions`, {
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSubmissions(data.submissions || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch submissions:', err);
+    }
+  };
+
+  /**
+   * Handle screenshot upload for tile completion
+   * Uploads image to R2, triggers OCR verification
+   */
+  const handleSubmitProof = async (tileId: number, file: File) => {
+    setUploading(true);
+    setUploadError(null);
+    setUploadSuccess(null);
+    
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const res = await fetch(`${API_BASE}/tile-events/${eventId}/tiles/${tileId}/submit`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setUploadError(data.error || 'Failed to submit');
+        return;
+      }
+      
+      setUploadSuccess(data.message);
+      
+      // Refresh progress and submissions
+      await Promise.all([fetchProgress(), fetchSubmissions()]);
+      
+      // Auto-close modal after success
+      if (data.auto_approved) {
+        setTimeout(() => {
+          setSelectedTile(null);
+          setUploadSuccess(null);
+        }, 2000);
+      }
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  /**
+   * Get submission status for a specific tile
+   */
+  const getTileSubmission = (tileId: number) => {
+    return submissions.find(s => s.tile_id === tileId);
   };
 
   const joinEvent = async () => {
@@ -470,6 +556,7 @@ export default function TileEvent() {
               <p className="text-gray-300 mb-4">{selectedTile.description}</p>
             )}
             
+            {/* Submission Status & Upload Section */}
             <div className="mt-4 pt-4 border-t border-yume-border">
               {getTileStatus(selectedTile.position) === 'completed' ? (
                 <div className="flex items-center gap-2 text-emerald-400">
@@ -477,8 +564,101 @@ export default function TileEvent() {
                   <span>Completed!</span>
                 </div>
               ) : getTileStatus(selectedTile.position) === 'current' ? (
-                <div className="text-yume-accent">
-                  Complete this task to unlock the next tile!
+                <div className="space-y-4">
+                  {/* Check for pending submission */}
+                  {(() => {
+                    const submission = getTileSubmission(selectedTile.id);
+                    if (submission?.status === 'pending') {
+                      return (
+                        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
+                          <div className="flex items-center gap-2 text-yellow-400 mb-2">
+                            <span>⏳</span>
+                            <span className="font-medium">Submission Pending Review</span>
+                          </div>
+                          <p className="text-sm text-gray-400">
+                            Your screenshot is being reviewed. You'll be notified once it's approved.
+                          </p>
+                        </div>
+                      );
+                    }
+                    if (submission?.status === 'rejected') {
+                      return (
+                        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-4">
+                          <div className="flex items-center gap-2 text-red-400 mb-2">
+                            <span>✕</span>
+                            <span className="font-medium">Previous Submission Rejected</span>
+                          </div>
+                          <p className="text-sm text-gray-400">
+                            Please try again with a clearer screenshot.
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                  
+                  {/* Upload Section - only show if no pending submission */}
+                  {getTileSubmission(selectedTile.id)?.status !== 'pending' && (
+                    <div className="space-y-3">
+                      <div className="text-yume-accent font-medium">
+                        📸 Upload proof to complete this tile
+                      </div>
+                      
+                      {/* Success message */}
+                      {uploadSuccess && (
+                        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 text-emerald-400">
+                          {uploadSuccess}
+                        </div>
+                      )}
+                      
+                      {/* Error message */}
+                      {uploadError && (
+                        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400">
+                          {uploadError}
+                        </div>
+                      )}
+                      
+                      {/* Hidden file input */}
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file && selectedTile) {
+                            handleSubmitProof(selectedTile.id, file);
+                          }
+                          e.target.value = ''; // Reset input
+                        }}
+                      />
+                      
+                      {/* Upload button */}
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="w-full py-3 rounded-xl border-2 border-dashed border-yume-border hover:border-yume-accent 
+                                   bg-yume-bg-light hover:bg-yume-accent/10 transition-all
+                                   text-gray-400 hover:text-yume-accent disabled:opacity-50"
+                      >
+                        {uploading ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <span className="animate-spin">⏳</span>
+                            Uploading...
+                          </span>
+                        ) : (
+                          <span className="flex items-center justify-center gap-2">
+                            <span>📷</span>
+                            Click to upload screenshot
+                          </span>
+                        )}
+                      </button>
+                      
+                      <p className="text-xs text-gray-500 text-center">
+                        Supported: JPEG, PNG, WebP, GIF (max 5MB)
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-gray-400">

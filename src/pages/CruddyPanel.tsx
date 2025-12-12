@@ -1,20 +1,90 @@
+/**
+ * =============================================================================
+ * CRUDDY PANEL - Clan Event Attendance Tracker
+ * =============================================================================
+ * 
+ * The main attendance tracking system for OSRS clan events.
+ * "Cruddy" stands for Create, Read, Update, Delete + Dashboard - CRUD + D!
+ * 
+ * Access Control:
+ * - Requires authentication (redirect to home if not logged in)
+ * - Requires 'cruddy' permission from admin_users table
+ * 
+ * Features:
+ * - RECORDS TAB: View all attendance records with filtering
+ *   - Search by player name
+ *   - Filter by event type
+ *   - Date range filtering
+ *   - Pagination support
+ * 
+ * - EVENTS TAB: Group records by event+date
+ *   - Expandable event groups
+ *   - Copy ingots command for Discord bot
+ *   - Delete entire event groups
+ * 
+ * - LEADERBOARD TAB: Player rankings
+ *   - Configurable top N (5, 10, 25, 50)
+ *   - Date range filtering
+ *   - Visual progress bars
+ *   - Statistics summary
+ * 
+ * - ADD RECORD TAB: Single record entry
+ *   - Player name, event, date fields
+ * 
+ * - ADD EVENT TAB: Bulk record entry
+ *   - Event name and date
+ *   - Multiple players (newline or comma separated)
+ *   - Real-time player count preview
+ * 
+ * Database Table: attendance_records
+ * - id, name (player RSN), event, date
+ * 
+ * @module CruddyPanel
+ */
+
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { records, AttendanceRecord, LeaderboardEntry } from '@/lib/api';
 
+// =============================================================================
+// TYPE DEFINITIONS
+// =============================================================================
+
+/**
+ * Available tabs in the Cruddy Panel
+ */
 type Tab = 'records' | 'events' | 'leaderboard' | 'add' | 'add-event';
 
+/**
+ * Grouped event data for the Events tab
+ * Multiple attendance records grouped by event+date
+ */
 interface EventGroup {
-  event: string;
-  date: string;
-  attendees: { id: number; name: string }[];
+  event: string;                              // Event name
+  date: string;                               // Date (YYYY-MM-DD)
+  attendees: { id: number; name: string }[];  // Players who attended
 }
 
+/**
+ * Cruddy Panel Component
+ * 
+ * Main attendance tracking interface with multiple tabs for
+ * different views and operations.
+ */
 export default function CruddyPanel() {
+  // ==========================================================================
+  // AUTH & NAVIGATION
+  // ==========================================================================
+  
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   
+  // ==========================================================================
+  // STATE MANAGEMENT
+  // ==========================================================================
+  
+  // Tab and data state
   const [activeTab, setActiveTab] = useState<Tab>('events');
   const [recordsData, setRecordsData] = useState<AttendanceRecord[]>([]);
   const [eventGroups, setEventGroups] = useState<EventGroup[]>([]);
@@ -24,42 +94,56 @@ export default function CruddyPanel() {
   const [success, setSuccess] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   
-  // Filters
+  // Filter state (shared across tabs)
   const [filterName, setFilterName] = useState('');
   const [filterEvent, setFilterEvent] = useState('');
   const [filterStart, setFilterStart] = useState('');
   const [filterEnd, setFilterEnd] = useState('');
   const [leaderTop, setLeaderTop] = useState(10);
   
-  // Add record form
+  // Add single record form state
   const [addName, setAddName] = useState('');
   const [addEvent, setAddEvent] = useState('');
   const [addDate, setAddDate] = useState(new Date().toISOString().split('T')[0]);
   
-  // Add event (bulk) form
+  // Add bulk event form state
   const [bulkEventName, setBulkEventName] = useState('');
   const [bulkEventDate, setBulkEventDate] = useState(new Date().toISOString().split('T')[0]);
   const [bulkPlayers, setBulkPlayers] = useState('');
   
-  // Edit modal
+  // Edit modal state
   const [editRecord, setEditRecord] = useState<AttendanceRecord | null>(null);
   const [editName, setEditName] = useState('');
   const [editEvent, setEditEvent] = useState('');
   const [editDate, setEditDate] = useState('');
   
-  // Expanded event groups
+  // Expanded event groups (for Events tab)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   
+  // Form submission state
   const [submitting, setSubmitting] = useState(false);
 
-  // Redirect to home if not authenticated
+  // ==========================================================================
+  // EFFECTS
+  // ==========================================================================
+
+  /**
+   * Redirect unauthenticated users to home
+   */
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/');
     }
   }, [user, authLoading, navigate]);
 
-  // Load records
+  // ==========================================================================
+  // DATA FETCHING CALLBACKS
+  // ==========================================================================
+
+  /**
+   * Load individual records with filters
+   * Used by the Records tab
+   */
   const loadRecords = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -82,11 +166,15 @@ export default function CruddyPanel() {
     setLoading(false);
   }, [filterName, filterEvent, filterStart, filterEnd]);
 
-  // Load event groups
+  /**
+   * Load records grouped by event+date
+   * Used by the Events tab
+   */
   const loadEventGroups = useCallback(async () => {
     setLoading(true);
     setError(null);
     
+    // Fetch a large batch to group locally
     const result = await records.getAll({
       limit: 5000,
       event: filterEvent || undefined,
@@ -95,7 +183,7 @@ export default function CruddyPanel() {
     });
     
     if (result.success && result.data) {
-      // Group by event+date
+      // Group records by event+date combination
       const groups: Record<string, EventGroup> = {};
       for (const record of result.data.results || []) {
         const key = `${record.event}|||${record.date}`;
@@ -104,7 +192,7 @@ export default function CruddyPanel() {
         }
         groups[key].attendees.push({ id: record.id, name: record.name });
       }
-      // Sort by date descending
+      // Sort by date descending (most recent first)
       const sorted = Object.values(groups).sort((a, b) => b.date.localeCompare(a.date));
       setEventGroups(sorted);
     } else {
@@ -114,7 +202,10 @@ export default function CruddyPanel() {
     setLoading(false);
   }, [filterEvent, filterStart, filterEnd]);
 
-  // Load leaderboard
+  /**
+   * Load leaderboard rankings
+   * Used by the Leaderboard tab
+   */
   const loadLeaderboard = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -134,7 +225,9 @@ export default function CruddyPanel() {
     setLoading(false);
   }, [leaderTop, filterStart, filterEnd]);
 
-  // Fetch data based on active tab
+  /**
+   * Fetch data when tab changes or user authenticates
+   */
   useEffect(() => {
     if (!user) return;
     
@@ -143,12 +236,25 @@ export default function CruddyPanel() {
     else if (activeTab === 'leaderboard') loadLeaderboard();
   }, [activeTab, user, loadRecords, loadEventGroups, loadLeaderboard]);
 
+  // ==========================================================================
+  // HELPER FUNCTIONS
+  // ==========================================================================
+
+  /**
+   * Show success message temporarily
+   */
   const showSuccess = (msg: string) => {
     setSuccess(msg);
     setTimeout(() => setSuccess(null), 4000);
   };
 
-  // Add single record
+  // ==========================================================================
+  // CRUD HANDLERS
+  // ==========================================================================
+
+  /**
+   * Add a single attendance record
+   */
   const handleAddRecord = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!addName || !addEvent || !addDate) {
@@ -170,7 +276,10 @@ export default function CruddyPanel() {
     setSubmitting(false);
   };
 
-  // Add bulk event
+  /**
+   * Add multiple attendance records for a single event
+   * Parses newline or comma-separated player names
+   */
   const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bulkEventName || !bulkEventDate || !bulkPlayers.trim()) {
@@ -178,6 +287,7 @@ export default function CruddyPanel() {
       return;
     }
     
+    // Parse player names from input (supports newlines and commas)
     const players = bulkPlayers
       .split(/[\n,]+/)
       .map(p => p.trim())
@@ -192,6 +302,7 @@ export default function CruddyPanel() {
     let successCount = 0;
     let failCount = 0;
     
+    // Add each player as a separate record
     for (const player of players) {
       const result = await records.add({ name: player, event: bulkEventName, date: bulkEventDate });
       if (result.success) successCount++;
@@ -210,7 +321,9 @@ export default function CruddyPanel() {
     setSubmitting(false);
   };
 
-  // Edit record
+  /**
+   * Update an existing record
+   */
   const handleEditRecord = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editRecord || !editName || !editEvent || !editDate) return;
@@ -229,7 +342,9 @@ export default function CruddyPanel() {
     setSubmitting(false);
   };
 
-  // Delete record
+  /**
+   * Delete a single record with confirmation
+   */
   const handleDelete = async (id: number, name: string) => {
     if (!confirm(`Delete record for "${name}"?`)) return;
     
@@ -243,7 +358,9 @@ export default function CruddyPanel() {
     }
   };
 
-  // Delete entire event group
+  /**
+   * Delete all records for an event group
+   */
   const handleDeleteEventGroup = async (group: EventGroup) => {
     if (!confirm(`Delete all ${group.attendees.length} records for "${group.event}" on ${group.date}?`)) return;
     
@@ -256,7 +373,10 @@ export default function CruddyPanel() {
     setSubmitting(false);
   };
 
-  // Copy ingots command
+  /**
+   * Copy Discord ingots command for event group
+   * Format: /add_remove_ingots players:name1, name2 ingots:10,000 reason:clan event - EventName
+   */
   const copyIngots = async (group: EventGroup) => {
     const players = group.attendees.map(a => a.name).join(', ');
     const cmd = `/add_remove_ingots players:${players} ingots: 10,000 reason: clan event - ${group.event}`;
@@ -264,6 +384,9 @@ export default function CruddyPanel() {
     showSuccess('Ingots command copied!');
   };
 
+  /**
+   * Open edit modal with record data
+   */
   const openEditModal = (record: AttendanceRecord | { id: number; name: string; event: string; date: string }) => {
     setEditRecord(record as AttendanceRecord);
     setEditName(record.name);
@@ -271,6 +394,9 @@ export default function CruddyPanel() {
     setEditDate(record.date);
   };
 
+  /**
+   * Toggle event group expansion
+   */
   const toggleGroup = (key: string) => {
     const newSet = new Set(expandedGroups);
     if (newSet.has(key)) newSet.delete(key);
@@ -278,12 +404,19 @@ export default function CruddyPanel() {
     setExpandedGroups(newSet);
   };
 
+  /**
+   * Clear all filters
+   */
   const clearFilters = () => {
     setFilterName('');
     setFilterEvent('');
     setFilterStart('');
     setFilterEnd('');
   };
+
+  // ==========================================================================
+  // LOADING STATE
+  // ==========================================================================
 
   if (authLoading || !user) {
     return (
@@ -293,6 +426,10 @@ export default function CruddyPanel() {
     );
   }
 
+  // ==========================================================================
+  // TAB CONFIGURATION
+  // ==========================================================================
+
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'records', label: 'Records', icon: '📋' },
     { id: 'events', label: 'Events', icon: '📅' },
@@ -301,11 +438,16 @@ export default function CruddyPanel() {
     { id: 'add-event', label: 'Add Event', icon: '📝' },
   ];
 
+  // Parse bulk player input for preview count
   const parsedPlayers = bulkPlayers.split(/[\n,]+/).map(p => p.trim()).filter(p => p.length > 0);
+
+  // ==========================================================================
+  // RENDER
+  // ==========================================================================
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* Header */}
+      {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold text-white mb-1">
           <span className="text-yume-accent">◉</span> Cruddy Panel
@@ -313,7 +455,7 @@ export default function CruddyPanel() {
         <p className="text-gray-400">Track clan event attendance • {total} total records</p>
       </div>
 
-      {/* Tabs */}
+      {/* Tab Navigation */}
       <div className="flex gap-2 flex-wrap">
         {tabs.map((tab) => (
           <button
@@ -331,7 +473,7 @@ export default function CruddyPanel() {
         ))}
       </div>
 
-      {/* Messages */}
+      {/* Error/Success Messages */}
       {error && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 flex justify-between">
           {error}
@@ -344,10 +486,11 @@ export default function CruddyPanel() {
         </div>
       )}
 
-      {/* Filters (for records, events, leaderboard) */}
+      {/* Filters (for records, events, leaderboard tabs) */}
       {['records', 'events', 'leaderboard'].includes(activeTab) && (
         <div className="bg-yume-card rounded-2xl border border-yume-border p-4">
           <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* Name filter (records only) */}
             {activeTab === 'records' && (
               <input
                 type="text"
@@ -357,6 +500,7 @@ export default function CruddyPanel() {
                 className="input"
               />
             )}
+            {/* Event filter (records & events) */}
             {['records', 'events'].includes(activeTab) && (
               <input
                 type="text"
@@ -366,6 +510,7 @@ export default function CruddyPanel() {
                 className="input"
               />
             )}
+            {/* Top N selector (leaderboard only) */}
             {activeTab === 'leaderboard' && (
               <select
                 value={leaderTop}
@@ -378,6 +523,7 @@ export default function CruddyPanel() {
                 <option value={50}>Top 50</option>
               </select>
             )}
+            {/* Date range filters */}
             <input
               type="date"
               placeholder="Start date"
@@ -392,6 +538,7 @@ export default function CruddyPanel() {
               onChange={(e) => setFilterEnd(e.target.value)}
               className="input"
             />
+            {/* Search & Clear buttons */}
             <div className="flex gap-2">
               <button onClick={() => {
                 if (activeTab === 'records') loadRecords();
@@ -404,14 +551,15 @@ export default function CruddyPanel() {
         </div>
       )}
 
-      {/* Content */}
+      {/* Main Content Area */}
       <div className="bg-yume-card rounded-2xl border border-yume-border overflow-hidden">
         {loading ? (
+          /* Loading Spinner */
           <div className="flex items-center justify-center py-20">
             <div className="w-8 h-8 border-2 border-yume-accent border-t-transparent rounded-full animate-spin" />
           </div>
         ) : activeTab === 'records' ? (
-          /* Records Table */
+          /* ========== RECORDS TABLE ========== */
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-yume-bg-light border-b border-yume-border">
@@ -442,7 +590,7 @@ export default function CruddyPanel() {
             </table>
           </div>
         ) : activeTab === 'events' ? (
-          /* Events Grouped */
+          /* ========== EVENTS GROUPED VIEW ========== */
           <div className="p-4 space-y-3">
             {eventGroups.length === 0 ? (
               <div className="text-center text-gray-500 py-12">No events found</div>
@@ -451,6 +599,7 @@ export default function CruddyPanel() {
               const isExpanded = expandedGroups.has(key);
               return (
                 <div key={key} className="bg-yume-bg-light rounded-xl border border-yume-border overflow-hidden">
+                  {/* Event Header (clickable to expand) */}
                   <div
                     className="p-4 flex items-center justify-between cursor-pointer hover:bg-yume-card"
                     onClick={() => toggleGroup(key)}
@@ -466,6 +615,7 @@ export default function CruddyPanel() {
                       <span className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
                     </div>
                   </div>
+                  {/* Expanded attendee list */}
                   {isExpanded && (
                     <div className="p-4 pt-0 border-t border-yume-border">
                       <div className="flex flex-wrap gap-2">
@@ -484,12 +634,13 @@ export default function CruddyPanel() {
             })}
           </div>
         ) : activeTab === 'leaderboard' ? (
-          /* Leaderboard */
+          /* ========== LEADERBOARD ========== */
           <div className="p-6 space-y-3">
             {leaderboardData.length === 0 ? (
               <div className="text-center text-gray-500 py-12">No data</div>
             ) : (
               <>
+                {/* Leaderboard entries */}
                 {leaderboardData.map((entry, i) => {
                   const maxCount = leaderboardData[0]?.count || 1;
                   return (
@@ -499,20 +650,25 @@ export default function CruddyPanel() {
                       i === 2 ? 'bg-amber-600/10 border border-amber-600/20' :
                       'bg-yume-bg-light'
                     }`}>
+                      {/* Rank badge */}
                       <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
                         i === 0 ? 'bg-yume-accent text-yume-bg' :
                         i === 1 ? 'bg-gray-400 text-gray-900' :
                         i === 2 ? 'bg-amber-600 text-white' :
                         'bg-yume-card text-gray-400'
                       }`}>{i + 1}</span>
+                      {/* Player name */}
                       <span className="font-medium text-white flex-1">{entry.name}</span>
+                      {/* Progress bar */}
                       <div className="w-32 h-2 bg-yume-bg rounded-full overflow-hidden">
                         <div className="h-full bg-yume-accent" style={{ width: `${(entry.count / maxCount) * 100}%` }} />
                       </div>
+                      {/* Count */}
                       <span className="text-yume-accent font-semibold">{entry.count}</span>
                     </div>
                   );
                 })}
+                {/* Statistics summary */}
                 <div className="grid grid-cols-3 gap-4 mt-6 p-4 bg-yume-bg-light rounded-xl">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-yume-accent">{leaderboardData.reduce((s, e) => s + e.count, 0)}</div>
@@ -533,7 +689,7 @@ export default function CruddyPanel() {
             )}
           </div>
         ) : activeTab === 'add' ? (
-          /* Add Single Record */
+          /* ========== ADD SINGLE RECORD FORM ========== */
           <form onSubmit={handleAddRecord} className="p-6 max-w-md space-y-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Player Name</label>
@@ -552,7 +708,7 @@ export default function CruddyPanel() {
             </button>
           </form>
         ) : (
-          /* Add Event (Bulk) */
+          /* ========== ADD BULK EVENT FORM ========== */
           <form onSubmit={handleAddEvent} className="p-6 max-w-lg space-y-4">
             <div>
               <label className="block text-sm text-gray-400 mb-1">Event Name</label>
@@ -571,6 +727,7 @@ export default function CruddyPanel() {
                 placeholder="Player1&#10;Player2&#10;Player3"
               />
             </div>
+            {/* Preview count */}
             {parsedPlayers.length > 0 && (
               <div className="text-sm text-gray-500">📝 {parsedPlayers.length} attendee{parsedPlayers.length !== 1 ? 's' : ''} will be added</div>
             )}
@@ -581,7 +738,7 @@ export default function CruddyPanel() {
         )}
       </div>
 
-      {/* Edit Modal */}
+      {/* ========== EDIT RECORD MODAL ========== */}
       {editRecord && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={() => setEditRecord(null)}>
           <form onSubmit={handleEditRecord} onClick={(e) => e.stopPropagation()} className="bg-yume-card rounded-2xl border border-yume-border p-6 w-full max-w-md space-y-4">

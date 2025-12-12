@@ -1,19 +1,102 @@
+/**
+ * =============================================================================
+ * DOCS PAGE - Technical Documentation Hub
+ * =============================================================================
+ * 
+ * Comprehensive documentation for the Yume Tools ecosystem.
+ * Provides reference material for developers and administrators.
+ * 
+ * Access Control:
+ * - Requires authentication
+ * - Requires 'docs' permission from admin_users table
+ * - Non-authenticated users redirected to home
+ * 
+ * Documentation Sections:
+ * 
+ * 1. OVERVIEW
+ *    - Introduction to Yume Tools
+ *    - Component overview (yume-pages, yume-api, yume-tools)
+ *    - Quick links to external resources
+ * 
+ * 2. REACT APPS
+ *    - Cruddy Panel documentation
+ *    - Admin Panel features
+ *    - DevOps Panel guide
+ * 
+ * 3. CARRD WIDGETS
+ *    - Mention Maker widget
+ *    - Event Log Parser widget
+ *    - Infographic Maker widget
+ *    - Embedding instructions
+ * 
+ * 4. API REFERENCE
+ *    - Base URLs (production/staging)
+ *    - Authentication endpoints
+ *    - Attendance endpoints
+ *    - Admin endpoints
+ *    - CDN proxy
+ * 
+ * 5. ARCHITECTURE
+ *    - System architecture diagram
+ *    - Environment variables reference
+ *    - Database schema overview
+ * 
+ * 6. DEVOPS GUIDE
+ *    - Deployment workflows
+ *    - Repository-specific guides
+ *    - Required secrets
+ *    - Maintenance commands
+ * 
+ * @module Docs
+ */
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
+// =============================================================================
+// TYPE DEFINITIONS
+// =============================================================================
+
+/**
+ * Documentation section identifiers
+ * Each section has its own content panel
+ */
 type DocSection = 'overview' | 'react-apps' | 'widgets' | 'api' | 'architecture' | 'devops';
 
+/**
+ * Docs Page Component
+ * 
+ * Tabbed documentation interface with six main sections.
+ * Uses collapsible code blocks and formatted tables for reference.
+ */
 export default function Docs() {
+  // ==========================================================================
+  // AUTH & NAVIGATION
+  // ==========================================================================
+  
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  
+  // Currently active documentation section
   const [activeSection, setActiveSection] = useState<DocSection>('overview');
 
+  // ==========================================================================
+  // EFFECTS
+  // ==========================================================================
+
+  /**
+   * Redirect unauthenticated users to home
+   */
   useEffect(() => {
     if (!loading && !user) {
       navigate('/');
     }
   }, [user, loading, navigate]);
+
+  // ==========================================================================
+  // LOADING STATE
+  // ==========================================================================
 
   if (loading || !user) {
     return (
@@ -23,6 +106,13 @@ export default function Docs() {
     );
   }
 
+  // ==========================================================================
+  // SECTION CONFIGURATION
+  // ==========================================================================
+
+  /**
+   * Documentation section tabs with icons
+   */
   const sections: { id: DocSection; label: string; icon: string }[] = [
     { id: 'overview', label: 'Overview', icon: '🏠' },
     { id: 'react-apps', label: 'React Apps', icon: '⚛️' },
@@ -32,8 +122,13 @@ export default function Docs() {
     { id: 'devops', label: 'DevOps Guide', icon: '🚀' },
   ];
 
+  // ==========================================================================
+  // RENDER
+  // ==========================================================================
+
   return (
     <div className="max-w-6xl mx-auto">
+      {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white mb-2">
           <span className="text-yume-accent">📚</span> Documentation
@@ -43,7 +138,7 @@ export default function Docs() {
         </p>
       </div>
 
-      {/* Section Tabs */}
+      {/* Section Tab Navigation */}
       <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
         {sections.map((section) => (
           <button
@@ -61,15 +156,17 @@ export default function Docs() {
         ))}
       </div>
 
-      {/* Overview Section */}
+      {/* ========== OVERVIEW SECTION ========== */}
       {activeSection === 'overview' && (
         <div className="space-y-6 animate-fadeIn">
+          {/* Welcome Card */}
           <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
             <h2 className="text-xl font-semibold text-white mb-4">Welcome to Yume Tools</h2>
             <p className="text-gray-400 mb-4">
               Yume Tools is a suite of utilities for OSRS clan management, built with modern web technologies. 
               The ecosystem consists of three main components:
             </p>
+            {/* Component Cards */}
             <div className="grid md:grid-cols-3 gap-4">
               <div className="bg-yume-bg-light rounded-xl p-4">
                 <div className="text-2xl mb-2">🌐</div>
@@ -89,7 +186,7 @@ export default function Docs() {
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Quick Links Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             <a
               href="https://github.com/y-u-m-e"
@@ -101,7 +198,7 @@ export default function Docs() {
               <h3 className="font-semibold text-white group-hover:text-yume-accent text-sm">GitHub Org</h3>
             </a>
             <a
-              href="https://yumes-tools.itai.gg"
+              href="https://yumes-tools.emuy.gg"
               target="_blank"
               rel="noopener noreferrer"
               className="bg-yume-card rounded-2xl border border-yume-border p-4 hover:border-yume-border-accent transition-colors group text-center"
@@ -131,7 +228,7 @@ export default function Docs() {
         </div>
       )}
 
-      {/* React Apps Section */}
+      {/* ========== REACT APPS SECTION ========== */}
       {activeSection === 'react-apps' && (
         <div className="space-y-6 animate-fadeIn">
           {/* Cruddy Panel */}
@@ -207,13 +304,14 @@ export default function Docs() {
         </div>
       )}
 
-      {/* Widgets Section */}
+      {/* ========== WIDGETS SECTION ========== */}
       {activeSection === 'widgets' && (
         <div className="space-y-6 animate-fadeIn">
+          {/* Introduction */}
           <div className="bg-yume-card rounded-2xl border border-yume-border p-6 mb-6">
             <p className="text-gray-400">
               These widgets are vanilla JavaScript components hosted on jsDelivr CDN and embedded in the 
-              <a href="https://yumes-tools.itai.gg" target="_blank" rel="noopener noreferrer" className="text-yume-accent hover:underline ml-1">
+              <a href="https://yumes-tools.emuy.gg" target="_blank" rel="noopener noreferrer" className="text-yume-accent hover:underline ml-1">
                 Carrd site
               </a>. They can be embedded in any HTML page.
             </p>
@@ -271,7 +369,7 @@ export default function Docs() {
             </div>
           </div>
 
-          {/* Embedding Code */}
+          {/* Embedding Instructions */}
           <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
             <h2 className="text-lg font-semibold text-white mb-4">Embedding Widgets</h2>
             <p className="text-gray-400 mb-4">Add widgets to any HTML page:</p>
@@ -296,9 +394,10 @@ export default function Docs() {
         </div>
       )}
 
-      {/* API Reference Section */}
+      {/* ========== API REFERENCE SECTION ========== */}
       {activeSection === 'api' && (
         <div className="space-y-6 animate-fadeIn">
+          {/* Base URLs */}
           <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
             <h2 className="text-lg font-semibold text-white mb-2">Base URLs</h2>
             <div className="space-y-2">
@@ -314,7 +413,7 @@ export default function Docs() {
             </div>
           </div>
 
-          {/* Authentication */}
+          {/* Authentication Endpoints */}
           <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
             <h2 className="text-lg font-semibold text-white mb-4">🔐 Authentication</h2>
             <div className="space-y-3">
@@ -325,7 +424,7 @@ export default function Docs() {
             </div>
           </div>
 
-          {/* Attendance */}
+          {/* Attendance Endpoints */}
           <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
             <h2 className="text-lg font-semibold text-white mb-4">📊 Attendance Records</h2>
             <div className="space-y-3">
@@ -336,7 +435,7 @@ export default function Docs() {
             </div>
           </div>
 
-          {/* Admin */}
+          {/* Admin Endpoints */}
           <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
             <h2 className="text-lg font-semibold text-white mb-4">👤 Admin (Super Admin Only)</h2>
             <div className="space-y-3">
@@ -361,9 +460,10 @@ export default function Docs() {
         </div>
       )}
 
-      {/* Architecture Section */}
+      {/* ========== ARCHITECTURE SECTION ========== */}
       {activeSection === 'architecture' && (
         <div className="space-y-6 animate-fadeIn">
+          {/* System Diagram */}
           <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
             <h2 className="text-lg font-semibold text-white mb-4">System Architecture</h2>
             <div className="bg-yume-bg rounded-xl p-4 font-mono text-sm text-gray-300 overflow-x-auto">
@@ -371,7 +471,7 @@ export default function Docs() {
 ┌─────────────────────────────────────────────────────────────────┐
 │                         USER INTERFACES                          │
 ├─────────────────────────────┬───────────────────────────────────┤
-│     emuy.gg (React SPA)     │    yumes-tools.itai.gg (Carrd)   │
+│     emuy.gg (React SPA)     │    yumes-tools.emuy.gg (Carrd)   │
 │  ┌─────────────────────┐    │    ┌─────────────────────────┐   │
 │  │  • Home             │    │    │  • Mention Maker        │   │
 │  │  • Cruddy Panel     │    │    │  • Event Log Parser     │   │
@@ -406,7 +506,7 @@ yume-tools → push to main → jsDelivr CDN (update SHAs in yume-api)
             </div>
           </div>
 
-          {/* Environment Variables */}
+          {/* Environment Variables Table */}
           <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
             <h2 className="text-lg font-semibold text-white mb-4">Worker Environment Variables</h2>
             <div className="overflow-x-auto">
@@ -461,7 +561,7 @@ yume-tools → push to main → jsDelivr CDN (update SHAs in yume-api)
         </div>
       )}
 
-      {/* DevOps Guide Section */}
+      {/* ========== DEVOPS GUIDE SECTION ========== */}
       {activeSection === 'devops' && (
         <div className="space-y-6 animate-fadeIn">
           {/* Overview */}
@@ -500,7 +600,7 @@ yume-tools → push to main → jsDelivr CDN (update SHAs in yume-api)
             </div>
           </div>
 
-          {/* yume-pages */}
+          {/* yume-pages guide */}
           <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center text-lg">🌐</div>
@@ -526,7 +626,7 @@ git push
             </div>
           </div>
 
-          {/* yume-api */}
+          {/* yume-api guide */}
           <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center text-lg">⚡</div>
@@ -565,109 +665,7 @@ cd yume-api && npx wrangler deploy --env staging  # staging`}</pre>
             </div>
           </div>
 
-          {/* yume-tools */}
-          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-lg">📦</div>
-              <div>
-                <h2 className="text-xl font-semibold text-white">yume-tools (CDN Widgets)</h2>
-                <p className="text-gray-500 text-sm">jsDelivr CDN via API proxy</p>
-              </div>
-            </div>
-            <div className="space-y-4 text-gray-400">
-              <p><strong className="text-white">How it works:</strong></p>
-              <ul className="list-disc list-inside space-y-1 ml-4">
-                <li>Widgets served via jsDelivr CDN with specific Git SHAs</li>
-                <li><strong className="text-green-400">Staging</strong> always uses <code className="text-yume-accent">main</code> branch (latest)</li>
-                <li><strong className="text-yellow-400">Production</strong> uses locked SHA commits</li>
-              </ul>
-              
-              <div className="bg-yume-bg rounded-xl p-4 mt-4">
-                <p className="text-white text-sm mb-2">The Flow:</p>
-                <pre className="text-sm text-gray-300">{`1. Push widget changes to main
-   ↓
-2. Staging auto-updates (uses @main ref)
-   ↓
-3. Test on staging (api-staging.itai.gg/cdn/*)
-   ↓
-4. Trigger "promote-to-production" workflow
-   ↓
-5. Workflow updates SHA_* vars in wrangler.jsonc
-   ↓
-6. Production now serves new widgets`}</pre>
-              </div>
-
-              <div className="bg-yume-bg rounded-xl p-4">
-                <p className="text-white text-sm mb-2">Update widgets:</p>
-                <pre className="text-sm text-gray-300">{`# Step 1: Push changes
-cd yume-tools
-# Edit files in dist/
-git add -A && git commit -m "Update widget XYZ" && git push
-
-# Step 2: Test on staging
-# Visit api-staging.itai.gg/cdn/nav-bar.js etc.
-
-# Step 3: Promote to production
-# DevOps Panel → "🚀 Promote to Production"
-# OR GitHub → yume-tools → Actions → "promote-to-production"`}</pre>
-              </div>
-            </div>
-          </div>
-
-          {/* Required Secrets */}
-          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">🔐 Required Secrets</h2>
-            
-            <h3 className="text-white font-medium mt-4 mb-2">yume-api GitHub Secrets:</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <tbody className="text-gray-300">
-                  <tr className="border-b border-yume-border/50">
-                    <td className="py-2 font-mono text-yume-accent">CLOUDFLARE_API_TOKEN</td>
-                    <td className="py-2 text-gray-500">Deploy Workers</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <h3 className="text-white font-medium mt-4 mb-2">yume-tools GitHub Secrets:</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <tbody className="text-gray-300">
-                  <tr className="border-b border-yume-border/50">
-                    <td className="py-2 font-mono text-yume-accent">CLOUDFLARE_API_TOKEN</td>
-                    <td className="py-2 text-gray-500">Deploy Worker after SHA update</td>
-                  </tr>
-                  <tr className="border-b border-yume-border/50">
-                    <td className="py-2 font-mono text-yume-accent">REPO_ACCESS_TOKEN</td>
-                    <td className="py-2 text-gray-500">Push SHA updates to yume-api</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <h3 className="text-white font-medium mt-4 mb-2">Worker Secrets (via wrangler secret put):</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <tbody className="text-gray-300">
-                  <tr className="border-b border-yume-border/50">
-                    <td className="py-2 font-mono text-yume-accent">DISCORD_CLIENT_SECRET</td>
-                    <td className="py-2 text-gray-500">OAuth</td>
-                  </tr>
-                  <tr className="border-b border-yume-border/50">
-                    <td className="py-2 font-mono text-yume-accent">GITHUB_PAT</td>
-                    <td className="py-2 text-gray-500">DevOps Panel (repo, workflow scopes)</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 font-mono text-yume-accent">CLOUDFLARE_API_TOKEN</td>
-                    <td className="py-2 text-gray-500">DevOps Panel (Pages Read permission)</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Quick Reference */}
+          {/* Quick Reference Cheatsheet */}
           <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
             <h2 className="text-lg font-semibold text-white mb-4">📋 Daily Workflow Cheatsheet</h2>
             
@@ -703,7 +701,7 @@ git push
             </div>
           </div>
 
-          {/* Maintenance */}
+          {/* Maintenance Commands */}
           <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
             <h2 className="text-lg font-semibold text-white mb-4">🔧 Maintenance Commands</h2>
             <div className="bg-yume-bg rounded-xl p-4 overflow-x-auto">
@@ -729,7 +727,18 @@ cd yume-api && npx wrangler deploy --env staging`}</pre>
   );
 }
 
+// =============================================================================
+// HELPER COMPONENTS
+// =============================================================================
+
+/**
+ * API Endpoint Display Component
+ * 
+ * Renders a styled API endpoint with method badge and description.
+ * Used in the API Reference section.
+ */
 function ApiEndpoint({ method, path, desc }: { method: string; path: string; desc: string }) {
+  // Method-specific colors for visual distinction
   const colors: Record<string, string> = {
     GET: 'bg-emerald-500/20 text-emerald-400',
     POST: 'bg-blue-500/20 text-blue-400',
