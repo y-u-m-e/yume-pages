@@ -8,7 +8,7 @@
  * - View event details and tiles
  * - Join/leave events
  * - Track their progress through tiles
- * - View tile details (description, reward, image)
+ * - View tile details (description, image)
  * 
  * The tiles are displayed in a snake pattern (left-to-right, then right-to-left)
  * and users must unlock tiles sequentially - completing one unlocks the next.
@@ -43,7 +43,6 @@ interface Tile {
   title: string;        // Short title displayed on tile
   description?: string; // Detailed description shown in modal
   image_url?: string;   // Optional image for the tile
-  reward?: string;      // What the user gets for completing
   is_start: number;     // 1 if this is the first tile
   is_end: number;       // 1 if this is the final tile
 }
@@ -469,13 +468,6 @@ export default function TileEvent() {
             
             {selectedTile.description && (
               <p className="text-gray-300 mb-4">{selectedTile.description}</p>
-            )}
-            
-            {selectedTile.reward && (
-              <div className="bg-yume-bg-light rounded-xl p-4">
-                <div className="text-xs text-gray-400 mb-1">Reward</div>
-                <div className="text-yume-accent font-medium">{selectedTile.reward}</div>
-              </div>
             )}
             
             <div className="mt-4 pt-4 border-t border-yume-border">

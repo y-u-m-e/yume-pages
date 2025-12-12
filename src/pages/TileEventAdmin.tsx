@@ -60,7 +60,6 @@ interface Tile {
   title: string;        // Tile name/title
   description?: string; // Detailed description
   image_url?: string;   // Optional image URL
-  reward?: string;      // Reward for completing tile
   is_start?: number;    // 1 if first tile
   is_end?: number;      // 1 if final tile
 }
@@ -267,8 +266,7 @@ export default function TileEventAdmin() {
       position: tiles.length,
       title: '',
       description: '',
-      image_url: '',
-      reward: ''
+      image_url: ''
     };
     setEditingTile(newTile);
     setShowTileForm(true);
@@ -612,9 +610,6 @@ export default function TileEventAdmin() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-white truncate">{tile.title || 'Untitled'}</div>
-                            {tile.reward && (
-                              <div className="text-xs text-gray-500 truncate">Reward: {tile.reward}</div>
-                            )}
                           </div>
                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
@@ -847,16 +842,6 @@ export default function TileEventAdmin() {
                 />
               </div>
               
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Reward</label>
-                <input
-                  type="text"
-                  value={editingTile.reward || ''}
-                  onChange={e => setEditingTile({ ...editingTile, reward: e.target.value })}
-                  placeholder="e.g., 5M GP Prize"
-                  className="w-full px-4 py-2 rounded-lg bg-yume-bg-light border border-yume-border text-white placeholder:text-gray-500 focus:border-yume-accent outline-none"
-                />
-              </div>
             </div>
             
             <div className="flex gap-3 mt-6">
@@ -924,7 +909,6 @@ export default function TileEventAdmin() {
                       <th className="text-left py-1 px-2 border-b border-yume-border">A: Title</th>
                       <th className="text-left py-1 px-2 border-b border-yume-border">B: Description</th>
                       <th className="text-left py-1 px-2 border-b border-yume-border">C: Image URL</th>
-                      <th className="text-left py-1 px-2 border-b border-yume-border">D: Reward</th>
                     </tr>
                   </thead>
                   <tbody className="text-gray-300">
