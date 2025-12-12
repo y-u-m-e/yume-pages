@@ -41,7 +41,7 @@ interface Participant {
 }
 
 export default function TileEventAdmin() {
-  const { user, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const navigate = useNavigate();
   
   const [events, setEvents] = useState<TileEvent[]>([]);

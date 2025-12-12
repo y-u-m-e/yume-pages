@@ -15,7 +15,7 @@ interface TileEventSummary {
 }
 
 export default function TileEvents() {
-  const { user, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const [events, setEvents] = useState<TileEventSummary[]>([]);
   const [loading, setLoading] = useState(true);
 

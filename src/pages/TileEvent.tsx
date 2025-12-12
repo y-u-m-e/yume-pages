@@ -81,11 +81,6 @@ export default function TileEvent() {
     }
   };
 
-  const isTileUnlocked = (position: number) => {
-    if (!progress) return position === 0; // First tile always visible
-    return progress.tiles_unlocked.includes(position);
-  };
-
   const isTileAccessible = (position: number) => {
     if (!progress) return position === 0;
     // Tile is accessible if the previous tile is unlocked
