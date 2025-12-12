@@ -70,6 +70,27 @@ interface SeshSyncResult {
   error?: string;
 }
 
+// Error log entry from the database
+interface ErrorLog {
+  id: number;
+  timestamp: string;
+  endpoint: string;
+  method: string;
+  error_type: string;
+  error_message: string;
+  stack_trace?: string;
+  user_id?: string;
+  ip_address?: string;
+  resolved: number;
+  notes?: string;
+}
+
+interface ErrorLogSummary {
+  error_type: string;
+  count: number;
+  unresolved: number;
+}
+
 const REPOS = [
   { 
     name: 'yume-tools', 
@@ -130,6 +151,16 @@ export default function DevOps() {
 
   // Active tab for mobile/responsive
   const [activeTab, setActiveTab] = useState<'repos' | 'tools'>('repos');
+
+  // Error log state
+  const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([]);
+  const [errorSummary, setErrorSummary] = useState<ErrorLogSummary[]>([]);
+  const [errorLogsTotal, setErrorLogsTotal] = useState(0);
+  const [errorLogsPage, setErrorLogsPage] = useState(1);
+  const [loadingErrorLogs, setLoadingErrorLogs] = useState(false);
+  const [errorTypeFilter, setErrorTypeFilter] = useState<string>('');
+  const [showResolvedLogs, setShowResolvedLogs] = useState(false);
+  const [expandedLogId, setExpandedLogId] = useState<number | null>(null);
 
   // Try to load token from server first, then localStorage
   useEffect(() => {
@@ -193,6 +224,13 @@ export default function DevOps() {
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch error logs when user is authenticated
+  useEffect(() => {
+    if (user) {
+      fetchErrorLogs(1);
+    }
+  }, [user, showResolvedLogs, errorTypeFilter]);
+
   const fetchCFDeployments = async () => {
     try {
       const res = await fetch(`${API_BASE}/admin/cf-deployments?project=yume-pages`, {
@@ -216,6 +254,83 @@ export default function DevOps() {
       }
     } catch {
       // Ignore errors
+    }
+  };
+
+  // --- Error Log Functions ---
+  const fetchErrorLogs = async (page = 1) => {
+    setLoadingErrorLogs(true);
+    try {
+      const params = new URLSearchParams({
+        limit: '20',
+        offset: String((page - 1) * 20),
+        resolved: showResolvedLogs ? '' : 'false'
+      });
+      if (errorTypeFilter) {
+        params.set('type', errorTypeFilter);
+      }
+      
+      const res = await fetch(`${API_BASE}/admin/error-logs?${params}`, {
+        credentials: 'include'
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setErrorLogs(data.logs || []);
+        setErrorLogsTotal(data.total || 0);
+        setErrorSummary(data.summary || []);
+        setErrorLogsPage(page);
+      }
+    } catch (err) {
+      console.error("Failed to fetch error logs:", err);
+    } finally {
+      setLoadingErrorLogs(false);
+    }
+  };
+
+  const markLogResolved = async (logId: number, resolved: boolean, notes?: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/error-logs/${logId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resolved, notes })
+      });
+      
+      if (res.ok) {
+        fetchErrorLogs(errorLogsPage);
+      }
+    } catch (err) {
+      console.error("Failed to update error log:", err);
+    }
+  };
+
+  const deleteLog = async (logId: number) => {
+    if (!confirm('Delete this error log?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/admin/error-logs/${logId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (res.ok) {
+        fetchErrorLogs(errorLogsPage);
+      }
+    } catch (err) {
+      console.error("Failed to delete error log:", err);
+    }
+  };
+
+  const clearResolvedLogs = async () => {
+    if (!confirm('Clear all resolved error logs?')) return;
+    try {
+      await fetch(`${API_BASE}/admin/error-logs`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      fetchErrorLogs(1);
+    } catch (err) {
+      console.error("Failed to clear logs:", err);
     }
   };
 
@@ -851,6 +966,150 @@ export default function DevOps() {
               </div>
             </div>
 
+            {/* Error Logs Card */}
+            <div className="glass-panel p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-xl">
+                    🚨
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white">Error Logs</h3>
+                    <p className="text-slate-500 text-xs">
+                      {errorSummary.reduce((acc, s) => acc + s.unresolved, 0)} unresolved
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => fetchErrorLogs(1)}
+                  className="px-3 py-1.5 text-sm rounded-lg bg-slate-700 hover:bg-slate-600 text-white"
+                >
+                  Refresh
+                </button>
+              </div>
+
+              {/* Filters */}
+              <div className="flex gap-2 mb-3 flex-wrap">
+                <select
+                  value={errorTypeFilter}
+                  onChange={(e) => setErrorTypeFilter(e.target.value)}
+                  className="bg-slate-800 text-white text-sm px-2 py-1 rounded border border-slate-700"
+                >
+                  <option value="">All Types</option>
+                  {errorSummary.map(s => (
+                    <option key={s.error_type} value={s.error_type}>
+                      {s.error_type} ({s.count})
+                    </option>
+                  ))}
+                </select>
+                <label className="flex items-center gap-2 text-sm text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={showResolvedLogs}
+                    onChange={(e) => setShowResolvedLogs(e.target.checked)}
+                    className="rounded bg-slate-800 border-slate-600"
+                  />
+                  Show resolved
+                </label>
+                {errorSummary.some(s => s.count > 0) && (
+                  <button
+                    onClick={clearResolvedLogs}
+                    className="px-2 py-1 text-xs rounded bg-red-900/50 hover:bg-red-800/50 text-red-300"
+                  >
+                    Clear Resolved
+                  </button>
+                )}
+              </div>
+
+              {/* Error List */}
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {loadingErrorLogs ? (
+                  <div className="text-center text-slate-500 py-4">Loading...</div>
+                ) : errorLogs.length === 0 ? (
+                  <div className="text-center text-slate-500 py-4">No errors logged 🎉</div>
+                ) : (
+                  errorLogs.map(log => (
+                    <div
+                      key={log.id}
+                      className={`bg-slate-800/50 rounded p-2 cursor-pointer hover:bg-slate-700/50 ${log.resolved ? 'opacity-60' : ''}`}
+                      onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs px-2 py-0.5 rounded ${
+                            log.error_type === 'db' ? 'bg-red-900 text-red-300' :
+                            log.error_type === 'auth' ? 'bg-yellow-900 text-yellow-300' :
+                            'bg-slate-700 text-slate-300'
+                          }`}>
+                            {log.error_type}
+                          </span>
+                          <span className="text-white text-sm truncate max-w-40">{log.endpoint}</span>
+                        </div>
+                        <span className="text-slate-500 text-xs">
+                          {new Date(log.timestamp + 'Z').toLocaleString()}
+                        </span>
+                      </div>
+                      
+                      {/* Expanded details */}
+                      {expandedLogId === log.id && (
+                        <div className="mt-2 pt-2 border-t border-slate-700 space-y-2">
+                          <div className="text-red-400 text-sm font-mono">{log.error_message}</div>
+                          {log.stack_trace && (
+                            <pre className="text-xs text-slate-500 overflow-x-auto max-h-24 bg-slate-900 p-2 rounded">
+                              {log.stack_trace}
+                            </pre>
+                          )}
+                          <div className="flex items-center gap-2 text-xs text-slate-500">
+                            <span>IP: {log.ip_address}</span>
+                            {log.user_id && <span>User: {log.user_id}</span>}
+                          </div>
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); markLogResolved(log.id, !log.resolved); }}
+                              className={`px-2 py-1 text-xs rounded ${log.resolved ? 'bg-yellow-900/50 text-yellow-300' : 'bg-green-900/50 text-green-300'}`}
+                            >
+                              {log.resolved ? 'Mark Unresolved' : 'Mark Resolved'}
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); deleteLog(log.id); }}
+                              className="px-2 py-1 text-xs rounded bg-red-900/50 text-red-300"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Pagination */}
+              {errorLogsTotal > 20 && (
+                <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-700">
+                  <span className="text-slate-500 text-xs">
+                    Page {errorLogsPage} of {Math.ceil(errorLogsTotal / 20)}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => fetchErrorLogs(errorLogsPage - 1)}
+                      disabled={errorLogsPage <= 1}
+                      className="px-2 py-1 text-xs rounded bg-slate-700 text-white disabled:opacity-50"
+                    >
+                      Prev
+                    </button>
+                    <button
+                      onClick={() => fetchErrorLogs(errorLogsPage + 1)}
+                      disabled={errorLogsPage >= Math.ceil(errorLogsTotal / 20)}
+                      className="px-2 py-1 text-xs rounded bg-slate-700 text-white disabled:opacity-50"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Quick Links Card */}
             <div className="glass-panel p-4">
               <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
@@ -860,8 +1119,8 @@ export default function DevOps() {
                 {[
                   { href: 'https://dash.cloudflare.com', icon: '☁️', label: 'Cloudflare' },
                   { href: `https://github.com/${GITHUB_ORG}`, icon: '🐙', label: 'GitHub' },
-                  { href: 'https://api.itai.gg/health', icon: '💚', label: 'API Health' },
-                  { href: 'https://yumes-tools.itai.gg', icon: '🎴', label: 'Carrd Site' },
+                  { href: 'https://api.emuy.gg/health', icon: '💚', label: 'API Health' },
+                  { href: 'https://yumes-tools.emuy.gg', icon: '🎴', label: 'Carrd Site' },
                 ].map(link => (
                   <a
                     key={link.href}
