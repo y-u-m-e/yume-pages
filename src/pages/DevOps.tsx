@@ -1001,10 +1001,17 @@ export default function DevOps() {
               {/* Last Sync Result */}
               {seshLastSync && (
                 <div className={`mt-3 p-2 rounded text-xs ${seshLastSync.success ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>
-                  {seshLastSync.success 
-                    ? `✅ Synced ${seshLastSync.eventsCount} events (${seshLastSync.duration}ms)`
-                    : `❌ ${seshLastSync.error}`
-                  }
+                  <div>
+                    {seshLastSync.success 
+                      ? `✅ Synced ${seshLastSync.eventsCount} events (${seshLastSync.duration}ms)`
+                      : `❌ ${seshLastSync.error}`
+                    }
+                  </div>
+                  {seshLastSync.timestamp && (
+                    <div className="text-slate-500 mt-1">
+                      Last refreshed: {new Date(seshLastSync.timestamp).toLocaleString()}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

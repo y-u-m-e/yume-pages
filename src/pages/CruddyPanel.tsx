@@ -219,6 +219,7 @@ export default function CruddyPanel() {
     if (result.success && result.data) {
       setLeaderboardData(Array.isArray(result.data) ? result.data : []);
     } else {
+      setLeaderboardData([]); // Clear data on error so "No data" shows
       setError(result.error || 'Failed to load leaderboard');
     }
     
