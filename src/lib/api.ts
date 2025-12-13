@@ -152,11 +152,16 @@ export const records = {
     end?: string;
   }): Promise<ApiResponse<LeaderboardEntry[]>> {
     const searchParams = new URLSearchParams();
-    if (params?.top) searchParams.set('top', params.top.toString());
+    searchParams.set('top', (params?.top || 50).toString());
     if (params?.start) searchParams.set('start', params.start);
     if (params?.end) searchParams.set('end', params.end);
 
     const query = searchParams.toString();
-    return apiFetch(`/attendance?top=${params?.top || 50}${query ? `&${query}` : ''}`);
+    // D1 returns { results: [...] }, so we need to extract the results array
+    const response = await apiFetch<{ results: LeaderboardEntry[] }>(`/attendance?${query}`);
+    if (response.success && response.data?.results) {
+      return { success: true, data: response.data.results };
+    }
+    return { success: false, error: response.error || 'Failed to load leaderboard' };
   },
 };
