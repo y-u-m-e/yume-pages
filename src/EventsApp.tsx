@@ -11,6 +11,7 @@
  * - Event listing and participation
  * - Progress tracking
  * - Screenshot submission
+ * - Admin panel for event management (requires events permission)
  * 
  * @author Yume Tools Team
  */
@@ -23,6 +24,10 @@ import EventsLayout from '@/components/EventsLayout'
 import EventsHome from '@/pages/events/EventsHome'
 import EventsList from '@/pages/events/EventsList'
 import TileEvent from '@/pages/TileEvent'
+
+// Admin pages (reused from main app)
+import TileEventAdmin from '@/pages/TileEventAdmin'
+import AIDebug from '@/pages/AIDebug'
 
 /**
  * Events Application Component
@@ -43,6 +48,10 @@ function EventsApp() {
           
           {/* Individual event view - reuses TileEvent component */}
           <Route path="events/:eventId" element={<TileEvent />} />
+          
+          {/* Admin routes - requires events permission */}
+          <Route path="admin" element={<TileEventAdmin />} />
+          <Route path="admin/ai-debug" element={<AIDebug />} />
         </Route>
       </Routes>
     </AuthProvider>

@@ -17,11 +17,12 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function EventsLayout() {
-  const { user, loading, login, logout } = useAuth();
+  const { user, loading, login, logout, isEventsAdmin } = useAuth();
   const location = useLocation();
   
   // Check if we're on the home page
   const isHome = location.pathname === '/';
+  const isAdminPage = location.pathname.startsWith('/admin');
 
   return (
     <div className="min-h-screen bg-yume-bg flex flex-col">
@@ -50,6 +51,27 @@ export default function EventsLayout() {
                 className="text-gray-400 hover:text-white transition-colors text-sm"
               >
                 All Events
+              </Link>
+            )}
+            
+            {/* Admin Link - only show if user has events permission */}
+            {user && isEventsAdmin && !isAdminPage && (
+              <Link 
+                to="/admin" 
+                className="flex items-center gap-1.5 text-amber-400 hover:text-amber-300 transition-colors text-sm font-medium"
+              >
+                <span>⚙️</span>
+                Admin
+              </Link>
+            )}
+            
+            {/* Back to events from admin */}
+            {user && isAdminPage && (
+              <Link 
+                to="/events" 
+                className="text-gray-400 hover:text-white transition-colors text-sm"
+              >
+                ← Back to Events
               </Link>
             )}
             

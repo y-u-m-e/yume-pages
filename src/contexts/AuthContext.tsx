@@ -29,6 +29,9 @@ import { auth, User } from '@/lib/api';
 interface Access {
   docs: boolean;      // Can access documentation pages
   cruddy: boolean;    // Can access Cruddy Panel (attendance tracking)
+  devops?: boolean;   // Can access DevOps panel
+  infographic?: boolean; // Can access Infographic maker
+  events?: boolean;   // Can access Events admin panel
   admin?: boolean;    // Full admin access (optional, for backwards compat)
 }
 
@@ -42,6 +45,7 @@ interface AuthContextType {
   error: string | null;        // Error message if auth check failed
   access: Access | null;       // User's feature permissions
   isAdmin: boolean;            // Computed: does user have admin privileges?
+  isEventsAdmin: boolean;      // Computed: can access events admin panel?
   login: () => void;           // Redirect to Discord OAuth login
   logout: () => void;          // Clear session and redirect to logout
   refresh: () => Promise<void>; // Re-check authentication status
@@ -126,9 +130,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // - Explicit admin flag, OR
   // - Has both docs AND cruddy access (legacy admin detection)
   const isAdmin = access?.admin === true || (access?.docs === true && access?.cruddy === true);
+  
+  // Events admin: has events permission or is general admin
+  const isEventsAdmin = access?.events === true || isAdmin;
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, access, isAdmin, login, logout, refresh }}>
+    <AuthContext.Provider value={{ user, loading, error, access, isAdmin, isEventsAdmin, login, logout, refresh }}>
       {children}
     </AuthContext.Provider>
   );
