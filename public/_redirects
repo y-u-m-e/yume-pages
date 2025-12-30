@@ -1,0 +1,12 @@
+# Cloudflare Pages SPA fallback routing
+# Handles client-side routing for React Router
+
+# Main app (emuy.gg) - all routes fallback to index.html
+# https://emuy.gg/* /index.html 200
+
+# Events app (ironforged-events.emuy.gg) - all routes fallback to events.html
+# This is handled by Cloudflare Pages custom domain routing
+
+# SPA fallback - serves index.html for any unmatched routes
+/*    /index.html   200
+
