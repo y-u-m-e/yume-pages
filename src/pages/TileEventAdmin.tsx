@@ -425,6 +425,34 @@ export default function TileEventAdmin() {
     }
   };
 
+  const lockTile = async (participant: Participant, tilePosition: number) => {
+    if (!selectedEvent) return;
+    
+    // Confirm before stepping back
+    const tileName = tiles[tilePosition]?.title || `Tile ${tilePosition + 1}`;
+    if (!confirm(`Step ${participant.global_name || participant.discord_username} back to before "${tileName}"? This will also remove any tiles after it.`)) {
+      return;
+    }
+    
+    try {
+      const res = await fetch(`${API_BASE}/admin/tile-events/${selectedEvent.id}/lock`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          discord_id: participant.discord_id,
+          tile_position: tilePosition
+        })
+      });
+      
+      if (res.ok) {
+        fetchEventDetails(selectedEvent.id);
+      }
+    } catch (err) {
+      console.error('Failed to lock tile:', err);
+    }
+  };
+
   const resetUserProgress = async (participant: Participant) => {
     if (!selectedEvent || !confirm(`Reset progress for ${participant.global_name || participant.discord_username}?`)) return;
     
@@ -842,7 +870,7 @@ export default function TileEventAdmin() {
                             </div>
                           </div>
                           
-                          {/* Tile progress grid */}
+                          {/* Tile progress grid - click to toggle unlock/lock */}
                           <div className="flex flex-wrap gap-1">
                             {tiles.map((tile, index) => {
                               const isUnlocked = participant.tiles_unlocked.includes(index);
@@ -851,21 +879,23 @@ export default function TileEventAdmin() {
                               return (
                                 <button
                                   key={index}
-                                  onClick={() => !isUnlocked && unlockTile(participant, index)}
-                                  disabled={isUnlocked}
-                                  className={`w-8 h-8 rounded text-xs font-bold transition-all ${
+                                  onClick={() => isUnlocked ? lockTile(participant, index) : unlockTile(participant, index)}
+                                  className={`w-8 h-8 rounded text-xs font-bold transition-all cursor-pointer ${
                                     isUnlocked
-                                      ? 'bg-emerald-500 text-white'
+                                      ? 'bg-emerald-500 text-white hover:bg-red-500'
                                       : isNext
-                                      ? 'bg-yume-accent/20 text-yume-accent hover:bg-yume-accent hover:text-yume-bg cursor-pointer'
-                                      : 'bg-gray-700 text-gray-500'
+                                      ? 'bg-yume-accent/20 text-yume-accent hover:bg-yume-accent hover:text-yume-bg'
+                                      : 'bg-gray-700 text-gray-500 hover:bg-gray-600'
                                   }`}
-                                  title={`${tile.title} - ${isUnlocked ? 'Completed' : isNext ? 'Click to unlock' : 'Locked'}`}
+                                  title={`${tile.title} - ${isUnlocked ? 'Click to step back' : 'Click to unlock'}`}
                                 >
                                   {isUnlocked ? '✓' : index + 1}
                                 </button>
                               );
                             })}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-2">
+                            Click tile to unlock • Click ✓ to step back
                           </div>
                         </div>
                       ))}
