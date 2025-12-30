@@ -894,8 +894,49 @@ export default function TileEventAdmin() {
                               );
                             })}
                           </div>
-                          <div className="text-xs text-gray-500 mt-2">
-                            Click tile to unlock • Click ✓ to step back
+                          
+                          {/* Navigation arrows */}
+                          <div className="flex items-center gap-2 mt-3">
+                            <button
+                              onClick={() => {
+                                // Step back: lock the highest unlocked tile
+                                const maxUnlocked = participant.tiles_unlocked.length > 0 
+                                  ? Math.max(...participant.tiles_unlocked) 
+                                  : -1;
+                                if (maxUnlocked >= 0) {
+                                  lockTile(participant, maxUnlocked);
+                                }
+                              }}
+                              disabled={participant.tiles_unlocked.length === 0}
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white"
+                              title="Step back one tile"
+                            >
+                              <span>←</span>
+                              <span>Back</span>
+                            </button>
+                            
+                            <div className="flex-1 text-center text-xs text-gray-500">
+                              Tile {participant.tiles_unlocked.length > 0 ? Math.max(...participant.tiles_unlocked) + 1 : 0} of {tiles.length}
+                            </div>
+                            
+                            <button
+                              onClick={() => {
+                                // Advance: unlock the next tile
+                                const maxUnlocked = participant.tiles_unlocked.length > 0 
+                                  ? Math.max(...participant.tiles_unlocked) 
+                                  : -1;
+                                const nextTile = maxUnlocked + 1;
+                                if (nextTile < tiles.length) {
+                                  unlockTile(participant, nextTile);
+                                }
+                              }}
+                              disabled={participant.tiles_unlocked.length >= tiles.length}
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white"
+                              title="Advance one tile"
+                            >
+                              <span>Next</span>
+                              <span>→</span>
+                            </button>
                           </div>
                         </div>
                       ))}
