@@ -63,7 +63,7 @@ export default function Nav() {
             {/* Logo */}
             <NavLink to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
               <img 
-                src="/favicon/favicon.svg" 
+                src="/favicon/android-chrome-192x192.png?v=3" 
                 alt="Yume" 
                 className="w-9 h-9 rounded-full"
               />
