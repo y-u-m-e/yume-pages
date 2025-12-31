@@ -60,7 +60,7 @@ export default function Home() {
       <div className="text-center py-8">
         <div className="flex justify-center mb-6">
           <img 
-            src="/favicon/favicon.svg" 
+            src="/favicon/android-chrome-192x192.png?v=3" 
             alt="Yume Tools" 
             className="w-20 h-20 rounded-2xl shadow-lg shadow-yume-accent/20"
           />
