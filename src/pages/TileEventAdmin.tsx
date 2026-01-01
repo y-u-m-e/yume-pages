@@ -1303,6 +1303,14 @@ export default function TileEventAdmin() {
                             <div className="mt-2 p-3 bg-yume-bg-light rounded-lg text-xs font-mono space-y-1">
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
+                                  <span className="text-emerald-400">{'{rsn}'}</span>
+                                  <span className="text-gray-500"> - RuneScape name</span>
+                                </div>
+                                <div>
+                                  <span className="text-emerald-400">{'{rsn_or_username}'}</span>
+                                  <span className="text-gray-500"> - RSN or Discord name</span>
+                                </div>
+                                <div>
                                   <span className="text-amber-400">{'{username}'}</span>
                                   <span className="text-gray-500"> - Discord username</span>
                                 </div>
@@ -1355,7 +1363,7 @@ export default function TileEventAdmin() {
                                 <p className="text-gray-400 mb-1">Example template:</p>
                                 <pre className="text-[10px] text-gray-300 whitespace-pre-wrap">{`{
   "embeds": [{
-    "title": "📸 {username} completed {tile_title}!",
+    "title": "📸 {rsn_or_username} completed {tile_title}!",
     "color": 16753920,
     "image": { "url": "{image_url}" },
     "footer": { "text": "{event_name}" }
