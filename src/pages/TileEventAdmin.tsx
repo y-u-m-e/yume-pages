@@ -86,6 +86,23 @@ interface Participant {
 }
 
 /**
+ * Event user with RSN and notes
+ * Users who have logged in via the events subdomain
+ */
+interface EventUser {
+  id: number;
+  discord_id: string;
+  username: string;
+  global_name?: string;
+  avatar?: string;
+  rsn?: string;                 // RuneScape name
+  notes?: string;               // Admin notes
+  first_login_at: string;
+  last_login_at: string;
+  login_count: number;
+}
+
+/**
  * Tile Event Admin Page Component
  * 
  * Full admin dashboard for tile event management.
@@ -144,6 +161,14 @@ export default function TileEventAdmin() {
   const [sheetTab, setSheetTab] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [showSheetConfig, setShowSheetConfig] = useState(false);
+  
+  // Event users management (RSN linking)
+  const [showUsersView, setShowUsersView] = useState(false);
+  const [eventUsers, setEventUsers] = useState<EventUser[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [userSearch, setUserSearch] = useState('');
+  const [userFilter, setUserFilter] = useState<'all' | 'with_rsn' | 'without_rsn'>('all');
+  const [editingUser, setEditingUser] = useState<EventUser | null>(null);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -218,6 +243,59 @@ export default function TileEventAdmin() {
       }
     } catch (err) {
       console.error('Failed to fetch submissions:', err);
+    }
+  };
+  
+  /**
+   * Fetch all event users for RSN management
+   */
+  const fetchEventUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (userSearch) params.set('search', userSearch);
+      if (userFilter === 'with_rsn') params.set('has_rsn', 'true');
+      if (userFilter === 'without_rsn') params.set('has_rsn', 'false');
+      
+      const res = await fetch(
+        `${API_BASE}/admin/event-users?${params.toString()}`,
+        { credentials: 'include' }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setEventUsers(data.users || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch event users:', err);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+  
+  /**
+   * Update a user's RSN and/or notes
+   */
+  const updateEventUser = async (discordId: string, rsn: string, notes: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/event-users/${discordId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rsn, notes })
+      });
+      if (res.ok) {
+        // Update local state
+        setEventUsers(users => users.map(u => 
+          u.discord_id === discordId ? { ...u, rsn, notes } : u
+        ));
+        setEditingUser(null);
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to update user');
+      }
+    } catch (err) {
+      console.error('Failed to update user:', err);
+      alert('Failed to update user');
     }
   };
   
@@ -599,9 +677,9 @@ export default function TileEventAdmin() {
               {events.map(event => (
                 <button
                   key={event.id}
-                  onClick={() => fetchEventDetails(event.id)}
+                  onClick={() => { fetchEventDetails(event.id); setShowUsersView(false); }}
                   className={`w-full text-left p-4 rounded-xl border transition-all ${
-                    selectedEvent?.id === event.id
+                    selectedEvent?.id === event.id && !showUsersView
                       ? 'bg-yume-accent/20 border-yume-accent'
                       : 'bg-yume-card border-yume-border hover:border-yume-accent/50'
                   }`}
@@ -623,6 +701,22 @@ export default function TileEventAdmin() {
               ))}
             </div>
           )}
+          
+          {/* Manage Users Button */}
+          <button
+            onClick={() => { setShowUsersView(true); setSelectedEvent(null); fetchEventUsers(); }}
+            className={`w-full p-4 rounded-xl border transition-all flex items-center gap-3 ${
+              showUsersView
+                ? 'bg-purple-500/20 border-purple-500'
+                : 'bg-yume-card border-yume-border hover:border-purple-500/50'
+            }`}
+          >
+            <span className="text-2xl">👥</span>
+            <div className="text-left">
+              <div className="font-medium text-white">Manage Users</div>
+              <div className="text-xs text-gray-500">Link Discord IDs to RSNs</div>
+            </div>
+          </button>
         </div>
 
         {/* Event Details */}
@@ -1334,6 +1428,161 @@ export default function TileEventAdmin() {
                   </div>
                 </div>
               )}
+            </div>
+          ) : showUsersView ? (
+            /* ========== USERS VIEW ========== */
+            <div className="space-y-4">
+              <div className="bg-yume-card rounded-xl border border-yume-border p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                      👥 Event Users
+                    </h2>
+                    <p className="text-gray-400 text-sm mt-1">
+                      Link Discord accounts to RuneScape names
+                    </p>
+                  </div>
+                  <button
+                    onClick={fetchEventUsers}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-yume-accent/20 text-yume-accent hover:bg-yume-accent/30"
+                  >
+                    🔄 Refresh
+                  </button>
+                </div>
+                
+                {/* Search & Filter */}
+                <div className="flex flex-wrap gap-3 mb-4">
+                  <input
+                    type="text"
+                    placeholder="Search by name, RSN, or Discord ID..."
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && fetchEventUsers()}
+                    className="flex-1 min-w-[200px] px-3 py-2 rounded-lg bg-yume-bg border border-yume-border text-white text-sm focus:outline-none focus:border-yume-accent"
+                  />
+                  <select
+                    value={userFilter}
+                    onChange={(e) => { setUserFilter(e.target.value as 'all' | 'with_rsn' | 'without_rsn'); }}
+                    className="px-3 py-2 rounded-lg bg-yume-bg border border-yume-border text-white text-sm focus:outline-none focus:border-yume-accent"
+                  >
+                    <option value="all">All Users</option>
+                    <option value="with_rsn">With RSN</option>
+                    <option value="without_rsn">Missing RSN</option>
+                  </select>
+                  <button
+                    onClick={fetchEventUsers}
+                    className="px-4 py-2 rounded-lg bg-yume-accent text-yume-bg font-medium text-sm hover:bg-yume-accent/90"
+                  >
+                    Search
+                  </button>
+                </div>
+                
+                {/* Users List */}
+                {usersLoading ? (
+                  <div className="text-center py-8 text-gray-400">Loading users...</div>
+                ) : eventUsers.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <div className="text-4xl mb-2">👥</div>
+                    <p>No users found</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                    {eventUsers.map(eu => (
+                      <div
+                        key={eu.discord_id}
+                        className="p-4 rounded-lg bg-yume-bg-light"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {eu.avatar ? (
+                              <img
+                                src={`https://cdn.discordapp.com/avatars/${eu.discord_id}/${eu.avatar}.png`}
+                                alt={eu.username}
+                                className="w-10 h-10 rounded-full"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center text-lg">
+                                👤
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-medium text-white">
+                                {eu.global_name || eu.username}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {eu.username} • {eu.discord_id}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            {editingUser?.discord_id === eu.discord_id ? (
+                              <form
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  const form = e.target as HTMLFormElement;
+                                  const rsn = (form.elements.namedItem('rsn') as HTMLInputElement).value;
+                                  const notes = (form.elements.namedItem('notes') as HTMLInputElement).value;
+                                  updateEventUser(eu.discord_id, rsn, notes);
+                                }}
+                                className="flex items-center gap-2"
+                              >
+                                <input
+                                  name="rsn"
+                                  defaultValue={eu.rsn || ''}
+                                  placeholder="RSN"
+                                  className="w-32 px-2 py-1 rounded bg-yume-bg border border-yume-border text-white text-sm"
+                                />
+                                <input
+                                  name="notes"
+                                  defaultValue={eu.notes || ''}
+                                  placeholder="Notes"
+                                  className="w-40 px-2 py-1 rounded bg-yume-bg border border-yume-border text-white text-sm"
+                                />
+                                <button type="submit" className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 text-sm hover:bg-emerald-500/30">
+                                  ✓
+                                </button>
+                                <button type="button" onClick={() => setEditingUser(null)} className="px-2 py-1 rounded bg-red-500/20 text-red-400 text-sm hover:bg-red-500/30">
+                                  ✕
+                                </button>
+                              </form>
+                            ) : (
+                              <>
+                                <div className="text-right">
+                                  {eu.rsn ? (
+                                    <div className="text-emerald-400 font-medium">{eu.rsn}</div>
+                                  ) : (
+                                    <div className="text-gray-500 italic text-sm">No RSN</div>
+                                  )}
+                                  {eu.notes && (
+                                    <div className="text-xs text-gray-500 max-w-[200px] truncate" title={eu.notes}>
+                                      {eu.notes}
+                                    </div>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => setEditingUser(eu)}
+                                  className="px-3 py-1.5 rounded-lg text-sm bg-yume-accent/20 text-yume-accent hover:bg-yume-accent/30"
+                                >
+                                  Edit
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                          <span>First login: {new Date(eu.first_login_at).toLocaleDateString()}</span>
+                          <span>Last login: {new Date(eu.last_login_at).toLocaleDateString()}</span>
+                          <span>Logins: {eu.login_count}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                <div className="mt-4 text-xs text-gray-500">
+                  {eventUsers.length} user{eventUsers.length !== 1 ? 's' : ''} found
+                </div>
+              </div>
             </div>
           ) : (
             <div className="bg-yume-card rounded-xl border border-yume-border p-12 text-center">
