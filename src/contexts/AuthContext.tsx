@@ -30,8 +30,7 @@ interface Access {
   docs: boolean;      // Can access documentation pages
   cruddy: boolean;    // Can access Cruddy Panel (attendance tracking)
   devops?: boolean;   // Can access DevOps panel
-  infographic?: boolean; // Can access Infographic maker
-  events?: boolean;   // Can access Events admin panel
+  events?: boolean;   // Can access Events admin panel (manage tile events)
   admin?: boolean;    // Full admin access (optional, for backwards compat)
 }
 

@@ -25,8 +25,7 @@
  * - access_cruddy: Attendance tracking system
  * - access_docs: Documentation access
  * - access_devops: DevOps control panel
- * - access_infographic: Infographic maker tool
- * - access_events: Tile event management
+ * - access_events: Events admin panel (create/manage tile events)
  * - is_banned: Blocks all access
  * 
  * Database Table: admin_users
@@ -63,8 +62,7 @@ interface DBUser {
   access_cruddy: number;        // 1 = has access, 0 = no access
   access_docs: number;          // 1 = has access, 0 = no access
   access_devops: number;        // 1 = has access, 0 = no access
-  access_infographic: number;   // 1 = has access, 0 = no access
-  access_events: number;        // 1 = has access, 0 = no access
+  access_events: number;        // 1 = has access (events admin), 0 = no access
   is_banned: number;            // 1 = banned, 0 = not banned
   notes: string | null;         // Admin notes about user
   last_login: string | null;    // Last login timestamp
@@ -110,7 +108,6 @@ export default function Admin() {
   const [newAccessCruddy, setNewAccessCruddy] = useState(true);
   const [newAccessDocs, setNewAccessDocs] = useState(false);
   const [newAccessDevops, setNewAccessDevops] = useState(false);
-  const [newAccessInfographic, setNewAccessInfographic] = useState(false);
   const [newAccessEvents, setNewAccessEvents] = useState(false);
   const [newIsBanned, setNewIsBanned] = useState(false);
   const [newNotes, setNewNotes] = useState('');
@@ -195,7 +192,6 @@ export default function Admin() {
           access_cruddy: newAccessCruddy,
           access_docs: newAccessDocs,
           access_devops: newAccessDevops,
-          access_infographic: newAccessInfographic,
           access_events: newAccessEvents,
           is_banned: newIsBanned,
           notes: newNotes.trim() || null
@@ -228,7 +224,6 @@ export default function Admin() {
     setNewAccessCruddy(u.access_cruddy === 1);
     setNewAccessDocs(u.access_docs === 1);
     setNewAccessDevops(u.access_devops === 1);
-    setNewAccessInfographic(u.access_infographic === 1);
     setNewAccessEvents(u.access_events === 1);
     setNewIsBanned(u.is_banned === 1);
     setNewNotes(u.notes || '');
@@ -252,7 +247,6 @@ export default function Admin() {
     setNewAccessCruddy(true);  // Default: grant cruddy access
     setNewAccessDocs(false);
     setNewAccessDevops(false);
-    setNewAccessInfographic(false);
     setNewAccessEvents(false);
     setNewIsBanned(false);
     setNewNotes('');
@@ -299,7 +293,6 @@ export default function Admin() {
           access_cruddy: field === 'access_cruddy' ? !currentValue : dbUser.access_cruddy,
           access_docs: field === 'access_docs' ? !currentValue : dbUser.access_docs,
           access_devops: field === 'access_devops' ? !currentValue : dbUser.access_devops,
-          access_infographic: field === 'access_infographic' ? !currentValue : dbUser.access_infographic,
           access_events: field === 'access_events' ? !currentValue : dbUser.access_events,
           is_banned: field === 'is_banned' ? !currentValue : dbUser.is_banned,
           notes: dbUser.notes
@@ -499,30 +492,17 @@ export default function Admin() {
                     <span className="text-sm">🚀 DevOps</span>
                   </label>
                   
-                  {/* Infographic Permission */}
+                  {/* Events Admin Permission */}
                   <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
-                    newAccessInfographic ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300' : 'bg-yume-bg-light border-yume-border text-gray-400'
-                  }`}>
-                    <input
-                      type="checkbox"
-                      checked={newAccessInfographic}
-                      onChange={(e) => setNewAccessInfographic(e.target.checked)}
-                      className="w-4 h-4 rounded accent-cyan-500"
-                    />
-                    <span className="text-sm">🎨 Infographic</span>
-                  </label>
-                  
-                  {/* Events Permission */}
-                  <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
-                    newAccessEvents ? 'bg-yellow-500/20 border-yellow-500 text-yellow-300' : 'bg-yume-bg-light border-yume-border text-gray-400'
+                    newAccessEvents ? 'bg-amber-500/20 border-amber-500 text-amber-300' : 'bg-yume-bg-light border-yume-border text-gray-400'
                   }`}>
                     <input
                       type="checkbox"
                       checked={newAccessEvents}
                       onChange={(e) => setNewAccessEvents(e.target.checked)}
-                      className="w-4 h-4 rounded accent-yellow-500"
+                      className="w-4 h-4 rounded accent-amber-500"
                     />
-                    <span className="text-sm">🎯 Events</span>
+                    <span className="text-sm">⚔️ Events Admin</span>
                   </label>
                   
                   {/* Banned Status */}
@@ -590,8 +570,7 @@ export default function Admin() {
                       <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="Cruddy">◉</th>
                       <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="Docs">📄</th>
                       <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="DevOps">🚀</th>
-                      <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="Infographic">🎨</th>
-                      <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="Events">🎯</th>
+                      <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="Events Admin">⚔️</th>
                       <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="Banned">🚫</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Last Login</th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">Actions</th>
@@ -668,19 +647,9 @@ export default function Admin() {
                         </td>
                         <td className="px-2 py-3 text-center">
                           <button 
-                            onClick={() => handleTogglePermission(u, 'access_infographic')}
-                            className={`w-6 h-6 rounded text-xs flex items-center justify-center transition-colors ${
-                              u.access_infographic ? 'bg-cyan-500 text-white' : 'bg-gray-700 hover:bg-gray-600'
-                            }`}
-                          >
-                            {u.access_infographic ? '✓' : ''}
-                          </button>
-                        </td>
-                        <td className="px-2 py-3 text-center">
-                          <button 
                             onClick={() => handleTogglePermission(u, 'access_events')}
                             className={`w-6 h-6 rounded text-xs flex items-center justify-center transition-colors ${
-                              u.access_events ? 'bg-yellow-500 text-white' : 'bg-gray-700 hover:bg-gray-600'
+                              u.access_events ? 'bg-amber-500 text-white' : 'bg-gray-700 hover:bg-gray-600'
                             }`}
                           >
                             {u.access_events ? '✓' : ''}
