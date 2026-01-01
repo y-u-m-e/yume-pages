@@ -1343,6 +1343,10 @@ export default function TileEventAdmin() {
                                   <span className="text-gray-500"> - approved/pending</span>
                                 </div>
                                 <div>
+                                  <span className="text-cyan-400">{'{ocr_status}'}</span>
+                                  <span className="text-gray-500"> - OCR result status</span>
+                                </div>
+                                <div>
                                   <span className="text-amber-400">{'{image_url}'}</span>
                                   <span className="text-gray-500"> - Screenshot URL</span>
                                 </div>
