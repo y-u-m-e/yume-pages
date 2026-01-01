@@ -386,6 +386,64 @@ export default function CruddyPanel() {
   };
 
   /**
+   * Remove duplicate records within an event group
+   * Keeps the first occurrence of each player name (case-insensitive)
+   */
+  const handleRemoveDuplicates = async (group: EventGroup) => {
+    // Group attendees by lowercase name to find duplicates
+    const seen = new Map<string, number[]>();
+    for (const attendee of group.attendees) {
+      const key = attendee.name.toLowerCase();
+      if (!seen.has(key)) {
+        seen.set(key, []);
+      }
+      seen.get(key)!.push(attendee.id);
+    }
+    
+    // Find IDs to delete (all but the first for each duplicate name)
+    const idsToDelete: number[] = [];
+    for (const ids of seen.values()) {
+      if (ids.length > 1) {
+        idsToDelete.push(...ids.slice(1)); // Keep first, delete rest
+      }
+    }
+    
+    if (idsToDelete.length === 0) {
+      showSuccess('No duplicates found!');
+      return;
+    }
+    
+    if (!confirm(`Found ${idsToDelete.length} duplicate(s). Remove them?`)) return;
+    
+    setSubmitting(true);
+    let deleted = 0;
+    for (const id of idsToDelete) {
+      const result = await records.delete(id);
+      if (result.success) deleted++;
+    }
+    showSuccess(`Removed ${deleted} duplicate(s)`);
+    loadEventGroups();
+    setSubmitting(false);
+  };
+
+  /**
+   * Count duplicates in an event group
+   */
+  const countDuplicates = (group: EventGroup): number => {
+    const seen = new Set<string>();
+    let count = 0;
+    for (const attendee of group.attendees) {
+      const key = attendee.name.toLowerCase();
+      if (seen.has(key)) {
+        count++;
+      } else {
+        seen.add(key);
+      }
+    }
+    return count;
+  };
+
+  /**
    * Open edit modal with record data
    */
   const openEditModal = (record: AttendanceRecord | { id: number; name: string; event: string; date: string }) => {
@@ -611,6 +669,15 @@ export default function CruddyPanel() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="badge-accent">{group.attendees.length} players</span>
+                      {countDuplicates(group) > 0 && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleRemoveDuplicates(group); }} 
+                          className="text-sm text-orange-400 hover:underline"
+                          title="Remove duplicate player entries"
+                        >
+                          🔄 {countDuplicates(group)} dupe{countDuplicates(group) > 1 ? 's' : ''}
+                        </button>
+                      )}
                       <button onClick={(e) => { e.stopPropagation(); copyIngots(group); }} className="text-sm text-blue-400 hover:underline">📋 Copy</button>
                       <button onClick={(e) => { e.stopPropagation(); handleDeleteEventGroup(group); }} className="text-sm text-red-400 hover:underline">🗑</button>
                       <span className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
