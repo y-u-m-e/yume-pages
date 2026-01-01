@@ -230,13 +230,24 @@ export default function TileEvent() {
       // Refresh progress and submissions
       await Promise.all([fetchProgress(), fetchSubmissions()]);
       
-      // Auto-close modal after success
-      if (data.auto_approved) {
-        setTimeout(() => {
+      // After successful submission, advance to the next tile automatically
+      // Find the next tile in the sequence
+      const currentTileIndex = tiles.findIndex(t => t.id === tileId);
+      const nextTile = currentTileIndex >= 0 && currentTileIndex < tiles.length - 1 
+        ? tiles[currentTileIndex + 1] 
+        : null;
+      
+      setTimeout(() => {
+        if (nextTile) {
+          // Move to next tile
+          setSelectedTile(nextTile);
+          setUploadSuccess(null);
+        } else {
+          // Last tile or not found, close modal
           setSelectedTile(null);
           setUploadSuccess(null);
-        }, 2000);
-      }
+        }
+      }, data.auto_approved ? 1500 : 2500);
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
