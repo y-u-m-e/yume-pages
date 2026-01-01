@@ -46,6 +46,8 @@ interface TileEvent {
   google_sheet_id?: string;     // Google Sheet ID for sync
   google_sheet_tab?: string;    // Sheet tab name for sync
   required_keyword?: string;    // Mandatory keyword for OCR verification
+  webhook_url?: string;         // Discord webhook URL for notifications
+  webhook_template?: string;    // Custom webhook embed template (JSON)
   tile_count: number;           // Number of tiles in event
   participant_count: number;    // Number of participants
   created_at: string;           // ISO timestamp
@@ -1165,6 +1167,113 @@ export default function TileEventAdmin() {
                       </div>
                     </div>
                     
+                    {/* Discord Webhook */}
+                    <div className="border-t border-yume-border pt-4 mt-4">
+                      <h4 className="text-sm font-medium text-white mb-3">🔔 Discord Webhook</h4>
+                      <p className="text-xs text-gray-500 mb-3">
+                        Send notifications to Discord when participants submit screenshots.
+                      </p>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm text-gray-400 mb-1">Webhook URL</label>
+                          <input
+                            type="text"
+                            defaultValue={selectedEvent.webhook_url || ''}
+                            id="settings-webhook-url"
+                            placeholder="https://discord.com/api/webhooks/..."
+                            className="w-full px-4 py-2 rounded-lg bg-yume-bg-light border border-yume-border text-white placeholder:text-gray-500 focus:border-yume-accent outline-none font-mono text-sm"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Get this from Discord: Server Settings → Integrations → Webhooks
+                          </p>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm text-gray-400 mb-1">
+                            Custom Embed Template <span className="text-gray-500">(optional JSON)</span>
+                          </label>
+                          <textarea
+                            defaultValue={selectedEvent.webhook_template || ''}
+                            id="settings-webhook-template"
+                            rows={6}
+                            placeholder='Leave empty for default template, or customize with JSON...'
+                            className="w-full px-4 py-2 rounded-lg bg-yume-bg-light border border-yume-border text-white placeholder:text-gray-500 focus:border-yume-accent outline-none font-mono text-xs resize-y"
+                          />
+                          
+                          {/* Placeholder Cheat Sheet */}
+                          <details className="mt-2">
+                            <summary className="text-xs text-amber-400 cursor-pointer hover:text-amber-300">
+                              📋 Available Placeholders (click to expand)
+                            </summary>
+                            <div className="mt-2 p-3 bg-yume-bg-light rounded-lg text-xs font-mono space-y-1">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <span className="text-amber-400">{'{username}'}</span>
+                                  <span className="text-gray-500"> - Discord username</span>
+                                </div>
+                                <div>
+                                  <span className="text-amber-400">{'{user_id}'}</span>
+                                  <span className="text-gray-500"> - Discord user ID</span>
+                                </div>
+                                <div>
+                                  <span className="text-amber-400">{'{event_name}'}</span>
+                                  <span className="text-gray-500"> - Event name</span>
+                                </div>
+                                <div>
+                                  <span className="text-amber-400">{'{event_id}'}</span>
+                                  <span className="text-gray-500"> - Event ID</span>
+                                </div>
+                                <div>
+                                  <span className="text-amber-400">{'{tile_title}'}</span>
+                                  <span className="text-gray-500"> - Tile name</span>
+                                </div>
+                                <div>
+                                  <span className="text-amber-400">{'{tile_position}'}</span>
+                                  <span className="text-gray-500"> - Tile number</span>
+                                </div>
+                                <div>
+                                  <span className="text-amber-400">{'{status}'}</span>
+                                  <span className="text-gray-500"> - ✅/⏳ status</span>
+                                </div>
+                                <div>
+                                  <span className="text-amber-400">{'{status_raw}'}</span>
+                                  <span className="text-gray-500"> - approved/pending</span>
+                                </div>
+                                <div>
+                                  <span className="text-amber-400">{'{image_url}'}</span>
+                                  <span className="text-gray-500"> - Screenshot URL</span>
+                                </div>
+                                <div>
+                                  <span className="text-amber-400">{'{ocr_text}'}</span>
+                                  <span className="text-gray-500"> - Detected text</span>
+                                </div>
+                                <div>
+                                  <span className="text-amber-400">{'{timestamp}'}</span>
+                                  <span className="text-gray-500"> - Human readable</span>
+                                </div>
+                                <div>
+                                  <span className="text-amber-400">{'{iso_timestamp}'}</span>
+                                  <span className="text-gray-500"> - ISO format</span>
+                                </div>
+                              </div>
+                              <div className="border-t border-yume-border pt-2 mt-2">
+                                <p className="text-gray-400 mb-1">Example template:</p>
+                                <pre className="text-[10px] text-gray-300 whitespace-pre-wrap">{`{
+  "embeds": [{
+    "title": "📸 {username} completed {tile_title}!",
+    "color": 16753920,
+    "image": { "url": "{image_url}" },
+    "footer": { "text": "{event_name}" }
+  }]
+}`}</pre>
+                              </div>
+                            </div>
+                          </details>
+                        </div>
+                      </div>
+                    </div>
+                    
                     {/* Save Button */}
                     <div className="pt-4">
                       <button
@@ -1174,6 +1283,18 @@ export default function TileEventAdmin() {
                           const requiredKeyword = (document.getElementById('settings-required-keyword') as HTMLInputElement)?.value;
                           const googleSheetId = (document.getElementById('settings-sheet-id') as HTMLInputElement)?.value;
                           const googleSheetTab = (document.getElementById('settings-sheet-tab') as HTMLInputElement)?.value;
+                          const webhookUrl = (document.getElementById('settings-webhook-url') as HTMLInputElement)?.value;
+                          const webhookTemplate = (document.getElementById('settings-webhook-template') as HTMLTextAreaElement)?.value;
+                          
+                          // Validate webhook template if provided
+                          if (webhookTemplate?.trim()) {
+                            try {
+                              JSON.parse(webhookTemplate);
+                            } catch (e) {
+                              alert('Invalid JSON in webhook template. Please check your syntax.');
+                              return;
+                            }
+                          }
                           
                           try {
                             const res = await fetch(`${API_BASE}/admin/tile-events/${selectedEvent.id}`, {
@@ -1186,6 +1307,8 @@ export default function TileEventAdmin() {
                                 required_keyword: requiredKeyword,
                                 google_sheet_id: googleSheetId,
                                 google_sheet_tab: googleSheetTab,
+                                webhook_url: webhookUrl,
+                                webhook_template: webhookTemplate || null,
                                 is_active: selectedEvent.is_active
                               })
                             });

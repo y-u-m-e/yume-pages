@@ -112,6 +112,23 @@ export default function Admin() {
   const [newIsBanned, setNewIsBanned] = useState(false);
   const [newNotes, setNewNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  
+  // Activity logs state
+  interface ActivityLog {
+    id: number;
+    discord_id: string;
+    discord_username: string;
+    global_name?: string;
+    avatar?: string;
+    action: string;
+    details?: string;
+    ip_address?: string;
+    created_at: string;
+  }
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [actionFilter, setActionFilter] = useState<string>('');
+  const [actionCounts, setActionCounts] = useState<{action: string; count: number}[]>([]);
 
   // ==========================================================================
   // EFFECTS
@@ -135,6 +152,15 @@ export default function Admin() {
       fetchUsers();
     }
   }, [user, isAdmin]);
+  
+  /**
+   * Fetch activity logs when logs tab is selected
+   */
+  useEffect(() => {
+    if (user && isAdmin && activeTab === 'logs') {
+      fetchActivityLogs();
+    }
+  }, [user, isAdmin, activeTab]);
 
   // ==========================================================================
   // DATA FETCHING
@@ -159,6 +185,29 @@ export default function Admin() {
       setError(err instanceof Error ? err.message : 'Failed to fetch users');
     } finally {
       setLoading(false);
+    }
+  };
+  
+  /**
+   * Fetch activity logs from the API
+   */
+  const fetchActivityLogs = async (action?: string) => {
+    setLogsLoading(true);
+    try {
+      const params = new URLSearchParams({ limit: '50' });
+      if (action) params.set('action', action);
+      
+      const res = await fetch(`${API_BASE}/admin/activity-logs?${params}`, {
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Failed to fetch logs');
+      const data = await res.json();
+      setActivityLogs(data.logs || []);
+      setActionCounts(data.action_counts || []);
+    } catch (err) {
+      console.error('Failed to fetch activity logs:', err);
+    } finally {
+      setLogsLoading(false);
     }
   };
 
@@ -337,6 +386,22 @@ export default function Admin() {
   const cruddyCount = dbUsers.filter(u => u.access_cruddy).length + envUsers.cruddy.length;
   const docsCount = dbUsers.filter(u => u.access_docs).length + envUsers.docs.length;
   const bannedCount = dbUsers.filter(u => u.is_banned).length;
+  
+  // Helper function for time ago display
+  const getTimeAgo = (dateString: string): string => {
+    const date = new Date(dateString.replace(' ', 'T') + 'Z');
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
 
   // ==========================================================================
   // RENDER
@@ -766,35 +831,112 @@ export default function Admin() {
 
       {/* ========== LOGS TAB ========== */}
       {activeTab === 'logs' && (
-        <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
-          <h3 className="font-semibold text-white mb-4">Recent Activity</h3>
-          
-          {/* Placeholder activity logs */}
-          <div className="space-y-2">
-            {[
-              { action: 'User login', user: 'itai_', time: '2 minutes ago', type: 'auth' },
-              { action: 'Record added', user: 'itai_', time: '15 minutes ago', type: 'record' },
-              { action: 'Record deleted', user: 'itai_', time: '1 hour ago', type: 'record' },
-              { action: 'User login', user: 'itai_', time: '3 hours ago', type: 'auth' },
-            ].map((log, i) => (
-              <div key={i} className="flex items-center gap-4 p-3 bg-yume-bg-light rounded-xl">
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
-                  log.type === 'auth' ? 'bg-blue-500/20 text-blue-400' : 'bg-emerald-500/20 text-emerald-400'
-                }`}>
-                  {log.type === 'auth' ? '🔑' : '📝'}
-                </span>
-                <div className="flex-1">
-                  <div className="text-white">{log.action}</div>
-                  <div className="text-xs text-gray-500">by {log.user}</div>
-                </div>
-                <div className="text-sm text-gray-400">{log.time}</div>
-              </div>
-            ))}
+        <div className="space-y-4">
+          {/* Action Filter */}
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-4">
+            <div className="flex items-center gap-4 flex-wrap">
+              <span className="text-sm text-gray-400">Filter by action:</span>
+              <button
+                onClick={() => { setActionFilter(''); fetchActivityLogs(); }}
+                className={`px-3 py-1 rounded-lg text-sm transition-colors ${
+                  !actionFilter ? 'bg-yume-accent text-black' : 'bg-yume-bg-light text-gray-400 hover:text-white'
+                }`}
+              >
+                All
+              </button>
+              {actionCounts.map(({ action, count }) => (
+                <button
+                  key={action}
+                  onClick={() => { setActionFilter(action); fetchActivityLogs(action); }}
+                  className={`px-3 py-1 rounded-lg text-sm transition-colors ${
+                    actionFilter === action ? 'bg-yume-accent text-black' : 'bg-yume-bg-light text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {action.replace('_', ' ')} ({count})
+                </button>
+              ))}
+              <button
+                onClick={() => fetchActivityLogs(actionFilter || undefined)}
+                className="ml-auto text-sm text-yume-accent hover:underline"
+              >
+                🔄 Refresh
+              </button>
+            </div>
           </div>
           
-          <p className="text-sm text-gray-500 mt-6 text-center">
-            Full activity logs coming soon...
-          </p>
+          {/* Activity Logs List */}
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
+            <h3 className="font-semibold text-white mb-4">Recent Activity</h3>
+            
+            {logsLoading ? (
+              <div className="text-center text-gray-400 py-8">Loading...</div>
+            ) : activityLogs.length === 0 ? (
+              <div className="text-center text-gray-400 py-8">
+                No activity logs yet. Logs are recorded when users login or submit screenshots.
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                {activityLogs.map((log) => {
+                  const actionIcons: Record<string, { icon: string; bgColor: string; textColor: string }> = {
+                    'user_login': { icon: '🔑', bgColor: 'bg-blue-500/20', textColor: 'text-blue-400' },
+                    'tile_submission': { icon: '📸', bgColor: 'bg-emerald-500/20', textColor: 'text-emerald-400' },
+                    'admin_action': { icon: '⚙️', bgColor: 'bg-purple-500/20', textColor: 'text-purple-400' },
+                  };
+                  const style = actionIcons[log.action] || { icon: '📝', bgColor: 'bg-gray-500/20', textColor: 'text-gray-400' };
+                  const details = log.details ? JSON.parse(log.details) : null;
+                  const timeAgo = getTimeAgo(log.created_at);
+                  
+                  return (
+                    <div key={log.id} className="flex items-start gap-4 p-3 bg-yume-bg-light rounded-xl">
+                      {/* Avatar or Icon */}
+                      {log.avatar ? (
+                        <img
+                          src={`https://cdn.discordapp.com/avatars/${log.discord_id}/${log.avatar}.png?size=32`}
+                          alt=""
+                          className="w-8 h-8 rounded-full"
+                        />
+                      ) : (
+                        <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${style.bgColor} ${style.textColor}`}>
+                          {style.icon}
+                        </span>
+                      )}
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-white font-medium">
+                            {log.global_name || log.discord_username || 'Unknown'}
+                          </span>
+                          <span className={`text-xs px-2 py-0.5 rounded ${style.bgColor} ${style.textColor}`}>
+                            {log.action.replace('_', ' ')}
+                          </span>
+                        </div>
+                        
+                        {/* Action-specific details */}
+                        {log.action === 'tile_submission' && details && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Tile: {details.tile_title} • {details.status === 'approved' ? '✅ Auto-approved' : '⏳ Pending'}
+                          </div>
+                        )}
+                        {log.action === 'user_login' && details?.source && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Source: {details.source}
+                          </div>
+                        )}
+                        
+                        <div className="text-xs text-gray-600 mt-1 font-mono">
+                          {log.discord_id}
+                        </div>
+                      </div>
+                      
+                      <div className="text-sm text-gray-400 whitespace-nowrap">
+                        {timeAgo}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
