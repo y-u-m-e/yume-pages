@@ -297,16 +297,34 @@ export default function TileEvent() {
    * Status meanings:
    * - 'locked': Cannot interact, previous tile not completed
    * - 'current': The next tile to work on (highlighted)
-   * - 'completed': Already done (green)
+   * - 'pending': Submitted but awaiting approval (yellow)
+   * - 'completed': Approved submission (green)
    */
-  const getTileStatus = (position: number): 'locked' | 'current' | 'completed' => {
-    if (!progress) {
-      // Not joined yet - show first as current, rest as locked (preview mode)
-      return position === 0 ? 'current' : 'locked';
+  const getTileStatus = (tile: Tile): 'locked' | 'current' | 'pending' | 'completed' => {
+    // Check if there's a submission for this tile
+    const submission = submissions.find(s => s.tile_id === tile.id);
+    
+    // If there's an approved submission, it's completed
+    if (submission?.status === 'approved') {
+      return 'completed';
     }
     
-    // Check if this tile is completed
-    if (progress.tiles_unlocked.includes(position)) {
+    // If there's a pending submission, show as pending
+    if (submission?.status === 'pending') {
+      return 'pending';
+    }
+    
+    if (!progress) {
+      // Not joined yet - show first as current, rest as locked (preview mode)
+      return tile.position === 0 ? 'current' : 'locked';
+    }
+    
+    // Check if this tile position is in unlocked array (may include pending submissions)
+    if (progress.tiles_unlocked.includes(tile.position)) {
+      // Check if there's any submission - if pending, show pending
+      if (submission?.status === 'pending') {
+        return 'pending';
+      }
       return 'completed';
     }
     
@@ -317,7 +335,7 @@ export default function TileEvent() {
       ? Math.max(...progress.tiles_unlocked) 
       : -1;
     
-    if (position === maxUnlocked + 1) {
+    if (tile.position === maxUnlocked + 1) {
       return 'current';
     }
     
@@ -448,7 +466,7 @@ export default function TileEvent() {
         >
           {tiles.map((tile, index) => {
             const pos = snakePositions[index];
-            const status = getTileStatus(tile.position);
+            const status = getTileStatus(tile);
             const isLocked = status === 'locked';
             
             return (
@@ -460,6 +478,8 @@ export default function TileEvent() {
                   flex flex-col items-center justify-center gap-1 text-center p-2 cursor-pointer
                   ${status === 'completed'
                     ? 'bg-emerald-500/20 border-emerald-500/50 hover:border-emerald-400'
+                    : status === 'pending'
+                    ? 'bg-amber-500/20 border-amber-500/50 hover:border-amber-400'
                     : status === 'current'
                     ? 'bg-yume-accent/20 border-yume-accent animate-pulse hover:scale-105'
                     : 'bg-gray-800/50 border-gray-700 opacity-60 hover:opacity-80'
@@ -481,10 +501,11 @@ export default function TileEvent() {
                 <div className={`
                   text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center
                   ${status === 'completed' ? 'bg-emerald-500 text-white' : 
+                    status === 'pending' ? 'bg-amber-500 text-white' :
                     status === 'current' ? 'bg-yume-accent text-yume-bg' :
                     'bg-gray-700 text-gray-400'}
                 `}>
-                  {status === 'completed' ? '✓' : tile.position + 1}
+                  {status === 'completed' ? '✓' : status === 'pending' ? '⏳' : tile.position + 1}
                 </div>
                 
                 {/* Tile title (truncated) */}
@@ -511,12 +532,14 @@ export default function TileEvent() {
               height: `${(Math.ceil(tiles.length / 5)) * 100 + (Math.ceil(tiles.length / 5) - 1) * 16}px`
             }}
           >
-            {tiles.slice(1).map((tile, index) => {
+            {tiles.slice(1).map((_, index) => {
+              const prevTile = tiles[index];
+              const currTile = tiles[index + 1];
               const prevPos = snakePositions[index];
               const currPos = snakePositions[index + 1];
-              const prevStatus = getTileStatus(index);
-              const currStatus = getTileStatus(index + 1);
-              const isCompleted = prevStatus === 'completed' && (currStatus === 'completed' || currStatus === 'current');
+              const prevStatus = getTileStatus(prevTile);
+              const currStatus = getTileStatus(currTile);
+              const isCompleted = prevStatus === 'completed' && (currStatus === 'completed' || currStatus === 'current' || currStatus === 'pending');
               
               const x1 = prevPos.x * (100 + 16) + 50;
               const y1 = prevPos.y * (100 + 16) + 50;
@@ -525,7 +548,7 @@ export default function TileEvent() {
               
               return (
                 <line
-                  key={tile.id}
+                  key={currTile.id}
                   x1={x1}
                   y1={y1}
                   x2={x2}
@@ -555,8 +578,10 @@ export default function TileEvent() {
               <div className="flex items-center gap-3">
                 <div className={`
                   w-10 h-10 rounded-xl flex items-center justify-center font-bold
-                  ${getTileStatus(selectedTile.position) === 'completed' 
+                  ${getTileStatus(selectedTile) === 'completed' 
                     ? 'bg-emerald-500 text-white' 
+                    : getTileStatus(selectedTile) === 'pending'
+                    ? 'bg-amber-500 text-white'
                     : 'bg-yume-accent text-yume-bg'}
                 `}>
                   {selectedTile.position + 1}
@@ -622,29 +647,27 @@ export default function TileEvent() {
                     {joining ? 'Joining...' : 'Join Event'}
                   </button>
                 </div>
-              ) : getTileStatus(selectedTile.position) === 'completed' ? (
+              ) : getTileStatus(selectedTile) === 'completed' ? (
                 <div className="flex items-center gap-2 text-emerald-400">
                   <span className="text-lg">✓</span>
-                  <span>Completed!</span>
+                  <span>Approved & Completed!</span>
                 </div>
-              ) : getTileStatus(selectedTile.position) === 'current' ? (
+              ) : getTileStatus(selectedTile) === 'pending' ? (
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+                  <div className="flex items-center gap-2 text-amber-400 mb-2">
+                    <span>⏳</span>
+                    <span className="font-medium">Pending Approval</span>
+                  </div>
+                  <p className="text-sm text-gray-400">
+                    Your screenshot has been submitted and is awaiting review. 
+                    You can continue to the next tile while waiting!
+                  </p>
+                </div>
+              ) : getTileStatus(selectedTile) === 'current' ? (
                 <div className="space-y-4">
-                  {/* Check for pending submission */}
+                  {/* Check for rejected submission */}
                   {(() => {
                     const submission = getTileSubmission(selectedTile.id);
-                    if (submission?.status === 'pending') {
-                      return (
-                        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
-                          <div className="flex items-center gap-2 text-yellow-400 mb-2">
-                            <span>⏳</span>
-                            <span className="font-medium">Submission Pending Review</span>
-                          </div>
-                          <p className="text-sm text-gray-400">
-                            Your screenshot is being reviewed. You'll be notified once it's approved.
-                          </p>
-                        </div>
-                      );
-                    }
                     if (submission?.status === 'rejected') {
                       return (
                         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-4">
@@ -661,8 +684,8 @@ export default function TileEvent() {
                     return null;
                   })()}
                   
-                  {/* Upload Section - only show if no pending submission */}
-                  {getTileSubmission(selectedTile.id)?.status !== 'pending' && (
+                  {/* Upload Section */}
+                  {(
                     <div className="space-y-3">
                       <div className="text-yume-accent font-medium">
                         📸 Upload proof to complete this tile
