@@ -1344,7 +1344,19 @@ export default function TileEventAdmin() {
                                 </div>
                                 <div>
                                   <span className="text-cyan-400">{'{ocr_status}'}</span>
-                                  <span className="text-gray-500"> - OCR result status</span>
+                                  <span className="text-gray-500"> - Overall OCR status</span>
+                                </div>
+                                <div>
+                                  <span className="text-cyan-400">{'{ocr_result}'}</span>
+                                  <span className="text-gray-500"> - Both keyword checks</span>
+                                </div>
+                                <div>
+                                  <span className="text-cyan-400">{'{event_keyword_status}'}</span>
+                                  <span className="text-gray-500"> - Event keyword check</span>
+                                </div>
+                                <div>
+                                  <span className="text-cyan-400">{'{tile_keyword_status}'}</span>
+                                  <span className="text-gray-500"> - Tile keyword check</span>
                                 </div>
                                 <div>
                                   <span className="text-amber-400">{'{image_url}'}</span>
@@ -1846,7 +1858,6 @@ export default function TileEventAdmin() {
                         <td className="py-1 px-2">Get a Drop</td>
                         <td className="py-1 px-2">Any rare drop</td>
                         <td className="py-1 px-2">https://...</td>
-                        <td className="py-1 px-2">5M GP</td>
                         <td className="py-1 px-2 text-emerald-400">dragon, pet</td>
                       </tr>
                     </tbody>
