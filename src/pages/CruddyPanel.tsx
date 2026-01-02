@@ -729,6 +729,26 @@ export default function CruddyPanel() {
         ) : activeTab === 'events' ? (
           /* ========== EVENTS GROUPED VIEW ========== */
           <div className="p-4 space-y-3">
+            {/* Summary Stats */}
+            {eventGroups.length > 0 && (
+              <div className="flex items-center justify-between bg-yume-bg-light rounded-xl border border-yume-border p-3 mb-2">
+                <div className="flex items-center gap-6">
+                  <span className="text-gray-400">
+                    <span className="text-white font-semibold text-lg">{eventGroups.length}</span> event{eventGroups.length !== 1 ? 's' : ''}
+                  </span>
+                  <span className="text-gray-400">
+                    <span className="text-white font-semibold text-lg">{eventGroups.reduce((sum, g) => sum + g.attendees.length, 0)}</span> total attendees
+                  </span>
+                </div>
+                {(filterStart || filterEnd || filterEvent) && (
+                  <span className="text-sm text-yume-accent">
+                    {filterEvent && `"${filterEvent}" events`}
+                    {filterEvent && (filterStart || filterEnd) && ' • '}
+                    {filterStart && filterEnd ? `${filterStart} → ${filterEnd}` : filterStart ? `from ${filterStart}` : filterEnd ? `until ${filterEnd}` : ''}
+                  </span>
+                )}
+              </div>
+            )}
             {eventGroups.length === 0 ? (
               <div className="text-center text-gray-500 py-12">No events found</div>
             ) : eventGroups.map((group) => {
