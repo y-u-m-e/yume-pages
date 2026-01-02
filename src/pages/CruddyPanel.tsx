@@ -589,7 +589,7 @@ export default function CruddyPanel() {
         <h1 className="text-2xl font-bold text-white mb-1">
           <span className="text-yume-accent">◉</span> Cruddy Panel
         </h1>
-        <p className="text-gray-400">Track clan event attendance • {total} total records</p>
+        <p className="text-gray-400">Track clan event attendance</p>
       </div>
 
       {/* Tab Navigation */}
@@ -698,6 +698,24 @@ export default function CruddyPanel() {
         ) : activeTab === 'records' ? (
           /* ========== RECORDS TABLE ========== */
           <div className="overflow-x-auto">
+            {/* Records Summary */}
+            <div className="flex items-center justify-between bg-yume-bg-light border-b border-yume-border px-6 py-3">
+              <span className="text-gray-400">
+                <span className="text-white font-semibold">{total}</span> total records
+                {recordsData.length > 0 && recordsData.length < total && (
+                  <span className="text-gray-500 ml-2">(showing {recordsData.length})</span>
+                )}
+              </span>
+              {(filterName || filterEvent || filterStart || filterEnd) && (
+                <span className="text-sm text-yume-accent">
+                  {filterName && `name: "${filterName}"`}
+                  {filterName && filterEvent && ' • '}
+                  {filterEvent && `event: "${filterEvent}"`}
+                  {(filterName || filterEvent) && (filterStart || filterEnd) && ' • '}
+                  {filterStart && filterEnd ? `${filterStart} → ${filterEnd}` : filterStart ? `from ${filterStart}` : filterEnd ? `until ${filterEnd}` : ''}
+                </span>
+              )}
+            </div>
             <table className="w-full">
               <thead className="bg-yume-bg-light border-b border-yume-border">
                 <tr>
