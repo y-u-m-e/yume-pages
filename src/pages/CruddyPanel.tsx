@@ -47,6 +47,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { records, AttendanceRecord, LeaderboardEntry } from '@/lib/api';
 
+// API base URL
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
+
 // =============================================================================
 // TYPE DEFINITIONS
 // =============================================================================
@@ -119,6 +122,10 @@ export default function CruddyPanel() {
   
   // Expanded event groups (for Events tab)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  
+  // Event renaming state
+  const [renamingEvent, setRenamingEvent] = useState<{event: string; date: string} | null>(null);
+  const [newEventName, setNewEventName] = useState('');
   
   // Form submission state
   const [submitting, setSubmitting] = useState(false);
@@ -383,6 +390,45 @@ export default function CruddyPanel() {
     const cmd = `/add_remove_ingots players:${players} ingots: 10,000 reason: clan event - ${group.event}`;
     await navigator.clipboard.writeText(cmd);
     showSuccess('Ingots command copied!');
+  };
+
+  /**
+   * Rename an event (updates all records for that event+date)
+   */
+  const handleRenameEvent = async (oldEvent: string, newEvent: string, date: string) => {
+    if (!newEvent.trim() || newEvent === oldEvent) {
+      setRenamingEvent(null);
+      setNewEventName('');
+      return;
+    }
+    
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE}/attendance/events/rename`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          old_event: oldEvent, 
+          new_event: newEvent.trim(),
+          date: date 
+        })
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        showSuccess(`Renamed to "${newEvent.trim()}" (${data.updated} records updated)`);
+        loadEventGroups();
+      } else {
+        setError(data.error || 'Failed to rename event');
+      }
+    } catch (err) {
+      setError('Failed to rename event');
+    } finally {
+      setRenamingEvent(null);
+      setNewEventName('');
+      setSubmitting(false);
+    }
   };
 
   /**
@@ -663,9 +709,30 @@ export default function CruddyPanel() {
                     className="p-4 flex items-center justify-between cursor-pointer hover:bg-yume-card"
                     onClick={() => toggleGroup(key)}
                   >
-                    <div>
-                      <div className="text-white font-semibold">{group.event}</div>
-                      <div className="text-sm text-gray-500">{group.date}</div>
+                    <div className="flex-1">
+                      {renamingEvent?.event === group.event && renamingEvent?.date === group.date ? (
+                        <form 
+                          onSubmit={(e) => { e.preventDefault(); handleRenameEvent(group.event, newEventName, group.date); }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-2"
+                        >
+                          <input
+                            type="text"
+                            value={newEventName}
+                            onChange={(e) => setNewEventName(e.target.value)}
+                            className="px-2 py-1 rounded bg-yume-bg border border-yume-border text-white text-sm focus:outline-none focus:border-yume-accent"
+                            autoFocus
+                            placeholder="New event name"
+                          />
+                          <button type="submit" disabled={submitting} className="text-xs text-emerald-400 hover:text-emerald-300">✓</button>
+                          <button type="button" onClick={() => { setRenamingEvent(null); setNewEventName(''); }} className="text-xs text-red-400 hover:text-red-300">✕</button>
+                        </form>
+                      ) : (
+                        <>
+                          <div className="text-white font-semibold">{group.event}</div>
+                          <div className="text-sm text-gray-500">{group.date}</div>
+                        </>
+                      )}
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="badge-accent">{group.attendees.length} players</span>
@@ -678,6 +745,17 @@ export default function CruddyPanel() {
                           🔄 {countDuplicates(group)} dupe{countDuplicates(group) > 1 ? 's' : ''}
                         </button>
                       )}
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          setRenamingEvent({ event: group.event, date: group.date }); 
+                          setNewEventName(group.event); 
+                        }} 
+                        className="text-sm text-purple-400 hover:underline"
+                        title="Rename event"
+                      >
+                        ✎ Rename
+                      </button>
                       <button onClick={(e) => { e.stopPropagation(); copyIngots(group); }} className="text-sm text-blue-400 hover:underline">📋 Copy</button>
                       <button onClick={(e) => { e.stopPropagation(); handleDeleteEventGroup(group); }} className="text-sm text-red-400 hover:underline">🗑</button>
                       <span className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
