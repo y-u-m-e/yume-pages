@@ -104,6 +104,7 @@ export const records = {
     limit?: number;
     name?: string;
     event?: string;
+    host?: string;
     start?: string;
     end?: string;
   }): Promise<ApiResponse<{ results: AttendanceRecord[]; total: number; page: number; limit: number }>> {
@@ -112,6 +113,7 @@ export const records = {
     if (params?.limit) searchParams.set('limit', params.limit.toString());
     if (params?.name) searchParams.set('name', params.name);
     if (params?.event) searchParams.set('event', params.event);
+    if (params?.host) searchParams.set('host', params.host);
     if (params?.start) searchParams.set('start', params.start);
     if (params?.end) searchParams.set('end', params.end);
 

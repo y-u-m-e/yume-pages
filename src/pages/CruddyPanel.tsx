@@ -101,6 +101,7 @@ export default function CruddyPanel() {
   // Filter state (shared across tabs)
   const [filterName, setFilterName] = useState('');
   const [filterEvent, setFilterEvent] = useState('');
+  const [filterHost, setFilterHost] = useState('');
   const [filterStart, setFilterStart] = useState('');
   const [filterEnd, setFilterEnd] = useState('');
   const [leaderTop, setLeaderTop] = useState(10);
@@ -171,6 +172,7 @@ export default function CruddyPanel() {
       limit: 50,
       name: filterName || undefined,
       event: filterEvent || undefined,
+      host: filterHost || undefined,
       start: filterStart || undefined,
       end: filterEnd || undefined,
     });
@@ -183,7 +185,7 @@ export default function CruddyPanel() {
     }
     
     setLoading(false);
-  }, [filterName, filterEvent, filterStart, filterEnd]);
+  }, [filterName, filterEvent, filterHost, filterStart, filterEnd]);
 
   /**
    * Load records grouped by event+date
@@ -197,6 +199,7 @@ export default function CruddyPanel() {
     const result = await records.getAll({
       limit: 5000,
       event: filterEvent || undefined,
+      host: filterHost || undefined,
       start: filterStart || undefined,
       end: filterEnd || undefined,
     });
@@ -223,7 +226,7 @@ export default function CruddyPanel() {
     }
     
     setLoading(false);
-  }, [filterEvent, filterStart, filterEnd]);
+  }, [filterEvent, filterHost, filterStart, filterEnd]);
 
   /**
    * Load leaderboard rankings
@@ -584,6 +587,7 @@ export default function CruddyPanel() {
   const clearFilters = () => {
     setFilterName('');
     setFilterEvent('');
+    setFilterHost('');
     setFilterStart('');
     setFilterEnd('');
   };
@@ -681,6 +685,16 @@ export default function CruddyPanel() {
                 placeholder="Filter by event..."
                 value={filterEvent}
                 onChange={(e) => setFilterEvent(e.target.value)}
+                className="input"
+              />
+            )}
+            {/* Host filter (events tab only) */}
+            {activeTab === 'events' && (
+              <input
+                type="text"
+                placeholder="Filter by host..."
+                value={filterHost}
+                onChange={(e) => setFilterHost(e.target.value)}
                 className="input"
               />
             )}
@@ -797,10 +811,12 @@ export default function CruddyPanel() {
                     <span className="text-white font-semibold text-lg">{eventGroups.reduce((sum, g) => sum + g.attendees.length, 0)}</span> total attendees
                   </span>
                 </div>
-                {(filterStart || filterEnd || filterEvent) && (
+                {(filterStart || filterEnd || filterEvent || filterHost) && (
                   <span className="text-sm text-yume-accent">
                     {filterEvent && `"${filterEvent}" events`}
-                    {filterEvent && (filterStart || filterEnd) && ' • '}
+                    {filterEvent && filterHost && ' • '}
+                    {filterHost && `hosted by "${filterHost}"`}
+                    {(filterEvent || filterHost) && (filterStart || filterEnd) && ' • '}
                     {filterStart && filterEnd ? `${filterStart} → ${filterEnd}` : filterStart ? `from ${filterStart}` : filterEnd ? `until ${filterEnd}` : ''}
                   </span>
                 )}
