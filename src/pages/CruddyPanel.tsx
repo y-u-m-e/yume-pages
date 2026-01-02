@@ -447,7 +447,7 @@ export default function CruddyPanel() {
     
     setSubmitting(true);
     try {
-      const result = await records.add(playerName.trim(), event, date);
+      const result = await records.add({ name: playerName.trim(), event, date });
       if (result.success) {
         showSuccess(`Added "${playerName.trim()}" to ${event}`);
         loadEventGroups();
