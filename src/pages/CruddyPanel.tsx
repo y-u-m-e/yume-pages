@@ -136,6 +136,11 @@ export default function CruddyPanel() {
   const [settingHostEvent, setSettingHostEvent] = useState<{event: string; date: string; currentHost: string} | null>(null);
   const [newHostName, setNewHostName] = useState('');
   
+  // Rename host state (bulk rename across all records)
+  const [renamingHost, setRenamingHost] = useState(false);
+  const [oldHostToRename, setOldHostToRename] = useState('');
+  const [newHostToRename, setNewHostToRename] = useState('');
+  
   // Add player to event state
   const [addingToEvent, setAddingToEvent] = useState<{event: string; date: string} | null>(null);
   const [newPlayerName, setNewPlayerName] = useState('');
@@ -475,6 +480,34 @@ export default function CruddyPanel() {
   };
 
   /**
+   * Bulk rename a host across all records
+   */
+  const handleRenameHost = async () => {
+    if (!oldHostToRename.trim() || !newHostToRename.trim()) {
+      setError('Both old and new host names are required');
+      return;
+    }
+    
+    setSubmitting(true);
+    try {
+      const result = await records.renameHost(oldHostToRename.trim(), newHostToRename.trim());
+      if (result.success) {
+        showSuccess(`Host renamed from "${oldHostToRename.trim()}" to "${newHostToRename.trim()}" (${result.data?.updated || 0} records updated)`);
+        loadEventGroups();
+        setRenamingHost(false);
+        setOldHostToRename('');
+        setNewHostToRename('');
+      } else {
+        setError(result.error || 'Failed to rename host');
+      }
+    } catch (err) {
+      setError('Failed to rename host');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  /**
    * Add a player to a specific event
    */
   const handleAddPlayerToEvent = async (playerName: string, event: string, date: string) => {
@@ -734,6 +767,69 @@ export default function CruddyPanel() {
                 else loadLeaderboard();
               }} className="btn-primary flex-1">Search</button>
               <button onClick={clearFilters} className="btn-secondary">Clear</button>
+              {activeTab === 'events' && (
+                <button 
+                  onClick={() => setRenamingHost(true)} 
+                  className="btn-secondary"
+                  title="Bulk rename a host across all records"
+                >
+                  ✏️ Rename Host
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rename Host Modal */}
+      {renamingHost && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-white mb-4">Rename Host</h3>
+            <p className="text-sm text-gray-400 mb-4">
+              This will update the host name across all attendance records. Use this when a host changes their name.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Current Host Name</label>
+                <input
+                  type="text"
+                  value={oldHostToRename}
+                  onChange={(e) => setOldHostToRename(e.target.value)}
+                  className="input w-full"
+                  placeholder="Enter current host name..."
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">New Host Name</label>
+                <input
+                  type="text"
+                  value={newHostToRename}
+                  onChange={(e) => setNewHostToRename(e.target.value)}
+                  className="input w-full"
+                  placeholder="Enter new host name..."
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleRenameHost}
+                disabled={submitting || !oldHostToRename.trim() || !newHostToRename.trim()}
+                className="btn-primary flex-1"
+              >
+                {submitting ? 'Renaming...' : 'Rename Host'}
+              </button>
+              <button
+                onClick={() => {
+                  setRenamingHost(false);
+                  setOldHostToRename('');
+                  setNewHostToRename('');
+                }}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

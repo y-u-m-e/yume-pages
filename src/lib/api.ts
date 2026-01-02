@@ -152,6 +152,13 @@ export const records = {
     });
   },
 
+  async renameHost(oldHost: string, newHost: string): Promise<ApiResponse<{ success: boolean; updated: number }>> {
+    return apiFetch('/attendance/hosts/rename', {
+      method: 'PUT',
+      body: JSON.stringify({ old_host: oldHost, new_host: newHost }),
+    });
+  },
+
   async delete(id: number): Promise<ApiResponse<{ success: boolean }>> {
     return apiFetch(`/attendance/records/${id}`, {
       method: 'DELETE',
