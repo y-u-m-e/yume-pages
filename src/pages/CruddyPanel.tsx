@@ -127,6 +127,10 @@ export default function CruddyPanel() {
   const [renamingEvent, setRenamingEvent] = useState<{event: string; date: string} | null>(null);
   const [newEventName, setNewEventName] = useState('');
   
+  // Add player to event state
+  const [addingToEvent, setAddingToEvent] = useState<{event: string; date: string} | null>(null);
+  const [newPlayerName, setNewPlayerName] = useState('');
+  
   // Form submission state
   const [submitting, setSubmitting] = useState(false);
 
@@ -427,6 +431,34 @@ export default function CruddyPanel() {
     } finally {
       setRenamingEvent(null);
       setNewEventName('');
+      setSubmitting(false);
+    }
+  };
+
+  /**
+   * Add a player to a specific event
+   */
+  const handleAddPlayerToEvent = async (playerName: string, event: string, date: string) => {
+    if (!playerName.trim()) {
+      setAddingToEvent(null);
+      setNewPlayerName('');
+      return;
+    }
+    
+    setSubmitting(true);
+    try {
+      const result = await records.add(playerName.trim(), event, date);
+      if (result.success) {
+        showSuccess(`Added "${playerName.trim()}" to ${event}`);
+        loadEventGroups();
+      } else {
+        setError(result.error || 'Failed to add player');
+      }
+    } catch (err) {
+      setError('Failed to add player');
+    } finally {
+      setAddingToEvent(null);
+      setNewPlayerName('');
       setSubmitting(false);
     }
   };
@@ -748,6 +780,17 @@ export default function CruddyPanel() {
                       <button 
                         onClick={(e) => { 
                           e.stopPropagation(); 
+                          setAddingToEvent({ event: group.event, date: group.date }); 
+                          setNewPlayerName(''); 
+                        }} 
+                        className="text-sm text-emerald-400 hover:underline"
+                        title="Add player to this event"
+                      >
+                        + Add
+                      </button>
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
                           setRenamingEvent({ event: group.event, date: group.date }); 
                           setNewEventName(group.event); 
                         }} 
@@ -761,6 +804,27 @@ export default function CruddyPanel() {
                       <span className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
                     </div>
                   </div>
+                  {/* Add player form */}
+                  {addingToEvent?.event === group.event && addingToEvent?.date === group.date && (
+                    <div className="p-4 border-t border-yume-border bg-emerald-500/5">
+                      <form 
+                        onSubmit={(e) => { e.preventDefault(); handleAddPlayerToEvent(newPlayerName, group.event, group.date); }}
+                        className="flex items-center gap-3"
+                      >
+                        <span className="text-sm text-gray-400">Add player:</span>
+                        <input
+                          type="text"
+                          value={newPlayerName}
+                          onChange={(e) => setNewPlayerName(e.target.value)}
+                          className="flex-1 max-w-xs px-3 py-1.5 rounded bg-yume-bg border border-yume-border text-white text-sm focus:outline-none focus:border-emerald-400"
+                          autoFocus
+                          placeholder="Player name (RSN)"
+                        />
+                        <button type="submit" disabled={submitting || !newPlayerName.trim()} className="px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-400 text-sm hover:bg-emerald-500/30 disabled:opacity-50">Add</button>
+                        <button type="button" onClick={() => { setAddingToEvent(null); setNewPlayerName(''); }} className="px-3 py-1.5 rounded bg-red-500/20 text-red-400 text-sm hover:bg-red-500/30">Cancel</button>
+                      </form>
+                    </div>
+                  )}
                   {/* Expanded attendee list */}
                   {isExpanded && (
                     <div className="p-4 pt-0 border-t border-yume-border">
