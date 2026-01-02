@@ -19,6 +19,7 @@ export interface AttendanceRecord {
   name: string;
   event: string;
   date: string;
+  host?: string;
   recorded_at?: string;
 }
 
@@ -122,6 +123,7 @@ export const records = {
     name: string;
     event: string;
     date: string;
+    host?: string;
   }): Promise<ApiResponse<{ success: boolean; id: number }>> {
     return apiFetch('/attendance/records', {
       method: 'POST',
@@ -133,10 +135,18 @@ export const records = {
     name: string;
     event: string;
     date: string;
+    host?: string;
   }): Promise<ApiResponse<{ success: boolean }>> {
     return apiFetch(`/attendance/records/${id}`, {
       method: 'PUT',
       body: JSON.stringify(record),
+    });
+  },
+  
+  async setEventHost(event: string, date: string, host: string): Promise<ApiResponse<{ success: boolean; updated: number }>> {
+    return apiFetch('/attendance/events/host', {
+      method: 'PUT',
+      body: JSON.stringify({ event, date, host }),
     });
   },
 

@@ -66,6 +66,7 @@ type Tab = 'records' | 'events' | 'leaderboard' | 'add' | 'add-event';
 interface EventGroup {
   event: string;                              // Event name
   date: string;                               // Date (YYYY-MM-DD)
+  host: string;                               // Event host
   attendees: { id: number; name: string }[];  // Players who attended
 }
 
@@ -108,17 +109,20 @@ export default function CruddyPanel() {
   const [addName, setAddName] = useState('');
   const [addEvent, setAddEvent] = useState('');
   const [addDate, setAddDate] = useState(new Date().toISOString().split('T')[0]);
+  const [addHost, setAddHost] = useState('');
   
   // Add bulk event form state
   const [bulkEventName, setBulkEventName] = useState('');
   const [bulkEventDate, setBulkEventDate] = useState(new Date().toISOString().split('T')[0]);
   const [bulkPlayers, setBulkPlayers] = useState('');
+  const [bulkHost, setBulkHost] = useState('');
   
   // Edit modal state
   const [editRecord, setEditRecord] = useState<AttendanceRecord | null>(null);
   const [editName, setEditName] = useState('');
   const [editEvent, setEditEvent] = useState('');
   const [editDate, setEditDate] = useState('');
+  const [editHost, setEditHost] = useState('');
   
   // Expanded event groups (for Events tab)
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -126,6 +130,10 @@ export default function CruddyPanel() {
   // Event renaming state
   const [renamingEvent, setRenamingEvent] = useState<{event: string; date: string} | null>(null);
   const [newEventName, setNewEventName] = useState('');
+  
+  // Event host state
+  const [settingHostEvent, setSettingHostEvent] = useState<{event: string; date: string; currentHost: string} | null>(null);
+  const [newHostName, setNewHostName] = useState('');
   
   // Add player to event state
   const [addingToEvent, setAddingToEvent] = useState<{event: string; date: string} | null>(null);
@@ -199,7 +207,11 @@ export default function CruddyPanel() {
       for (const record of result.data.results || []) {
         const key = `${record.event}|||${record.date}`;
         if (!groups[key]) {
-          groups[key] = { event: record.event, date: record.date, attendees: [] };
+          groups[key] = { event: record.event, date: record.date, host: record.host || '', attendees: [] };
+        }
+        // Use the host from the first record (they should all be the same for an event+date)
+        if (!groups[key].host && record.host) {
+          groups[key].host = record.host;
         }
         groups[key].attendees.push({ id: record.id, name: record.name });
       }
@@ -275,10 +287,11 @@ export default function CruddyPanel() {
     }
     
     setSubmitting(true);
-    const result = await records.add({ name: addName, event: addEvent, date: addDate });
+    const result = await records.add({ name: addName, event: addEvent, date: addDate, host: addHost });
     
     if (result.success) {
       setAddName('');
+      setAddHost('');
       showSuccess('Record added successfully!');
       setActiveTab('records');
       loadRecords();
@@ -316,12 +329,13 @@ export default function CruddyPanel() {
     
     // Add each player as a separate record
     for (const player of players) {
-      const result = await records.add({ name: player, event: bulkEventName, date: bulkEventDate });
+      const result = await records.add({ name: player, event: bulkEventName, date: bulkEventDate, host: bulkHost });
       if (result.success) successCount++;
       else failCount++;
     }
     
     if (failCount === 0) {
+      setBulkHost('');
       showSuccess(`Added ${successCount} records!`);
       setBulkEventName('');
       setBulkPlayers('');
@@ -341,7 +355,7 @@ export default function CruddyPanel() {
     if (!editRecord || !editName || !editEvent || !editDate) return;
     
     setSubmitting(true);
-    const result = await records.update(editRecord.id, { name: editName, event: editEvent, date: editDate });
+    const result = await records.update(editRecord.id, { name: editName, event: editEvent, date: editDate, host: editHost });
     
     if (result.success) {
       setEditRecord(null);
@@ -436,6 +450,28 @@ export default function CruddyPanel() {
   };
 
   /**
+   * Set/update the host for an event group
+   */
+  const handleSetHost = async (event: string, date: string, host: string) => {
+    setSubmitting(true);
+    try {
+      const result = await records.setEventHost(event, date, host.trim());
+      if (result.success) {
+        showSuccess(`Host ${host.trim() ? `set to "${host.trim()}"` : 'cleared'} (${result.data?.updated || 0} records updated)`);
+        loadEventGroups();
+      } else {
+        setError(result.error || 'Failed to set host');
+      }
+    } catch (err) {
+      setError('Failed to set host');
+    } finally {
+      setSettingHostEvent(null);
+      setNewHostName('');
+      setSubmitting(false);
+    }
+  };
+
+  /**
    * Add a player to a specific event
    */
   const handleAddPlayerToEvent = async (playerName: string, event: string, date: string) => {
@@ -524,11 +560,12 @@ export default function CruddyPanel() {
   /**
    * Open edit modal with record data
    */
-  const openEditModal = (record: AttendanceRecord | { id: number; name: string; event: string; date: string }) => {
+  const openEditModal = (record: AttendanceRecord | { id: number; name: string; event: string; date: string; host?: string }) => {
     setEditRecord(record as AttendanceRecord);
     setEditName(record.name);
     setEditEvent(record.event);
     setEditDate(record.date);
+    setEditHost((record as AttendanceRecord).host || '');
   };
 
   /**
@@ -722,18 +759,20 @@ export default function CruddyPanel() {
                   <th className="text-left text-sm font-medium text-gray-400 px-6 py-4">ID</th>
                   <th className="text-left text-sm font-medium text-gray-400 px-6 py-4">Player</th>
                   <th className="text-left text-sm font-medium text-gray-400 px-6 py-4">Event</th>
+                  <th className="text-left text-sm font-medium text-gray-400 px-6 py-4">Host</th>
                   <th className="text-left text-sm font-medium text-gray-400 px-6 py-4">Date</th>
                   <th className="text-right text-sm font-medium text-gray-400 px-6 py-4">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-yume-border">
                 {recordsData.length === 0 ? (
-                  <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-500">No records found</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">No records found</td></tr>
                 ) : recordsData.map((r) => (
                   <tr key={r.id} className="hover:bg-yume-bg-light/50">
                     <td className="px-6 py-4 text-gray-500">{r.id}</td>
                     <td className="px-6 py-4 text-white font-medium">{r.name}</td>
                     <td className="px-6 py-4 text-gray-300">{r.event}</td>
+                    <td className="px-6 py-4 text-gray-400">{r.host || <span className="text-gray-600 italic">—</span>}</td>
                     <td className="px-6 py-4 text-gray-400">{r.date}</td>
                     <td className="px-6 py-4 text-right space-x-2">
                       <button onClick={() => openEditModal(r)} className="text-yume-accent hover:underline text-sm">Edit</button>
@@ -800,7 +839,10 @@ export default function CruddyPanel() {
                       ) : (
                         <>
                           <div className="text-white font-semibold">{group.event}</div>
-                          <div className="text-sm text-gray-500">{group.date}</div>
+                          <div className="text-sm text-gray-500">
+                            {group.date}
+                            {group.host && <span className="ml-3 text-yume-accent">👤 {group.host}</span>}
+                          </div>
                         </>
                       )}
                     </div>
@@ -837,6 +879,17 @@ export default function CruddyPanel() {
                       >
                         ✎ Rename
                       </button>
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          setSettingHostEvent({ event: group.event, date: group.date, currentHost: group.host }); 
+                          setNewHostName(group.host); 
+                        }} 
+                        className="text-sm text-cyan-400 hover:underline"
+                        title="Set event host"
+                      >
+                        👤 Host
+                      </button>
                       <button onClick={(e) => { e.stopPropagation(); copyIngots(group); }} className="text-sm text-blue-400 hover:underline">📋 Copy</button>
                       <button onClick={(e) => { e.stopPropagation(); handleDeleteEventGroup(group); }} className="text-sm text-red-400 hover:underline">🗑</button>
                       <span className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
@@ -860,6 +913,27 @@ export default function CruddyPanel() {
                         />
                         <button type="submit" disabled={submitting || !newPlayerName.trim()} className="px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-400 text-sm hover:bg-emerald-500/30 disabled:opacity-50">Add</button>
                         <button type="button" onClick={() => { setAddingToEvent(null); setNewPlayerName(''); }} className="px-3 py-1.5 rounded bg-red-500/20 text-red-400 text-sm hover:bg-red-500/30">Cancel</button>
+                      </form>
+                    </div>
+                  )}
+                  {/* Set host form */}
+                  {settingHostEvent?.event === group.event && settingHostEvent?.date === group.date && (
+                    <div className="p-4 border-t border-yume-border bg-cyan-500/5">
+                      <form 
+                        onSubmit={(e) => { e.preventDefault(); handleSetHost(group.event, group.date, newHostName); }}
+                        className="flex items-center gap-3"
+                      >
+                        <span className="text-sm text-gray-400">Event host:</span>
+                        <input
+                          type="text"
+                          value={newHostName}
+                          onChange={(e) => setNewHostName(e.target.value)}
+                          className="flex-1 max-w-xs px-3 py-1.5 rounded bg-yume-bg border border-yume-border text-white text-sm focus:outline-none focus:border-cyan-400"
+                          autoFocus
+                          placeholder="Host name (RSN)"
+                        />
+                        <button type="submit" disabled={submitting} className="px-3 py-1.5 rounded bg-cyan-500/20 text-cyan-400 text-sm hover:bg-cyan-500/30 disabled:opacity-50">Set</button>
+                        <button type="button" onClick={() => { setSettingHostEvent(null); setNewHostName(''); }} className="px-3 py-1.5 rounded bg-red-500/20 text-red-400 text-sm hover:bg-red-500/30">Cancel</button>
                       </form>
                     </div>
                   )}
@@ -948,6 +1022,10 @@ export default function CruddyPanel() {
               <input type="text" value={addEvent} onChange={(e) => setAddEvent(e.target.value)} className="input" placeholder="e.g. Wildy Wednesday" required />
             </div>
             <div>
+              <label className="block text-sm text-gray-400 mb-1">Host <span className="text-gray-600">(optional)</span></label>
+              <input type="text" value={addHost} onChange={(e) => setAddHost(e.target.value)} className="input" placeholder="e.g. Event host RSN" />
+            </div>
+            <div>
               <label className="block text-sm text-gray-400 mb-1">Date</label>
               <input type="date" value={addDate} onChange={(e) => setAddDate(e.target.value)} className="input" required />
             </div>
@@ -961,6 +1039,10 @@ export default function CruddyPanel() {
             <div>
               <label className="block text-sm text-gray-400 mb-1">Event Name</label>
               <input type="text" value={bulkEventName} onChange={(e) => setBulkEventName(e.target.value)} className="input" placeholder="e.g. Wildy Wednesday" required />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Host <span className="text-gray-600">(optional)</span></label>
+              <input type="text" value={bulkHost} onChange={(e) => setBulkHost(e.target.value)} className="input" placeholder="e.g. Event host RSN" />
             </div>
             <div>
               <label className="block text-sm text-gray-400 mb-1">Date</label>
@@ -998,6 +1080,10 @@ export default function CruddyPanel() {
             <div>
               <label className="block text-sm text-gray-400 mb-1">Event</label>
               <input type="text" value={editEvent} onChange={(e) => setEditEvent(e.target.value)} className="input" required />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Host <span className="text-gray-600">(optional)</span></label>
+              <input type="text" value={editHost} onChange={(e) => setEditHost(e.target.value)} className="input" placeholder="Event host RSN" />
             </div>
             <div>
               <label className="block text-sm text-gray-400 mb-1">Date</label>
