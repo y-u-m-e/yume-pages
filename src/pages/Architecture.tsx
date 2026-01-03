@@ -446,29 +446,29 @@ const nodeTypes = {
 
 // System Overview Diagram
 const systemOverviewNodes: Node[] = [
-  // Users
-  { id: 'discord', type: 'user', position: { x: 50, y: 50 }, data: { label: 'Discord', sublabel: 'Server', icon: '💬' } },
-  { id: 'browser', type: 'user', position: { x: 250, y: 50 }, data: { label: 'Browser', sublabel: 'Web App', icon: '🌐' } },
+  // Users (top row)
+  { id: 'discord', type: 'user', position: { x: 0, y: 0 }, data: { label: 'Discord', sublabel: 'Server', icon: '💬' } },
+  { id: 'browser', type: 'user', position: { x: 350, y: 0 }, data: { label: 'Browser', sublabel: 'Web App', icon: '🌐' } },
   
-  // Frontend
-  { id: 'yume-pages', type: 'frontend', position: { x: 200, y: 180 }, data: { label: 'yume-pages', sublabel: 'emuy.gg', icon: '⚛️' } },
-  { id: 'carrd', type: 'frontend', position: { x: 400, y: 180 }, data: { label: 'Carrd Site', sublabel: 'yumes-tools', icon: '📄' } },
+  // Frontend (second row)
+  { id: 'yume-pages', type: 'frontend', position: { x: 280, y: 120 }, data: { label: 'yume-pages', sublabel: 'emuy.gg', icon: '⚛️' } },
+  { id: 'carrd', type: 'frontend', position: { x: 500, y: 120 }, data: { label: 'Carrd Site', sublabel: 'yumes-tools', icon: '📄' } },
   
-  // Widgets
-  { id: 'widgets', type: 'external', position: { x: 500, y: 300 }, data: { label: 'Widgets', sublabel: 'jsDelivr CDN', icon: '📦' } },
+  // Widgets (side)
+  { id: 'widgets', type: 'external', position: { x: 620, y: 250 }, data: { label: 'Widgets', sublabel: 'jsDelivr CDN', icon: '📦' } },
   
-  // Backend
-  { id: 'yume-api', type: 'backend', position: { x: 200, y: 350 }, data: { label: 'yume-api', sublabel: 'api.emuy.gg', icon: '⚡' } },
-  { id: 'yume-bot', type: 'backend', position: { x: 0, y: 350 }, data: { label: 'yume-bot', sublabel: 'Railway', icon: '🤖' } },
+  // Backend (third row)
+  { id: 'yume-bot', type: 'backend', position: { x: 0, y: 250 }, data: { label: 'yume-bot', sublabel: 'Railway', icon: '🤖' } },
+  { id: 'yume-api', type: 'backend', position: { x: 280, y: 250 }, data: { label: 'yume-api', sublabel: 'api.emuy.gg', icon: '⚡' } },
   
-  // Data Layer
-  { id: 'd1', type: 'database', position: { x: 100, y: 500 }, data: { label: 'D1 Database', sublabel: 'SQLite', icon: '💾' } },
-  { id: 'r2', type: 'database', position: { x: 280, y: 500 }, data: { label: 'R2 Bucket', sublabel: 'Images', icon: '🖼️' } },
-  { id: 'discord-api', type: 'database', position: { x: 460, y: 500 }, data: { label: 'Discord API', icon: '🔗' } },
+  // Data Layer (fourth row)
+  { id: 'd1', type: 'database', position: { x: 120, y: 400 }, data: { label: 'D1 Database', sublabel: 'SQLite', icon: '💾' } },
+  { id: 'r2', type: 'database', position: { x: 320, y: 400 }, data: { label: 'R2 Bucket', sublabel: 'Images', icon: '🖼️' } },
+  { id: 'discord-api', type: 'database', position: { x: 520, y: 400 }, data: { label: 'Discord API', icon: '🔗' } },
   
-  // External
-  { id: 'gsheets', type: 'external', position: { x: 100, y: 620 }, data: { label: 'Google Sheets', icon: '📊' } },
-  { id: 'sesh', type: 'external', position: { x: 280, y: 620 }, data: { label: 'Sesh Calendar', icon: '📅' } },
+  // External Services (bottom row)
+  { id: 'gsheets', type: 'external', position: { x: 120, y: 540 }, data: { label: 'Google Sheets', icon: '📊' } },
+  { id: 'sesh', type: 'external', position: { x: 340, y: 540 }, data: { label: 'Sesh Calendar', icon: '📅' } },
 ];
 
 const systemOverviewEdges: Edge[] = [
