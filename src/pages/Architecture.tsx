@@ -64,10 +64,18 @@ const nodeDetailsMap: Record<string, NodeDetails> = {
   },
   'yume-pages': {
     title: 'yume-pages',
-    description: 'The main React frontend application hosted on Cloudflare Pages. Provides all web-based functionality.',
+    description: 'The main React frontend application hosted on Cloudflare Pages. Provides admin tools and documentation.',
     tech: ['React 18', 'TypeScript', 'Vite', 'Tailwind CSS', 'React Router v6'],
     url: 'https://emuy.gg',
-    features: ['Tile Events', 'Attendance Tracking', 'Admin Panel', 'Documentation'],
+    features: ['Attendance Tracking', 'Admin Panel', 'Cruddy Panel', 'Documentation', 'Architecture Diagrams'],
+    status: 'active',
+  },
+  'ironforged-events': {
+    title: 'Iron Forged Events',
+    description: 'Dedicated tile events portal for Iron Forged clan members to track progress and submit screenshots.',
+    tech: ['React 18', 'TypeScript', 'Vite', 'Tailwind CSS'],
+    url: 'https://ironforged-events.emuy.gg',
+    features: ['Tile Events', 'Screenshot Submissions', 'Progress Tracking', 'OCR Verification', 'Discord Webhooks'],
     status: 'active',
   },
   'carrd': {
@@ -256,12 +264,25 @@ const nodeDetailsMap: Record<string, NodeDetails> = {
   'a5': { title: 'JWT Creation', description: 'API exchanges code for tokens and creates JWT.', status: 'active' },
   'a6': { title: 'Logged In', description: 'User is authenticated and can access protected features.', status: 'active' },
   
-  // Tile Event Flow nodes
-  't1': { title: 'Submit Screenshot', description: 'User uploads a screenshot as proof of completion.', status: 'active' },
-  't2': { title: 'R2 Upload', description: 'Image is stored in Cloudflare R2 bucket.', status: 'active' },
-  't3': { title: 'OCR Processing', description: 'Workers AI extracts text from the image.', tech: ['LLaVA Model'], status: 'active' },
-  't4': { title: 'Keyword Verification', description: 'System checks for required keywords in OCR text.', status: 'active' },
-  't5': { title: 'Progress Saved', description: 'Tile completion recorded, next tile unlocked!', status: 'active' },
+  // Tile Event Flow nodes (Iron Forged Events)
+  'te-user': { title: 'Clan Member', description: 'Iron Forged clan member participating in tile events.', status: 'active' },
+  'te-site': { 
+    title: 'Iron Forged Events', 
+    description: 'Dedicated tile events portal at ironforged-events.emuy.gg',
+    tech: ['React', 'TypeScript', 'Tailwind'],
+    url: 'https://ironforged-events.emuy.gg',
+    features: ['Tile grid view', 'Progress tracking', 'Screenshot upload'],
+    status: 'active' 
+  },
+  't1': { title: 'Select Tile', description: 'User selects a tile to complete from the event grid.', status: 'active' },
+  't2': { title: 'Upload Screenshot', description: 'User uploads a screenshot as proof of tile completion.', status: 'active' },
+  't3': { title: 'yume-api', description: 'API receives the submission and orchestrates processing.', tech: ['Cloudflare Workers'], status: 'active' },
+  't4': { title: 'R2 Storage', description: 'Screenshot image is stored in Cloudflare R2 bucket with a secure random URL.', tech: ['Cloudflare R2'], status: 'active' },
+  't5': { title: 'Workers AI OCR', description: 'AI model extracts text from the screenshot image.', tech: ['LLaVA Model', 'Workers AI'], status: 'active' },
+  't6': { title: 'Keyword Verification', description: 'System checks if required keywords appear in the OCR text.', status: 'active' },
+  't7': { title: 'Save Progress', description: 'Tile completion is saved to D1 database, unlocking the next tile.', tech: ['Cloudflare D1', 'SQLite'], status: 'active' },
+  't8': { title: 'Discord Webhook', description: 'Notification sent to Discord channel with submission details.', tech: ['Discord Webhooks'], features: ['Customizable embeds', 'RSN placeholders', 'OCR status'], status: 'active' },
+  't9': { title: 'Tile Complete!', description: 'Submission processed successfully - tile marked as complete!', status: 'active' },
 };
 
 // =============================================================================
@@ -448,34 +469,37 @@ const nodeTypes = {
 const systemOverviewNodes: Node[] = [
   // Users (top row)
   { id: 'discord', type: 'user', position: { x: 0, y: 0 }, data: { label: 'Discord', sublabel: 'Server', icon: '💬' } },
-  { id: 'browser', type: 'user', position: { x: 350, y: 0 }, data: { label: 'Browser', sublabel: 'Web App', icon: '🌐' } },
+  { id: 'browser', type: 'user', position: { x: 400, y: 0 }, data: { label: 'Browser', sublabel: 'Web App', icon: '🌐' } },
   
   // Frontend (second row)
-  { id: 'yume-pages', type: 'frontend', position: { x: 280, y: 120 }, data: { label: 'yume-pages', sublabel: 'emuy.gg', icon: '⚛️' } },
-  { id: 'carrd', type: 'frontend', position: { x: 500, y: 120 }, data: { label: 'Carrd Site', sublabel: 'yumes-tools', icon: '📄' } },
+  { id: 'yume-pages', type: 'frontend', position: { x: 200, y: 120 }, data: { label: 'yume-pages', sublabel: 'emuy.gg', icon: '⚛️' } },
+  { id: 'ironforged-events', type: 'frontend', position: { x: 420, y: 120 }, data: { label: 'IF Events', sublabel: 'ironforged-events', icon: '🎮' } },
+  { id: 'carrd', type: 'frontend', position: { x: 640, y: 120 }, data: { label: 'Carrd Site', sublabel: 'yumes-tools', icon: '📄' } },
   
   // Widgets (side)
-  { id: 'widgets', type: 'external', position: { x: 620, y: 250 }, data: { label: 'Widgets', sublabel: 'jsDelivr CDN', icon: '📦' } },
+  { id: 'widgets', type: 'external', position: { x: 760, y: 250 }, data: { label: 'Widgets', sublabel: 'jsDelivr CDN', icon: '📦' } },
   
   // Backend (third row)
   { id: 'yume-bot', type: 'backend', position: { x: 0, y: 250 }, data: { label: 'yume-bot', sublabel: 'Railway', icon: '🤖' } },
-  { id: 'yume-api', type: 'backend', position: { x: 280, y: 250 }, data: { label: 'yume-api', sublabel: 'api.emuy.gg', icon: '⚡' } },
+  { id: 'yume-api', type: 'backend', position: { x: 320, y: 250 }, data: { label: 'yume-api', sublabel: 'api.emuy.gg', icon: '⚡' } },
   
   // Data Layer (fourth row)
-  { id: 'd1', type: 'database', position: { x: 120, y: 400 }, data: { label: 'D1 Database', sublabel: 'SQLite', icon: '💾' } },
-  { id: 'r2', type: 'database', position: { x: 320, y: 400 }, data: { label: 'R2 Bucket', sublabel: 'Images', icon: '🖼️' } },
-  { id: 'discord-api', type: 'database', position: { x: 520, y: 400 }, data: { label: 'Discord API', icon: '🔗' } },
+  { id: 'd1', type: 'database', position: { x: 140, y: 400 }, data: { label: 'D1 Database', sublabel: 'SQLite', icon: '💾' } },
+  { id: 'r2', type: 'database', position: { x: 360, y: 400 }, data: { label: 'R2 Bucket', sublabel: 'Images', icon: '🖼️' } },
+  { id: 'discord-api', type: 'database', position: { x: 580, y: 400 }, data: { label: 'Discord API', icon: '🔗' } },
   
   // External Services (bottom row)
-  { id: 'gsheets', type: 'external', position: { x: 120, y: 540 }, data: { label: 'Google Sheets', icon: '📊' } },
-  { id: 'sesh', type: 'external', position: { x: 340, y: 540 }, data: { label: 'Sesh Calendar', icon: '📅' } },
+  { id: 'gsheets', type: 'external', position: { x: 140, y: 540 }, data: { label: 'Google Sheets', icon: '📊' } },
+  { id: 'sesh', type: 'external', position: { x: 380, y: 540 }, data: { label: 'Sesh Calendar', icon: '📅' } },
 ];
 
 const systemOverviewEdges: Edge[] = [
   { id: 'e1', source: 'browser', target: 'yume-pages', animated: true, style: { stroke: '#a8e6cf' } },
-  { id: 'e2', source: 'browser', target: 'carrd', animated: true, style: { stroke: '#a8e6cf' } },
+  { id: 'e2', source: 'browser', target: 'ironforged-events', animated: true, style: { stroke: '#10b981' } },
+  { id: 'e2b', source: 'browser', target: 'carrd', animated: true, style: { stroke: '#a8e6cf' } },
   { id: 'e3', source: 'discord', target: 'yume-bot', animated: true, style: { stroke: '#5865F2' } },
   { id: 'e4', source: 'yume-pages', target: 'yume-api', animated: true, style: { stroke: '#f38020' } },
+  { id: 'e4b', source: 'ironforged-events', target: 'yume-api', animated: true, style: { stroke: '#f38020' } },
   { id: 'e5', source: 'carrd', target: 'widgets', style: { stroke: '#9747FF' } },
   { id: 'e6', source: 'yume-bot', target: 'yume-api', animated: true, style: { stroke: '#f38020' } },
   { id: 'e7', source: 'yume-bot', target: 'discord-api', style: { stroke: '#5865F2' } },
@@ -504,20 +528,45 @@ const authFlowEdges: Edge[] = [
   { id: 'ae5', source: 'a5', target: 'a6', animated: true, style: { stroke: '#a8e6cf' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#a8e6cf' } },
 ];
 
-// Tile Event Flow
+// Tile Event Flow (Iron Forged Events)
 const tileEventFlowNodes: Node[] = [
-  { id: 't1', type: 'step', position: { x: 0, y: 100 }, data: { label: 'Submit screenshot' } },
-  { id: 't2', type: 'step', position: { x: 180, y: 100 }, data: { label: 'Upload to R2' } },
-  { id: 't3', type: 'step', position: { x: 360, y: 100 }, data: { label: 'OCR via Workers AI' } },
-  { id: 't4', type: 'step', position: { x: 540, y: 100 }, data: { label: 'Verify keywords' } },
-  { id: 't5', type: 'success', position: { x: 720, y: 93 }, data: { label: 'Progress saved!' } },
+  // User action
+  { id: 'te-user', type: 'user', position: { x: 0, y: 0 }, data: { label: 'Clan Member', icon: '👤' } },
+  { id: 'te-site', type: 'frontend', position: { x: 0, y: 120 }, data: { label: 'IF Events', sublabel: 'ironforged-events', icon: '🎮' } },
+  
+  // Submission flow
+  { id: 't1', type: 'step', position: { x: 200, y: 120 }, data: { label: 'Select tile' } },
+  { id: 't2', type: 'step', position: { x: 350, y: 120 }, data: { label: 'Upload screenshot' } },
+  { id: 't3', type: 'backend', position: { x: 530, y: 110 }, data: { label: 'yume-api', sublabel: 'API', icon: '⚡' } },
+  
+  // Processing
+  { id: 't4', type: 'database', position: { x: 350, y: 250 }, data: { label: 'R2 Bucket', sublabel: 'Store image', icon: '🖼️' } },
+  { id: 't5', type: 'external', position: { x: 530, y: 250 }, data: { label: 'Workers AI', sublabel: 'OCR', icon: '🧠' } },
+  
+  // Verification
+  { id: 't6', type: 'step', position: { x: 440, y: 380 }, data: { label: 'Verify keywords' } },
+  
+  // Results
+  { id: 't7', type: 'database', position: { x: 280, y: 500 }, data: { label: 'D1 Database', sublabel: 'Save progress', icon: '💾' } },
+  { id: 't8', type: 'external', position: { x: 500, y: 500 }, data: { label: 'Discord', sublabel: 'Webhook', icon: '📢' } },
+  
+  // Success
+  { id: 't9', type: 'success', position: { x: 390, y: 620 }, data: { label: 'Tile complete!' } },
 ];
 
 const tileEventFlowEdges: Edge[] = [
-  { id: 'te1', source: 't1', target: 't2', animated: true, style: { stroke: '#a8e6cf' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#a8e6cf' } },
-  { id: 'te2', source: 't2', target: 't3', animated: true, style: { stroke: '#22d3ee' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#22d3ee' } },
-  { id: 'te3', source: 't3', target: 't4', animated: true, style: { stroke: '#f38020' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#f38020' } },
-  { id: 'te4', source: 't4', target: 't5', animated: true, style: { stroke: '#a8e6cf' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#a8e6cf' } },
+  { id: 'te0', source: 'te-user', target: 'te-site', animated: true, style: { stroke: '#a8e6cf' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#a8e6cf' } },
+  { id: 'te1', source: 'te-site', target: 't1', animated: true, style: { stroke: '#10b981' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#10b981' } },
+  { id: 'te2', source: 't1', target: 't2', animated: true, style: { stroke: '#a8e6cf' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#a8e6cf' } },
+  { id: 'te3', source: 't2', target: 't3', animated: true, style: { stroke: '#f38020' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#f38020' } },
+  { id: 'te4', source: 't3', target: 't4', animated: true, style: { stroke: '#22d3ee' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#22d3ee' } },
+  { id: 'te5', source: 't3', target: 't5', animated: true, style: { stroke: '#f38020' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#f38020' } },
+  { id: 'te6', source: 't5', target: 't6', animated: true, style: { stroke: '#f38020' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#f38020' } },
+  { id: 'te7', source: 't4', target: 't6', style: { stroke: '#22d3ee' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#22d3ee' } },
+  { id: 'te8', source: 't6', target: 't7', animated: true, style: { stroke: '#22d3ee' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#22d3ee' } },
+  { id: 'te9', source: 't6', target: 't8', animated: true, style: { stroke: '#5865F2' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#5865F2' } },
+  { id: 'te10', source: 't7', target: 't9', animated: true, style: { stroke: '#a8e6cf' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#a8e6cf' } },
+  { id: 'te11', source: 't8', target: 't9', animated: true, style: { stroke: '#a8e6cf' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#a8e6cf' } },
 ];
 
 // Deployment Pipeline
@@ -651,11 +700,11 @@ const diagrams = {
     defaultZoom: 1,
   },
   tileEventFlow: {
-    title: '🎮 Tile Event Flow',
-    description: 'How screenshot submissions are processed and verified.',
+    title: '🎮 Iron Forged Events',
+    description: 'How tile event submissions flow through ironforged-events.emuy.gg - from screenshot upload to OCR verification.',
     nodes: tileEventFlowNodes,
     edges: tileEventFlowEdges,
-    defaultZoom: 1,
+    defaultZoom: 0.75,
   },
   deployment: {
     title: '🚀 Deployment Pipeline',
