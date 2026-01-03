@@ -1,418 +1,511 @@
 /**
  * =============================================================================
- * ARCHITECTURE PAGE - System Architecture Documentation
+ * ARCHITECTURE PAGE - System Architecture Documentation with React Flow
  * =============================================================================
  * 
- * Interactive Mermaid diagrams showing how all Yume Tools components connect.
- * Provides visual documentation for the entire ecosystem.
+ * Interactive React Flow diagrams showing how all Yume Tools components connect.
+ * Provides visual, draggable documentation for the entire ecosystem.
  * 
  * Features:
- * - System overview diagram
- * - Data flow visualization
- * - Deployment pipeline
- * - Technology stack breakdown
+ * - Interactive pan/zoom/drag
+ * - Custom styled nodes
+ * - Animated edges
+ * - Multiple diagram views
  * 
  * @module Architecture
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import mermaid from 'mermaid';
+import {
+  ReactFlow,
+  Node,
+  Edge,
+  Background,
+  Controls,
+  MiniMap,
+  useNodesState,
+  useEdgesState,
+  MarkerType,
+  Position,
+  Handle,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 
 // =============================================================================
-// MERMAID CONFIGURATION
+// CUSTOM NODE COMPONENTS
 // =============================================================================
 
-// Initialize mermaid with dark theme matching Yume aesthetic
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'dark',
-  themeVariables: {
-    primaryColor: '#a8e6cf',
-    primaryTextColor: '#141414',
-    primaryBorderColor: '#88d4ab',
-    secondaryColor: '#1e1e1e',
-    secondaryTextColor: '#ffffff',
-    secondaryBorderColor: '#333333',
-    tertiaryColor: '#2a2a2a',
-    background: '#141414',
-    mainBkg: '#1e1e1e',
-    nodeBorder: '#a8e6cf',
-    clusterBkg: '#1a1a1a',
-    clusterBorder: '#333333',
-    lineColor: '#666666',
-    fontFamily: 'Inter, system-ui, sans-serif',
-    fontSize: '14px',
-  },
-  flowchart: {
-    htmlLabels: true,
-    curve: 'basis',
-    padding: 15,
-  },
-});
+interface CustomNodeData {
+  label: string;
+  sublabel?: string;
+  icon?: string;
+}
+
+// Base styled node component
+function StyledNode({ 
+  data, 
+  bgColor = 'bg-yume-card',
+  borderColor = 'border-yume-border',
+  textColor = 'text-white',
+  iconBg = 'bg-yume-bg-light'
+}: { 
+  data: CustomNodeData; 
+  bgColor?: string;
+  borderColor?: string;
+  textColor?: string;
+  iconBg?: string;
+}) {
+  return (
+    <div className={`px-4 py-3 rounded-xl border-2 ${bgColor} ${borderColor} shadow-lg min-w-[140px]`}>
+      <Handle type="target" position={Position.Top} className="!bg-yume-accent !w-2 !h-2" />
+      <div className="flex items-center gap-3">
+        {data.icon && (
+          <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center text-lg`}>
+            {data.icon}
+          </div>
+        )}
+        <div>
+          <div className={`font-semibold text-sm ${textColor}`}>{data.label}</div>
+          {data.sublabel && (
+            <div className="text-xs text-gray-500">{data.sublabel}</div>
+          )}
+        </div>
+      </div>
+      <Handle type="source" position={Position.Bottom} className="!bg-yume-accent !w-2 !h-2" />
+    </div>
+  );
+}
+
+// Frontend node (green accent)
+function FrontendNode({ data }: { data: CustomNodeData }) {
+  return (
+    <StyledNode 
+      data={data} 
+      bgColor="bg-emerald-500/20" 
+      borderColor="border-emerald-500" 
+      textColor="text-emerald-300"
+      iconBg="bg-emerald-500/30"
+    />
+  );
+}
+
+// Backend node (orange accent)
+function BackendNode({ data }: { data: CustomNodeData }) {
+  return (
+    <StyledNode 
+      data={data} 
+      bgColor="bg-orange-500/20" 
+      borderColor="border-orange-500" 
+      textColor="text-orange-300"
+      iconBg="bg-orange-500/30"
+    />
+  );
+}
+
+// Database node (cyan accent)
+function DatabaseNode({ data }: { data: CustomNodeData }) {
+  return (
+    <div className="px-4 py-3 rounded-xl border-2 bg-cyan-500/20 border-cyan-500 shadow-lg min-w-[120px]">
+      <Handle type="target" position={Position.Top} className="!bg-cyan-400 !w-2 !h-2" />
+      <div className="flex items-center gap-3">
+        {data.icon && (
+          <div className="w-8 h-8 rounded-lg bg-cyan-500/30 flex items-center justify-center text-lg">
+            {data.icon}
+          </div>
+        )}
+        <div>
+          <div className="font-semibold text-sm text-cyan-300">{data.label}</div>
+          {data.sublabel && (
+            <div className="text-xs text-cyan-500/70">{data.sublabel}</div>
+          )}
+        </div>
+      </div>
+      <Handle type="source" position={Position.Bottom} className="!bg-cyan-400 !w-2 !h-2" />
+    </div>
+  );
+}
+
+// External service node (purple accent)
+function ExternalNode({ data }: { data: CustomNodeData }) {
+  return (
+    <StyledNode 
+      data={data} 
+      bgColor="bg-purple-500/20" 
+      borderColor="border-purple-500" 
+      textColor="text-purple-300"
+      iconBg="bg-purple-500/30"
+    />
+  );
+}
+
+// User node (blue accent)
+function UserNode({ data }: { data: CustomNodeData }) {
+  return (
+    <StyledNode 
+      data={data} 
+      bgColor="bg-blue-500/20" 
+      borderColor="border-blue-500" 
+      textColor="text-blue-300"
+      iconBg="bg-blue-500/30"
+    />
+  );
+}
+
+// Group/Section node
+function GroupNode({ data }: { data: CustomNodeData }) {
+  return (
+    <div className="px-4 py-2 rounded-lg bg-yume-bg-light/50 border border-yume-border">
+      <div className="font-bold text-xs text-gray-400 uppercase tracking-wider">{data.label}</div>
+    </div>
+  );
+}
+
+// Step node for flow diagrams
+function StepNode({ data }: { data: CustomNodeData }) {
+  return (
+    <div className="px-3 py-2 rounded-lg border bg-yume-card border-yume-border shadow-md min-w-[100px]">
+      <Handle type="target" position={Position.Left} className="!bg-yume-accent !w-2 !h-2" />
+      <div className="text-xs text-white text-center">{data.label}</div>
+      <Handle type="source" position={Position.Right} className="!bg-yume-accent !w-2 !h-2" />
+    </div>
+  );
+}
+
+// Success node (green checkmark)
+function SuccessNode({ data }: { data: CustomNodeData }) {
+  return (
+    <div className="px-4 py-3 rounded-xl border-2 bg-yume-accent/20 border-yume-accent shadow-lg">
+      <Handle type="target" position={Position.Top} className="!bg-yume-accent !w-2 !h-2" />
+      <div className="flex items-center gap-2">
+        <span className="text-lg">✅</span>
+        <div className="font-semibold text-sm text-yume-accent">{data.label}</div>
+      </div>
+      <Handle type="source" position={Position.Bottom} className="!bg-yume-accent !w-2 !h-2" />
+    </div>
+  );
+}
+
+const nodeTypes = {
+  frontend: FrontendNode,
+  backend: BackendNode,
+  database: DatabaseNode,
+  external: ExternalNode,
+  user: UserNode,
+  group: GroupNode,
+  step: StepNode,
+  success: SuccessNode,
+  default: StyledNode,
+};
 
 // =============================================================================
 // DIAGRAM DEFINITIONS
+// =============================================================================
+
+// System Overview Diagram
+const systemOverviewNodes: Node[] = [
+  // Users
+  { id: 'discord', type: 'user', position: { x: 50, y: 50 }, data: { label: 'Discord', sublabel: 'Server', icon: '💬' } },
+  { id: 'browser', type: 'user', position: { x: 250, y: 50 }, data: { label: 'Browser', sublabel: 'Web App', icon: '🌐' } },
+  
+  // Frontend
+  { id: 'yume-pages', type: 'frontend', position: { x: 200, y: 180 }, data: { label: 'yume-pages', sublabel: 'emuy.gg', icon: '⚛️' } },
+  { id: 'carrd', type: 'frontend', position: { x: 400, y: 180 }, data: { label: 'Carrd Site', sublabel: 'yumes-tools', icon: '📄' } },
+  
+  // Widgets
+  { id: 'widgets', type: 'external', position: { x: 500, y: 300 }, data: { label: 'Widgets', sublabel: 'jsDelivr CDN', icon: '📦' } },
+  
+  // Backend
+  { id: 'yume-api', type: 'backend', position: { x: 200, y: 350 }, data: { label: 'yume-api', sublabel: 'api.emuy.gg', icon: '⚡' } },
+  { id: 'yume-bot', type: 'backend', position: { x: 0, y: 350 }, data: { label: 'yume-bot', sublabel: 'Railway', icon: '🤖' } },
+  
+  // Data Layer
+  { id: 'd1', type: 'database', position: { x: 100, y: 500 }, data: { label: 'D1 Database', sublabel: 'SQLite', icon: '💾' } },
+  { id: 'r2', type: 'database', position: { x: 280, y: 500 }, data: { label: 'R2 Bucket', sublabel: 'Images', icon: '🖼️' } },
+  { id: 'discord-api', type: 'database', position: { x: 460, y: 500 }, data: { label: 'Discord API', icon: '🔗' } },
+  
+  // External
+  { id: 'gsheets', type: 'external', position: { x: 100, y: 620 }, data: { label: 'Google Sheets', icon: '📊' } },
+  { id: 'sesh', type: 'external', position: { x: 280, y: 620 }, data: { label: 'Sesh Calendar', icon: '📅' } },
+];
+
+const systemOverviewEdges: Edge[] = [
+  { id: 'e1', source: 'browser', target: 'yume-pages', animated: true, style: { stroke: '#a8e6cf' } },
+  { id: 'e2', source: 'browser', target: 'carrd', animated: true, style: { stroke: '#a8e6cf' } },
+  { id: 'e3', source: 'discord', target: 'yume-bot', animated: true, style: { stroke: '#5865F2' } },
+  { id: 'e4', source: 'yume-pages', target: 'yume-api', animated: true, style: { stroke: '#f38020' } },
+  { id: 'e5', source: 'carrd', target: 'widgets', style: { stroke: '#9747FF' } },
+  { id: 'e6', source: 'yume-bot', target: 'yume-api', animated: true, style: { stroke: '#f38020' } },
+  { id: 'e7', source: 'yume-bot', target: 'discord-api', style: { stroke: '#5865F2' } },
+  { id: 'e8', source: 'yume-api', target: 'd1', animated: true, style: { stroke: '#22d3ee' } },
+  { id: 'e9', source: 'yume-api', target: 'r2', style: { stroke: '#22d3ee' } },
+  { id: 'e10', source: 'yume-api', target: 'discord-api', style: { stroke: '#5865F2' } },
+  { id: 'e11', source: 'yume-api', target: 'gsheets', style: { stroke: '#9747FF' } },
+  { id: 'e12', source: 'yume-api', target: 'sesh', style: { stroke: '#9747FF' } },
+];
+
+// Data Flow Diagram - Authentication
+const authFlowNodes: Node[] = [
+  { id: 'a1', type: 'step', position: { x: 0, y: 100 }, data: { label: 'User clicks Login' } },
+  { id: 'a2', type: 'step', position: { x: 180, y: 100 }, data: { label: 'Redirect to Discord' } },
+  { id: 'a3', type: 'step', position: { x: 360, y: 100 }, data: { label: 'Discord authorizes' } },
+  { id: 'a4', type: 'step', position: { x: 540, y: 100 }, data: { label: 'Callback to API' } },
+  { id: 'a5', type: 'step', position: { x: 720, y: 100 }, data: { label: 'Create JWT token' } },
+  { id: 'a6', type: 'success', position: { x: 900, y: 93 }, data: { label: 'Logged In!' } },
+];
+
+const authFlowEdges: Edge[] = [
+  { id: 'ae1', source: 'a1', target: 'a2', animated: true, style: { stroke: '#a8e6cf' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#a8e6cf' } },
+  { id: 'ae2', source: 'a2', target: 'a3', animated: true, style: { stroke: '#5865F2' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#5865F2' } },
+  { id: 'ae3', source: 'a3', target: 'a4', animated: true, style: { stroke: '#5865F2' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#5865F2' } },
+  { id: 'ae4', source: 'a4', target: 'a5', animated: true, style: { stroke: '#f38020' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#f38020' } },
+  { id: 'ae5', source: 'a5', target: 'a6', animated: true, style: { stroke: '#a8e6cf' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#a8e6cf' } },
+];
+
+// Tile Event Flow
+const tileEventFlowNodes: Node[] = [
+  { id: 't1', type: 'step', position: { x: 0, y: 100 }, data: { label: 'Submit screenshot' } },
+  { id: 't2', type: 'step', position: { x: 180, y: 100 }, data: { label: 'Upload to R2' } },
+  { id: 't3', type: 'step', position: { x: 360, y: 100 }, data: { label: 'OCR via Workers AI' } },
+  { id: 't4', type: 'step', position: { x: 540, y: 100 }, data: { label: 'Verify keywords' } },
+  { id: 't5', type: 'success', position: { x: 720, y: 93 }, data: { label: 'Progress saved!' } },
+];
+
+const tileEventFlowEdges: Edge[] = [
+  { id: 'te1', source: 't1', target: 't2', animated: true, style: { stroke: '#a8e6cf' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#a8e6cf' } },
+  { id: 'te2', source: 't2', target: 't3', animated: true, style: { stroke: '#22d3ee' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#22d3ee' } },
+  { id: 'te3', source: 't3', target: 't4', animated: true, style: { stroke: '#f38020' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#f38020' } },
+  { id: 'te4', source: 't4', target: 't5', animated: true, style: { stroke: '#a8e6cf' }, markerEnd: { type: MarkerType.ArrowClosed, color: '#a8e6cf' } },
+];
+
+// Deployment Pipeline
+const deploymentNodes: Node[] = [
+  // Dev
+  { id: 'd-code', type: 'user', position: { x: 50, y: 50 }, data: { label: 'Write Code', icon: '💻' } },
+  { id: 'd-commit', type: 'step', position: { x: 50, y: 150 }, data: { label: 'Git Commit' } },
+  { id: 'd-push', type: 'step', position: { x: 50, y: 230 }, data: { label: 'Git Push' } },
+  
+  // GitHub
+  { id: 'd-main', type: 'external', position: { x: 50, y: 330 }, data: { label: 'main branch', sublabel: 'GitHub', icon: '🐙' } },
+  
+  // Deployments
+  { id: 'd-pages', type: 'backend', position: { x: -150, y: 450 }, data: { label: 'CF Pages', sublabel: 'yume-pages', icon: '☁️' } },
+  { id: 'd-worker', type: 'backend', position: { x: 50, y: 450 }, data: { label: 'Wrangler', sublabel: 'yume-api', icon: '⚡' } },
+  { id: 'd-cdn', type: 'external', position: { x: 250, y: 450 }, data: { label: 'jsDelivr', sublabel: 'yume-tools', icon: '📦' } },
+  { id: 'd-railway', type: 'external', position: { x: 450, y: 450 }, data: { label: 'Railway', sublabel: 'yume-bot', icon: '🚂' } },
+  
+  // Success states
+  { id: 'd-pages-ok', type: 'success', position: { x: -150, y: 570 }, data: { label: 'emuy.gg' } },
+  { id: 'd-api-ok', type: 'success', position: { x: 50, y: 570 }, data: { label: 'api.emuy.gg' } },
+  { id: 'd-cdn-ok', type: 'success', position: { x: 250, y: 570 }, data: { label: 'CDN Live' } },
+  { id: 'd-bot-ok', type: 'success', position: { x: 450, y: 570 }, data: { label: 'Bot Online' } },
+];
+
+const deploymentEdges: Edge[] = [
+  { id: 'de1', source: 'd-code', target: 'd-commit', animated: true, style: { stroke: '#666' } },
+  { id: 'de2', source: 'd-commit', target: 'd-push', animated: true, style: { stroke: '#666' } },
+  { id: 'de3', source: 'd-push', target: 'd-main', animated: true, style: { stroke: '#238636' } },
+  { id: 'de4', source: 'd-main', target: 'd-pages', animated: true, style: { stroke: '#f38020' } },
+  { id: 'de5', source: 'd-main', target: 'd-worker', animated: true, style: { stroke: '#f38020' } },
+  { id: 'de6', source: 'd-main', target: 'd-cdn', animated: true, style: { stroke: '#9747FF' } },
+  { id: 'de7', source: 'd-main', target: 'd-railway', animated: true, style: { stroke: '#9747FF' } },
+  { id: 'de8', source: 'd-pages', target: 'd-pages-ok', animated: true, style: { stroke: '#a8e6cf' } },
+  { id: 'de9', source: 'd-worker', target: 'd-api-ok', animated: true, style: { stroke: '#a8e6cf' } },
+  { id: 'de10', source: 'd-cdn', target: 'd-cdn-ok', animated: true, style: { stroke: '#a8e6cf' } },
+  { id: 'de11', source: 'd-railway', target: 'd-bot-ok', animated: true, style: { stroke: '#a8e6cf' } },
+];
+
+// Tech Stack Diagram
+const techStackNodes: Node[] = [
+  // Frontend
+  { id: 'ts-react', type: 'frontend', position: { x: 0, y: 50 }, data: { label: 'React 18', icon: '⚛️' } },
+  { id: 'ts-vite', type: 'frontend', position: { x: 170, y: 50 }, data: { label: 'Vite', icon: '⚡' } },
+  { id: 'ts-tailwind', type: 'frontend', position: { x: 320, y: 50 }, data: { label: 'Tailwind CSS', icon: '🎨' } },
+  { id: 'ts-typescript', type: 'frontend', position: { x: 500, y: 50 }, data: { label: 'TypeScript', icon: '📘' } },
+  
+  // Backend
+  { id: 'ts-workers', type: 'backend', position: { x: 0, y: 180 }, data: { label: 'CF Workers', icon: '☁️' } },
+  { id: 'ts-nodejs', type: 'backend', position: { x: 170, y: 180 }, data: { label: 'Node.js 20', icon: '🟢' } },
+  { id: 'ts-discordjs', type: 'backend', position: { x: 340, y: 180 }, data: { label: 'Discord.js v14', icon: '🤖' } },
+  
+  // Data
+  { id: 'ts-d1', type: 'database', position: { x: 0, y: 310 }, data: { label: 'Cloudflare D1', sublabel: 'SQLite', icon: '💾' } },
+  { id: 'ts-r2', type: 'database', position: { x: 200, y: 310 }, data: { label: 'Cloudflare R2', sublabel: 'Object Storage', icon: '🗄️' } },
+  { id: 'ts-ai', type: 'database', position: { x: 420, y: 310 }, data: { label: 'Workers AI', sublabel: 'OCR', icon: '🧠' } },
+  
+  // Auth
+  { id: 'ts-oauth', type: 'external', position: { x: 100, y: 440 }, data: { label: 'Discord OAuth2', icon: '🔐' } },
+  { id: 'ts-jwt', type: 'external', position: { x: 320, y: 440 }, data: { label: 'JWT Tokens', icon: '🎟️' } },
+];
+
+const techStackEdges: Edge[] = [
+  { id: 'tse1', source: 'ts-react', target: 'ts-vite', style: { stroke: '#10b981' } },
+  { id: 'tse2', source: 'ts-vite', target: 'ts-tailwind', style: { stroke: '#10b981' } },
+  { id: 'tse3', source: 'ts-typescript', target: 'ts-react', style: { stroke: '#10b981' } },
+  { id: 'tse4', source: 'ts-workers', target: 'ts-d1', animated: true, style: { stroke: '#f38020' } },
+  { id: 'tse5', source: 'ts-workers', target: 'ts-r2', animated: true, style: { stroke: '#f38020' } },
+  { id: 'tse6', source: 'ts-workers', target: 'ts-ai', style: { stroke: '#f38020' } },
+  { id: 'tse7', source: 'ts-nodejs', target: 'ts-discordjs', style: { stroke: '#f38020' } },
+  { id: 'tse8', source: 'ts-workers', target: 'ts-oauth', style: { stroke: '#9747FF' } },
+  { id: 'tse9', source: 'ts-oauth', target: 'ts-jwt', animated: true, style: { stroke: '#9747FF' } },
+];
+
+// Bot Integration Diagram
+const botIntegrationNodes: Node[] = [
+  // Discord
+  { id: 'bi-user', type: 'user', position: { x: 0, y: 100 }, data: { label: 'Discord User', icon: '👤' } },
+  { id: 'bi-cmd', type: 'step', position: { x: 0, y: 200 }, data: { label: 'Slash Commands' } },
+  
+  // Bot
+  { id: 'bi-handler', type: 'backend', position: { x: 180, y: 150 }, data: { label: 'Command Handler', sublabel: 'yume-bot', icon: '🤖' } },
+  
+  // Commands
+  { id: 'bi-ping', type: 'step', position: { x: 350, y: 50 }, data: { label: '/ping' } },
+  { id: 'bi-leaderboard', type: 'step', position: { x: 350, y: 120 }, data: { label: '/leaderboard' } },
+  { id: 'bi-lookup', type: 'step', position: { x: 350, y: 190 }, data: { label: '/lookup' } },
+  { id: 'bi-record', type: 'step', position: { x: 350, y: 260 }, data: { label: '/record' } },
+  
+  // API
+  { id: 'bi-api', type: 'backend', position: { x: 520, y: 150 }, data: { label: 'yume-api', icon: '⚡' } },
+  
+  // Database
+  { id: 'bi-db', type: 'database', position: { x: 680, y: 150 }, data: { label: 'D1 Database', icon: '💾' } },
+  
+  // Response
+  { id: 'bi-embed', type: 'success', position: { x: 180, y: 300 }, data: { label: 'Rich Embed' } },
+];
+
+const botIntegrationEdges: Edge[] = [
+  { id: 'bie1', source: 'bi-user', target: 'bi-cmd', animated: true, style: { stroke: '#5865F2' } },
+  { id: 'bie2', source: 'bi-cmd', target: 'bi-handler', animated: true, style: { stroke: '#5865F2' } },
+  { id: 'bie3', source: 'bi-handler', target: 'bi-ping', style: { stroke: '#a8e6cf' } },
+  { id: 'bie4', source: 'bi-handler', target: 'bi-leaderboard', style: { stroke: '#a8e6cf' } },
+  { id: 'bie5', source: 'bi-handler', target: 'bi-lookup', style: { stroke: '#a8e6cf' } },
+  { id: 'bie6', source: 'bi-handler', target: 'bi-record', style: { stroke: '#a8e6cf' } },
+  { id: 'bie7', source: 'bi-leaderboard', target: 'bi-api', animated: true, style: { stroke: '#f38020' } },
+  { id: 'bie8', source: 'bi-lookup', target: 'bi-api', animated: true, style: { stroke: '#f38020' } },
+  { id: 'bie9', source: 'bi-record', target: 'bi-api', animated: true, style: { stroke: '#f38020' } },
+  { id: 'bie10', source: 'bi-api', target: 'bi-db', animated: true, style: { stroke: '#22d3ee' } },
+  { id: 'bie11', source: 'bi-handler', target: 'bi-embed', animated: true, style: { stroke: '#5865F2' } },
+];
+
+// =============================================================================
+// DIAGRAM CONFIGURATION
 // =============================================================================
 
 const diagrams = {
   systemOverview: {
     title: '🏗️ System Overview',
     description: 'High-level view of all Yume Tools components and how they connect.',
-    code: `
-flowchart TB
-    subgraph Users["👥 Users"]
-        Discord["Discord<br/>Server"]
-        Browser["Web<br/>Browser"]
-    end
-
-    subgraph Frontend["🌐 Frontend Layer"]
-        YumePages["yume-pages<br/>(React + Vite)<br/>emuy.gg"]
-        Carrd["Carrd Site<br/>yumes-tools.emuy.gg"]
-    end
-
-    subgraph Widgets["📦 Widgets (CDN)"]
-        MentionMaker["Mention<br/>Maker"]
-        EventParser["Event<br/>Parser"]
-        Infographic["Infographic<br/>Maker"]
-    end
-
-    subgraph Backend["⚡ Backend Layer"]
-        YumeAPI["yume-api<br/>(Cloudflare Worker)<br/>api.itai.gg"]
-        YumeBot["yume-bot<br/>(Discord.js)<br/>Railway"]
-    end
-
-    subgraph Data["💾 Data Layer"]
-        D1[("D1 Database<br/>(SQLite)")]
-        R2[("R2 Bucket<br/>(Images)")]
-        DiscordAPI["Discord<br/>API"]
-    end
-
-    subgraph External["🔗 External Services"]
-        jsDelivr["jsDelivr<br/>CDN"]
-        GSheets["Google<br/>Sheets"]
-        Sesh["Sesh<br/>Calendar"]
-    end
-
-    Browser --> YumePages
-    Browser --> Carrd
-    Discord --> YumeBot
-
-    YumePages --> YumeAPI
-    Carrd --> Widgets
-    Widgets --> jsDelivr
-    
-    YumeBot --> YumeAPI
-    YumeBot --> DiscordAPI
-    
-    YumeAPI --> D1
-    YumeAPI --> R2
-    YumeAPI --> DiscordAPI
-    YumeAPI --> GSheets
-    YumeAPI --> Sesh
-
-    classDef frontend fill:#a8e6cf,stroke:#88d4ab,color:#141414
-    classDef backend fill:#88d4ab,stroke:#68c48b,color:#141414
-    classDef data fill:#1e1e1e,stroke:#a8e6cf,color:#ffffff
-    classDef external fill:#2a2a2a,stroke:#666,color:#aaa
-    classDef user fill:#333,stroke:#666,color:#fff
-
-    class YumePages,Carrd frontend
-    class YumeAPI,YumeBot backend
-    class D1,R2,DiscordAPI data
-    class jsDelivr,GSheets,Sesh external
-    class Discord,Browser user
-`,
+    nodes: systemOverviewNodes,
+    edges: systemOverviewEdges,
+    defaultZoom: 0.9,
   },
-
-  dataFlow: {
-    title: '🔄 Data Flow',
-    description: 'How data moves through the system for key operations.',
-    code: `
-flowchart LR
-    subgraph Auth["🔐 Authentication Flow"]
-        A1["User clicks Login"] --> A2["Redirect to Discord OAuth"]
-        A2 --> A3["Discord authorizes"]
-        A3 --> A4["Callback to API"]
-        A4 --> A5["Create JWT token"]
-        A5 --> A6["Set cookie & redirect"]
-    end
-
-    subgraph Attendance["📊 Attendance Flow"]
-        B1["Admin logs event"] --> B2["POST /attendance/records"]
-        B2 --> B3["Validate & store in D1"]
-        B3 --> B4["Return success"]
-        
-        B5["User views leaderboard"] --> B6["GET /attendance"]
-        B6 --> B7["Query D1 aggregates"]
-        B7 --> B8["Return rankings"]
-    end
-
-    subgraph TileEvent["🎮 Tile Event Flow"]
-        C1["User submits screenshot"] --> C2["Upload to R2"]
-        C2 --> C3["OCR via Workers AI"]
-        C3 --> C4["Verify keywords"]
-        C4 --> C5["Update progress in D1"]
-    end
-
-    subgraph Bot["🤖 Discord Bot Flow"]
-        D1b["User runs /leaderboard"] --> D2b["Bot calls yume-api"]
-        D2b --> D3b["API queries D1"]
-        D3b --> D4b["Return to bot"]
-        D4b --> D5b["Format embed & reply"]
-    end
-
-    classDef step fill:#1e1e1e,stroke:#a8e6cf,color:#fff
-    class A1,A2,A3,A4,A5,A6,B1,B2,B3,B4,B5,B6,B7,B8,C1,C2,C3,C4,C5,D1b,D2b,D3b,D4b,D5b step
-`,
+  authFlow: {
+    title: '🔐 Authentication Flow',
+    description: 'How users authenticate via Discord OAuth2.',
+    nodes: authFlowNodes,
+    edges: authFlowEdges,
+    defaultZoom: 1,
   },
-
+  tileEventFlow: {
+    title: '🎮 Tile Event Flow',
+    description: 'How screenshot submissions are processed and verified.',
+    nodes: tileEventFlowNodes,
+    edges: tileEventFlowEdges,
+    defaultZoom: 1,
+  },
   deployment: {
     title: '🚀 Deployment Pipeline',
     description: 'How code gets from your editor to production.',
-    code: `
-flowchart TB
-    subgraph Dev["💻 Development"]
-        Code["Write Code"]
-        Commit["Git Commit"]
-        Push["Git Push"]
-    end
-
-    subgraph GitHub["🐙 GitHub"]
-        MainBranch["main branch"]
-        Actions["GitHub Actions"]
-    end
-
-    subgraph YumePagesDepl["yume-pages Deployment"]
-        CFPages["Cloudflare Pages"]
-        PagesURL["emuy.gg ✅"]
-    end
-
-    subgraph YumeAPIDepl["yume-api Deployment"]
-        WranglerDeploy["Wrangler Deploy"]
-        APIStaging["api-staging.itai.gg"]
-        APIProd["api.itai.gg ✅"]
-    end
-
-    subgraph YumeToolsDepl["yume-tools Deployment"]
-        jsDelivrCDN["jsDelivr CDN"]
-        SHAUpdate["Update SHA in API"]
-        CDNLive["CDN Live ✅"]
-    end
-
-    subgraph YumeBotDepl["yume-bot Deployment"]
-        Railway["Railway"]
-        BotOnline["Bot Online ✅"]
-    end
-
-    Code --> Commit --> Push --> MainBranch
-
-    MainBranch -->|"yume-pages"| CFPages --> PagesURL
-    MainBranch -->|"yume-api"| Actions --> WranglerDeploy
-    WranglerDeploy --> APIStaging --> APIProd
-    MainBranch -->|"yume-tools"| jsDelivrCDN --> SHAUpdate --> CDNLive
-    MainBranch -->|"yume-bot"| Railway --> BotOnline
-
-    classDef dev fill:#333,stroke:#666,color:#fff
-    classDef github fill:#238636,stroke:#2ea043,color:#fff
-    classDef cloudflare fill:#f38020,stroke:#f38020,color:#fff
-    classDef railway fill:#9747FF,stroke:#9747FF,color:#fff
-    classDef success fill:#a8e6cf,stroke:#88d4ab,color:#141414
-
-    class Code,Commit,Push dev
-    class MainBranch,Actions github
-    class CFPages,WranglerDeploy cloudflare
-    class Railway railway
-    class PagesURL,APIProd,CDNLive,BotOnline success
-`,
+    nodes: deploymentNodes,
+    edges: deploymentEdges,
+    defaultZoom: 0.85,
   },
-
   techStack: {
     title: '🛠️ Technology Stack',
     description: 'Technologies used across the ecosystem.',
-    code: `
-flowchart TB
-    subgraph Frontend["Frontend"]
-        React["React 18"]
-        Vite["Vite"]
-        TailwindCSS["Tailwind CSS"]
-        TypeScript["TypeScript"]
-        ReactRouter["React Router v6"]
-    end
-
-    subgraph Backend["Backend"]
-        CFWorkers["Cloudflare Workers"]
-        NodeJS["Node.js 20"]
-        DiscordJS["Discord.js v14"]
-    end
-
-    subgraph Database["Data Storage"]
-        D1DB["Cloudflare D1<br/>(SQLite)"]
-        R2Storage["Cloudflare R2<br/>(Object Storage)"]
-    end
-
-    subgraph Hosting["Hosting"]
-        CFPages["Cloudflare Pages"]
-        RailwayHost["Railway"]
-        jsDelivrHost["jsDelivr CDN"]
-    end
-
-    subgraph AI["AI / ML"]
-        WorkersAI["Workers AI<br/>(OCR)"]
-    end
-
-    subgraph Auth["Authentication"]
-        DiscordOAuth["Discord OAuth2"]
-        JWT["JWT Tokens"]
-    end
-
-    React --> Vite
-    Vite --> TailwindCSS
-    TypeScript --> React
-    ReactRouter --> React
-
-    CFWorkers --> D1DB
-    CFWorkers --> R2Storage
-    NodeJS --> DiscordJS
-
-    CFWorkers --> WorkersAI
-    CFWorkers --> DiscordOAuth
-    DiscordOAuth --> JWT
-
-    classDef frontend fill:#61dafb,stroke:#61dafb,color:#141414
-    classDef backend fill:#f38020,stroke:#f38020,color:#141414
-    classDef data fill:#a8e6cf,stroke:#88d4ab,color:#141414
-    classDef hosting fill:#9747FF,stroke:#9747FF,color:#fff
-    classDef ai fill:#ff6b6b,stroke:#ff6b6b,color:#fff
-
-    class React,Vite,TailwindCSS,TypeScript,ReactRouter frontend
-    class CFWorkers,NodeJS,DiscordJS backend
-    class D1DB,R2Storage data
-    class CFPages,RailwayHost,jsDelivrHost hosting
-    class WorkersAI ai
-`,
+    nodes: techStackNodes,
+    edges: techStackEdges,
+    defaultZoom: 0.9,
   },
-
   botIntegration: {
-    title: '🤖 Discord Bot Integration',
+    title: '🤖 Discord Bot',
     description: 'How yume-bot connects with the ecosystem.',
-    code: `
-flowchart TB
-    subgraph Discord["Discord"]
-        User["👤 Discord User"]
-        SlashCmd["Slash Commands"]
-        Embed["Rich Embeds"]
-    end
-
-    subgraph Bot["yume-bot (Railway)"]
-        BotHandler["Command Handler"]
-        APIClient["API Client"]
-        
-        subgraph Commands["Commands"]
-            Ping["/ping"]
-            Leaderboard["/leaderboard"]
-            Lookup["/lookup"]
-            TileEvent["/tileevent"]
-            Record["/record"]
-        end
-    end
-
-    subgraph API["yume-api"]
-        HealthEndpoint["/health"]
-        AttendanceEndpoint["/attendance"]
-        TileEventsEndpoint["/tile-events"]
-    end
-
-    subgraph DB["Database"]
-        AttendanceDB[("attendance")]
-        TileEventsDB[("tile_events")]
-        ProgressDB[("event_progress")]
-    end
-
-    User --> SlashCmd --> BotHandler
-    BotHandler --> Commands
-    Commands --> APIClient
-    
-    APIClient --> HealthEndpoint
-    APIClient --> AttendanceEndpoint
-    APIClient --> TileEventsEndpoint
-    
-    AttendanceEndpoint --> AttendanceDB
-    TileEventsEndpoint --> TileEventsDB
-    TileEventsEndpoint --> ProgressDB
-    
-    APIClient --> BotHandler
-    BotHandler --> Embed --> User
-
-    classDef discord fill:#5865F2,stroke:#5865F2,color:#fff
-    classDef bot fill:#a8e6cf,stroke:#88d4ab,color:#141414
-    classDef api fill:#f38020,stroke:#f38020,color:#141414
-    classDef db fill:#1e1e1e,stroke:#a8e6cf,color:#fff
-
-    class User,SlashCmd,Embed discord
-    class BotHandler,APIClient,Ping,Leaderboard,Lookup,TileEvent,Record bot
-    class HealthEndpoint,AttendanceEndpoint,TileEventsEndpoint api
-    class AttendanceDB,TileEventsDB,ProgressDB db
-`,
+    nodes: botIntegrationNodes,
+    edges: botIntegrationEdges,
+    defaultZoom: 1,
   },
 };
 
+type DiagramKey = keyof typeof diagrams;
+
 // =============================================================================
-// MERMAID COMPONENT
+// REACT FLOW WRAPPER COMPONENT
 // =============================================================================
 
-/**
- * Renders a Mermaid diagram with the Yume theme
- */
-function MermaidDiagram({ id, code }: { id: string; code: string }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [svg, setSvg] = useState<string>('');
-  const [error, setError] = useState<string | null>(null);
+function DiagramView({ 
+  nodes: initialNodes, 
+  edges: initialEdges,
+  defaultZoom = 1 
+}: { 
+  nodes: Node[]; 
+  edges: Edge[];
+  defaultZoom?: number;
+}) {
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
+  // Reset nodes/edges when diagram changes
   useEffect(() => {
-    const renderDiagram = async () => {
-      if (!containerRef.current) return;
-      
-      try {
-        // Clear previous content
-        setSvg('');
-        setError(null);
-        
-        // Render the diagram
-        const { svg: renderedSvg } = await mermaid.render(`mermaid-${id}`, code.trim());
-        setSvg(renderedSvg);
-      } catch (err) {
-        console.error('Mermaid render error:', err);
-        setError('Failed to render diagram');
-      }
-    };
-
-    renderDiagram();
-  }, [id, code]);
-
-  if (error) {
-    return (
-      <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400">
-        {error}
-      </div>
-    );
-  }
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+  }, [initialNodes, initialEdges, setNodes, setEdges]);
 
   return (
-    <div 
-      ref={containerRef}
-      className="bg-yume-bg rounded-xl p-4 overflow-x-auto"
-      dangerouslySetInnerHTML={{ __html: svg }}
-    />
+    <div className="h-[500px] bg-yume-bg rounded-xl overflow-hidden">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        nodeTypes={nodeTypes}
+        fitView
+        fitViewOptions={{ padding: 0.2, maxZoom: defaultZoom }}
+        minZoom={0.3}
+        maxZoom={2}
+        defaultEdgeOptions={{
+          type: 'smoothstep',
+          style: { strokeWidth: 2 },
+        }}
+        proOptions={{ hideAttribution: true }}
+      >
+        <Background color="#333" gap={20} />
+        <Controls className="!bg-yume-card !border-yume-border !rounded-lg [&>button]:!bg-yume-bg-light [&>button]:!border-yume-border [&>button]:!text-white [&>button:hover]:!bg-yume-accent [&>button:hover]:!text-yume-bg" />
+        <MiniMap 
+          nodeColor={(node) => {
+            switch (node.type) {
+              case 'frontend': return '#10b981';
+              case 'backend': return '#f38020';
+              case 'database': return '#22d3ee';
+              case 'external': return '#9747FF';
+              case 'user': return '#3b82f6';
+              case 'success': return '#a8e6cf';
+              default: return '#666';
+            }
+          }}
+          maskColor="rgba(0, 0, 0, 0.7)"
+          className="!bg-yume-card !border-yume-border !rounded-lg"
+        />
+      </ReactFlow>
+    </div>
   );
 }
 
 // =============================================================================
 // MAIN COMPONENT
 // =============================================================================
-
-type DiagramKey = keyof typeof diagrams;
 
 export default function Architecture() {
   const { user, loading } = useAuth();
@@ -444,12 +537,13 @@ export default function Architecture() {
           <span className="text-yume-accent">🗺️</span> Architecture
         </h1>
         <p className="text-gray-400">
-          Interactive diagrams showing how all Yume Tools components connect.
+          Interactive diagrams showing how all Yume Tools components connect. 
+          <span className="text-gray-500 ml-2">Drag nodes • Scroll to zoom • Pan to move</span>
         </p>
       </div>
 
       {/* Diagram Selector */}
-      <div className="flex flex-wrap gap-2 mb-8">
+      <div className="flex flex-wrap gap-2 mb-6">
         {(Object.keys(diagrams) as DiagramKey[]).map((key) => (
           <button
             key={key}
@@ -472,10 +566,42 @@ export default function Architecture() {
           <p className="text-gray-400">{currentDiagram.description}</p>
         </div>
         
-        <MermaidDiagram 
-          id={activeDiagram} 
-          code={currentDiagram.code} 
+        <DiagramView 
+          nodes={currentDiagram.nodes}
+          edges={currentDiagram.edges}
+          defaultZoom={currentDiagram.defaultZoom}
         />
+      </div>
+
+      {/* Legend */}
+      <div className="bg-yume-card rounded-2xl border border-yume-border p-6 mb-8">
+        <h3 className="font-semibold text-white mb-4">📖 Legend</h3>
+        <div className="flex flex-wrap gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-emerald-500"></div>
+            <span className="text-sm text-gray-400">Frontend</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-orange-500"></div>
+            <span className="text-sm text-gray-400">Backend</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-cyan-500"></div>
+            <span className="text-sm text-gray-400">Database</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-purple-500"></div>
+            <span className="text-sm text-gray-400">External Service</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-blue-500"></div>
+            <span className="text-sm text-gray-400">User/Input</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-yume-accent"></div>
+            <span className="text-sm text-gray-400">Success/Output</span>
+          </div>
+        </div>
       </div>
 
       {/* Quick Reference Cards */}
@@ -491,7 +617,7 @@ export default function Architecture() {
           <div className="text-2xl mb-2">⚡</div>
           <h3 className="font-semibold text-white text-sm">yume-api</h3>
           <p className="text-gray-500 text-xs mt-1">Cloudflare Worker + D1 Database</p>
-          <code className="text-yume-accent text-xs">api.itai.gg</code>
+          <code className="text-yume-accent text-xs">api.emuy.gg</code>
         </div>
         
         <div className="bg-yume-card rounded-xl border border-yume-border p-4">
@@ -545,4 +671,3 @@ export default function Architecture() {
     </div>
   );
 }
-
