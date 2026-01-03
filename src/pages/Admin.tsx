@@ -301,6 +301,7 @@ export default function Admin() {
    * Update a Sesh author mapping
    */
   const updateSeshAuthor = async (discordId: string, displayName: string) => {
+    console.log('updateSeshAuthor called:', { discordId, displayName });
     try {
       const res = await fetch(`${API_BASE}/admin/sesh-author-map/${discordId}`, {
         method: 'PUT',
@@ -309,16 +310,20 @@ export default function Admin() {
         body: JSON.stringify({ display_name: displayName })
       });
       
+      console.log('Update response status:', res.status, res.ok);
+      
       if (res.ok) {
+        console.log('Update successful, refreshing list');
         setEditingAuthor(null);
         fetchSeshAuthors();
       } else {
         const data = await res.json();
+        console.error('Update failed with response:', data);
         alert(data.error || 'Failed to update author');
       }
     } catch (err) {
-      console.error('Failed to update sesh author:', err);
-      alert('Failed to update author');
+      console.error('Failed to update sesh author (exception):', err);
+      alert('Failed to update author: ' + (err instanceof Error ? err.message : 'Unknown error'));
     }
   };
   
