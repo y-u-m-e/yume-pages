@@ -767,17 +767,21 @@ export default function CruddyPanel() {
                 else loadLeaderboard();
               }} className="btn-primary flex-1">Search</button>
               <button onClick={clearFilters} className="btn-secondary">Clear</button>
-              {activeTab === 'events' && (
-                <button 
-                  onClick={() => setRenamingHost(true)} 
-                  className="btn-secondary"
-                  title="Bulk rename a host across all records"
-                >
-                  ✏️ Rename Host
-                </button>
-              )}
             </div>
           </div>
+          {/* Rename Host button (events tab only) */}
+          {activeTab === 'events' && (
+            <div className="mt-3 pt-3 border-t border-yume-border">
+              <button 
+                onClick={() => setRenamingHost(true)} 
+                className="btn-secondary text-sm"
+                title="Bulk rename a host across all records"
+              >
+                ✏️ Rename Host
+              </button>
+              <span className="text-xs text-gray-500 ml-3">Bulk update host name across all records</span>
+            </div>
+          )}
         </div>
       )}
 
