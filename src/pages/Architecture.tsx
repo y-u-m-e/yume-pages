@@ -15,7 +15,7 @@
  * @module Architecture
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -32,6 +32,237 @@ import {
   Handle,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+
+// =============================================================================
+// NODE DETAILS DATABASE
+// =============================================================================
+
+interface NodeDetails {
+  title: string;
+  description: string;
+  tech?: string[];
+  url?: string;
+  features?: string[];
+  status?: 'active' | 'development' | 'planned';
+}
+
+const nodeDetailsMap: Record<string, NodeDetails> = {
+  // System Overview nodes
+  'discord': {
+    title: 'Discord Server',
+    description: 'The Iron Forged Discord server where clan members interact with the bot and receive notifications.',
+    tech: ['Discord', 'Slash Commands', 'Webhooks'],
+    features: ['Event announcements', 'Leaderboard commands', 'Bot interactions'],
+    status: 'active',
+  },
+  'browser': {
+    title: 'Web Browser',
+    description: 'Users access the Yume Tools web applications through any modern web browser.',
+    tech: ['Chrome', 'Firefox', 'Safari', 'Edge'],
+    features: ['Event tracking', 'Admin panels', 'Documentation'],
+    status: 'active',
+  },
+  'yume-pages': {
+    title: 'yume-pages',
+    description: 'The main React frontend application hosted on Cloudflare Pages. Provides all web-based functionality.',
+    tech: ['React 18', 'TypeScript', 'Vite', 'Tailwind CSS', 'React Router v6'],
+    url: 'https://emuy.gg',
+    features: ['Tile Events', 'Attendance Tracking', 'Admin Panel', 'Documentation'],
+    status: 'active',
+  },
+  'carrd': {
+    title: 'Carrd Site',
+    description: 'Simple landing page hosting embedded widgets for quick access to tools.',
+    tech: ['Carrd', 'Embedded Widgets'],
+    url: 'https://yumes-tools.emuy.gg',
+    features: ['Mention Maker', 'Event Parser'],
+    status: 'active',
+  },
+  'widgets': {
+    title: 'Widget Library',
+    description: 'Standalone JavaScript widgets served via jsDelivr CDN for embedding in external sites.',
+    tech: ['Vanilla JS', 'jsDelivr CDN'],
+    features: ['Mention Maker', 'Event Parser', 'Infographic Maker'],
+    status: 'active',
+  },
+  'yume-api': {
+    title: 'yume-api',
+    description: 'Cloudflare Worker API handling all backend operations including auth, data storage, and integrations.',
+    tech: ['Cloudflare Workers', 'D1 Database', 'R2 Storage', 'Workers AI'],
+    url: 'https://api.emuy.gg',
+    features: ['Discord OAuth2', 'Attendance API', 'Tile Events', 'OCR Processing'],
+    status: 'active',
+  },
+  'yume-bot': {
+    title: 'yume-bot',
+    description: 'Discord bot providing slash commands for clan members to interact with the system.',
+    tech: ['Node.js 20', 'Discord.js v14', 'Railway'],
+    features: ['/leaderboard', '/lookup', '/record', '/ping'],
+    status: 'active',
+  },
+  'd1': {
+    title: 'Cloudflare D1',
+    description: 'SQLite database storing all application data including attendance records, tile events, and user data.',
+    tech: ['SQLite', 'Cloudflare D1'],
+    features: ['Attendance records', 'Tile event progress', 'User sessions', 'Activity logs'],
+    status: 'active',
+  },
+  'r2': {
+    title: 'Cloudflare R2',
+    description: 'Object storage for user-uploaded images like tile event screenshot submissions.',
+    tech: ['Cloudflare R2', 'S3-compatible'],
+    features: ['Screenshot storage', 'Public image URLs'],
+    status: 'active',
+  },
+  'discord-api': {
+    title: 'Discord API',
+    description: 'Official Discord API for OAuth2 authentication and bot operations.',
+    tech: ['Discord API v10', 'OAuth2'],
+    url: 'https://discord.com/developers',
+    features: ['User authentication', 'Guild info', 'Bot messaging'],
+    status: 'active',
+  },
+  'gsheets': {
+    title: 'Google Sheets',
+    description: 'Integration for syncing calendar events and other data with Google Sheets.',
+    tech: ['Google Sheets API', 'Service Account'],
+    features: ['Calendar sync', 'Event export'],
+    status: 'active',
+  },
+  'sesh': {
+    title: 'Sesh Calendar',
+    description: 'Discord calendar bot integration for fetching scheduled clan events.',
+    tech: ['Sesh API'],
+    url: 'https://sesh.fyi',
+    features: ['Event fetching', 'Host mapping'],
+    status: 'active',
+  },
+  
+  // Tech Stack nodes
+  'ts-react': {
+    title: 'React 18',
+    description: 'Modern React with hooks, concurrent features, and automatic batching.',
+    tech: ['React 18.2', 'Hooks', 'JSX'],
+    url: 'https://react.dev',
+    status: 'active',
+  },
+  'ts-vite': {
+    title: 'Vite',
+    description: 'Next-generation frontend build tool with instant HMR and optimized builds.',
+    tech: ['Vite 5', 'ESBuild', 'Rollup'],
+    url: 'https://vitejs.dev',
+    status: 'active',
+  },
+  'ts-tailwind': {
+    title: 'Tailwind CSS',
+    description: 'Utility-first CSS framework for rapid UI development.',
+    tech: ['Tailwind CSS 3', 'PostCSS'],
+    url: 'https://tailwindcss.com',
+    status: 'active',
+  },
+  'ts-typescript': {
+    title: 'TypeScript',
+    description: 'Typed superset of JavaScript for better developer experience and fewer bugs.',
+    tech: ['TypeScript 5', 'Strict mode'],
+    url: 'https://typescriptlang.org',
+    status: 'active',
+  },
+  'ts-workers': {
+    title: 'Cloudflare Workers',
+    description: 'Serverless JavaScript runtime at the edge for low-latency API responses.',
+    tech: ['Workers Runtime', 'Wrangler CLI'],
+    url: 'https://workers.cloudflare.com',
+    status: 'active',
+  },
+  'ts-nodejs': {
+    title: 'Node.js 20',
+    description: 'JavaScript runtime for the Discord bot with LTS support.',
+    tech: ['Node.js 20 LTS', 'npm'],
+    url: 'https://nodejs.org',
+    status: 'active',
+  },
+  'ts-discordjs': {
+    title: 'Discord.js v14',
+    description: 'Powerful library for interacting with the Discord API.',
+    tech: ['Discord.js 14', 'Slash Commands'],
+    url: 'https://discord.js.org',
+    status: 'active',
+  },
+  'ts-d1': {
+    title: 'Cloudflare D1',
+    description: 'Serverless SQL database built on SQLite for Workers.',
+    tech: ['D1', 'SQLite', 'SQL'],
+    url: 'https://developers.cloudflare.com/d1',
+    status: 'active',
+  },
+  'ts-r2': {
+    title: 'Cloudflare R2',
+    description: 'S3-compatible object storage with zero egress fees.',
+    tech: ['R2', 'S3 API'],
+    url: 'https://developers.cloudflare.com/r2',
+    status: 'active',
+  },
+  'ts-ai': {
+    title: 'Workers AI',
+    description: 'AI inference at the edge for OCR and image analysis.',
+    tech: ['Workers AI', 'LLaVA', 'OCR'],
+    url: 'https://developers.cloudflare.com/workers-ai',
+    status: 'active',
+  },
+  'ts-oauth': {
+    title: 'Discord OAuth2',
+    description: 'OAuth2 flow for secure user authentication via Discord.',
+    tech: ['OAuth2', 'JWT'],
+    status: 'active',
+  },
+  'ts-jwt': {
+    title: 'JWT Tokens',
+    description: 'JSON Web Tokens for secure session management.',
+    tech: ['JWT', 'HMAC-SHA256'],
+    status: 'active',
+  },
+  
+  // Deployment nodes
+  'd-code': { title: 'Write Code', description: 'Local development in your IDE of choice.', status: 'active' },
+  'd-commit': { title: 'Git Commit', description: 'Stage and commit changes to version control.', status: 'active' },
+  'd-push': { title: 'Git Push', description: 'Push commits to GitHub remote repository.', status: 'active' },
+  'd-main': { title: 'main branch', description: 'The main branch triggers CI/CD pipelines on push.', tech: ['GitHub', 'GitHub Actions'], status: 'active' },
+  'd-pages': { title: 'Cloudflare Pages', description: 'Automatic deployment of yume-pages on every push.', tech: ['CF Pages', 'Auto Deploy'], status: 'active' },
+  'd-worker': { title: 'Wrangler Deploy', description: 'Deploy yume-api Worker via GitHub Actions.', tech: ['Wrangler', 'GitHub Actions'], status: 'active' },
+  'd-cdn': { title: 'jsDelivr CDN', description: 'Widgets automatically available via CDN after push.', tech: ['jsDelivr', 'Git Tags'], status: 'active' },
+  'd-railway': { title: 'Railway', description: 'Auto-deploy yume-bot on push to main.', tech: ['Railway', 'Docker'], status: 'active' },
+  'd-pages-ok': { title: 'emuy.gg', description: 'Frontend live and serving users!', url: 'https://emuy.gg', status: 'active' },
+  'd-api-ok': { title: 'api.emuy.gg', description: 'API live and handling requests!', url: 'https://api.emuy.gg', status: 'active' },
+  'd-cdn-ok': { title: 'CDN Live', description: 'Widgets available worldwide via CDN!', status: 'active' },
+  'd-bot-ok': { title: 'Bot Online', description: 'Discord bot online and responding!', status: 'active' },
+  
+  // Bot Integration nodes
+  'bi-user': { title: 'Discord User', description: 'Clan members using slash commands in Discord.', status: 'active' },
+  'bi-cmd': { title: 'Slash Commands', description: 'Discord slash commands for interacting with the bot.', tech: ['Discord Interactions'], status: 'active' },
+  'bi-handler': { title: 'Command Handler', description: 'Processes incoming commands and routes to appropriate handlers.', tech: ['Discord.js'], status: 'active' },
+  'bi-ping': { title: '/ping', description: 'Simple health check command.', status: 'active' },
+  'bi-leaderboard': { title: '/leaderboard', description: 'Display clan attendance leaderboard.', status: 'active' },
+  'bi-lookup': { title: '/lookup', description: 'Look up a specific user\'s attendance stats.', status: 'active' },
+  'bi-record': { title: '/record', description: 'Record attendance for an event.', status: 'active' },
+  'bi-api': { title: 'yume-api', description: 'API handles data operations for bot commands.', status: 'active' },
+  'bi-db': { title: 'D1 Database', description: 'Stores all attendance and event data.', status: 'active' },
+  'bi-embed': { title: 'Rich Embed', description: 'Formatted Discord embed response to user.', status: 'active' },
+  
+  // Auth Flow nodes
+  'a1': { title: 'Login Click', description: 'User initiates login from the web app.', status: 'active' },
+  'a2': { title: 'Discord Redirect', description: 'Redirect to Discord OAuth2 authorization page.', status: 'active' },
+  'a3': { title: 'User Authorizes', description: 'User grants permission to the application.', status: 'active' },
+  'a4': { title: 'API Callback', description: 'Discord redirects back with authorization code.', status: 'active' },
+  'a5': { title: 'JWT Creation', description: 'API exchanges code for tokens and creates JWT.', status: 'active' },
+  'a6': { title: 'Logged In', description: 'User is authenticated and can access protected features.', status: 'active' },
+  
+  // Tile Event Flow nodes
+  't1': { title: 'Submit Screenshot', description: 'User uploads a screenshot as proof of completion.', status: 'active' },
+  't2': { title: 'R2 Upload', description: 'Image is stored in Cloudflare R2 bucket.', status: 'active' },
+  't3': { title: 'OCR Processing', description: 'Workers AI extracts text from the image.', tech: ['LLaVA Model'], status: 'active' },
+  't4': { title: 'Keyword Verification', description: 'System checks for required keywords in OCR text.', status: 'active' },
+  't5': { title: 'Progress Saved', description: 'Tile completion recorded, next tile unlocked!', status: 'active' },
+};
 
 // =============================================================================
 // CUSTOM NODE COMPONENTS
@@ -58,7 +289,7 @@ function StyledNode({
   iconBg?: string;
 }) {
   return (
-    <div className={`px-4 py-3 rounded-xl border-2 ${bgColor} ${borderColor} shadow-lg min-w-[140px]`}>
+    <div className={`px-4 py-3 rounded-xl border-2 ${bgColor} ${borderColor} shadow-lg min-w-[140px] cursor-pointer hover:scale-105 hover:shadow-xl transition-all duration-200 group`}>
       <Handle type="target" position={Position.Top} className="!bg-yume-accent !w-2 !h-2" />
       <div className="flex items-center gap-3">
         {data.icon && (
@@ -71,6 +302,11 @@ function StyledNode({
           {data.sublabel && (
             <div className="text-xs text-gray-500">{data.sublabel}</div>
           )}
+        </div>
+        <div className="ml-auto text-gray-600 group-hover:text-gray-400 transition-colors">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
         </div>
       </div>
       <Handle type="source" position={Position.Bottom} className="!bg-yume-accent !w-2 !h-2" />
@@ -107,7 +343,7 @@ function BackendNode({ data }: { data: CustomNodeData }) {
 // Database node (cyan accent)
 function DatabaseNode({ data }: { data: CustomNodeData }) {
   return (
-    <div className="px-4 py-3 rounded-xl border-2 bg-cyan-500/20 border-cyan-500 shadow-lg min-w-[120px]">
+    <div className="px-4 py-3 rounded-xl border-2 bg-cyan-500/20 border-cyan-500 shadow-lg min-w-[120px] cursor-pointer hover:scale-105 hover:shadow-xl transition-all duration-200 group">
       <Handle type="target" position={Position.Top} className="!bg-cyan-400 !w-2 !h-2" />
       <div className="flex items-center gap-3">
         {data.icon && (
@@ -120,6 +356,11 @@ function DatabaseNode({ data }: { data: CustomNodeData }) {
           {data.sublabel && (
             <div className="text-xs text-cyan-500/70">{data.sublabel}</div>
           )}
+        </div>
+        <div className="ml-auto text-cyan-600 group-hover:text-cyan-400 transition-colors">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
         </div>
       </div>
       <Handle type="source" position={Position.Bottom} className="!bg-cyan-400 !w-2 !h-2" />
@@ -165,7 +406,7 @@ function GroupNode({ data }: { data: CustomNodeData }) {
 // Step node for flow diagrams
 function StepNode({ data }: { data: CustomNodeData }) {
   return (
-    <div className="px-3 py-2 rounded-lg border bg-yume-card border-yume-border shadow-md min-w-[100px]">
+    <div className="px-3 py-2 rounded-lg border bg-yume-card border-yume-border shadow-md min-w-[100px] cursor-pointer hover:scale-105 hover:shadow-lg transition-all duration-200">
       <Handle type="target" position={Position.Left} className="!bg-yume-accent !w-2 !h-2" />
       <div className="text-xs text-white text-center">{data.label}</div>
       <Handle type="source" position={Position.Right} className="!bg-yume-accent !w-2 !h-2" />
@@ -176,7 +417,7 @@ function StepNode({ data }: { data: CustomNodeData }) {
 // Success node (green checkmark)
 function SuccessNode({ data }: { data: CustomNodeData }) {
   return (
-    <div className="px-4 py-3 rounded-xl border-2 bg-yume-accent/20 border-yume-accent shadow-lg">
+    <div className="px-4 py-3 rounded-xl border-2 bg-yume-accent/20 border-yume-accent shadow-lg cursor-pointer hover:scale-105 hover:shadow-xl transition-all duration-200">
       <Handle type="target" position={Position.Top} className="!bg-yume-accent !w-2 !h-2" />
       <div className="flex items-center gap-2">
         <span className="text-lg">✅</span>
@@ -442,17 +683,122 @@ const diagrams = {
 type DiagramKey = keyof typeof diagrams;
 
 // =============================================================================
+// NODE DETAILS MODAL
+// =============================================================================
+
+function NodeDetailsModal({ 
+  nodeId, 
+  onClose 
+}: { 
+  nodeId: string; 
+  onClose: () => void;
+}) {
+  const details = nodeDetailsMap[nodeId];
+  
+  if (!details) {
+    return null;
+  }
+
+  const statusColors = {
+    active: 'bg-emerald-500/20 text-emerald-400 border-emerald-500',
+    development: 'bg-amber-500/20 text-amber-400 border-amber-500',
+    planned: 'bg-gray-500/20 text-gray-400 border-gray-500',
+  };
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-yume-card rounded-2xl border border-yume-border max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="text-xl font-bold text-white">{details.title}</h3>
+            {details.status && (
+              <span className={`inline-block mt-2 px-2 py-0.5 text-xs rounded-full border ${statusColors[details.status]}`}>
+                {details.status === 'active' ? '✅ Active' : details.status === 'development' ? '🚧 In Development' : '📋 Planned'}
+              </span>
+            )}
+          </div>
+          <button 
+            onClick={onClose}
+            className="text-gray-500 hover:text-white transition-colors p-1"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Description */}
+        <p className="text-gray-400 text-sm mb-4">{details.description}</p>
+
+        {/* Tech Stack */}
+        {details.tech && details.tech.length > 0 && (
+          <div className="mb-4">
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Technologies</h4>
+            <div className="flex flex-wrap gap-2">
+              {details.tech.map((t) => (
+                <span key={t} className="px-2 py-1 text-xs rounded-lg bg-yume-bg-light text-gray-300 border border-yume-border">
+                  {t}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Features */}
+        {details.features && details.features.length > 0 && (
+          <div className="mb-4">
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Features</h4>
+            <ul className="space-y-1">
+              {details.features.map((f) => (
+                <li key={f} className="text-sm text-gray-400 flex items-center gap-2">
+                  <span className="text-yume-accent">•</span>
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* URL */}
+        {details.url && (
+          <a 
+            href={details.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm text-yume-accent hover:underline"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            {details.url}
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
 // REACT FLOW WRAPPER COMPONENT
 // =============================================================================
 
 function DiagramView({ 
   nodes: initialNodes, 
   edges: initialEdges,
-  defaultZoom = 1 
+  defaultZoom = 1,
+  onNodeClick,
 }: { 
   nodes: Node[]; 
   edges: Edge[];
   defaultZoom?: number;
+  onNodeClick?: (nodeId: string) => void;
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -463,6 +809,12 @@ function DiagramView({
     setEdges(initialEdges);
   }, [initialNodes, initialEdges, setNodes, setEdges]);
 
+  const handleNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
+    if (onNodeClick && nodeDetailsMap[node.id]) {
+      onNodeClick(node.id);
+    }
+  }, [onNodeClick]);
+
   return (
     <div className="h-[500px] bg-yume-bg rounded-xl overflow-hidden">
       <ReactFlow
@@ -470,6 +822,7 @@ function DiagramView({
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onNodeClick={handleNodeClick}
         nodeTypes={nodeTypes}
         fitView
         fitViewOptions={{ padding: 0.2, maxZoom: defaultZoom }}
@@ -511,6 +864,7 @@ export default function Architecture() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [activeDiagram, setActiveDiagram] = useState<DiagramKey>('systemOverview');
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -518,6 +872,14 @@ export default function Architecture() {
       navigate('/');
     }
   }, [user, loading, navigate]);
+
+  const handleNodeClick = useCallback((nodeId: string) => {
+    setSelectedNode(nodeId);
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setSelectedNode(null);
+  }, []);
 
   if (loading || !user) {
     return (
@@ -538,7 +900,7 @@ export default function Architecture() {
         </h1>
         <p className="text-gray-400">
           Interactive diagrams showing how all Yume Tools components connect. 
-          <span className="text-gray-500 ml-2">Drag nodes • Scroll to zoom • Pan to move</span>
+          <span className="text-gray-500 ml-2">Click nodes for details • Drag to move • Scroll to zoom</span>
         </p>
       </div>
 
@@ -570,8 +932,17 @@ export default function Architecture() {
           nodes={currentDiagram.nodes}
           edges={currentDiagram.edges}
           defaultZoom={currentDiagram.defaultZoom}
+          onNodeClick={handleNodeClick}
         />
       </div>
+
+      {/* Node Details Modal */}
+      {selectedNode && (
+        <NodeDetailsModal 
+          nodeId={selectedNode} 
+          onClose={handleCloseModal} 
+        />
+      )}
 
       {/* Legend */}
       <div className="bg-yume-card rounded-2xl border border-yume-border p-6 mb-8">
