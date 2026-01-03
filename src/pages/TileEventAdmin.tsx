@@ -169,6 +169,22 @@ export default function TileEventAdmin() {
   const [userSearch, setUserSearch] = useState('');
   const [userFilter, setUserFilter] = useState<'all' | 'with_rsn' | 'without_rsn'>('all');
   const [editingUser, setEditingUser] = useState<EventUser | null>(null);
+  
+  // Sesh Author Map management
+  interface SeshAuthor {
+    discord_id: string;
+    display_name: string;
+    created_at?: string;
+    updated_at?: string;
+  }
+  const [showAuthorMapView, setShowAuthorMapView] = useState(false);
+  const [seshAuthors, setSeshAuthors] = useState<SeshAuthor[]>([]);
+  const [authorsLoading, setAuthorsLoading] = useState(false);
+  const [editingAuthor, setEditingAuthor] = useState<SeshAuthor | null>(null);
+  const [newAuthorId, setNewAuthorId] = useState('');
+  const [newAuthorName, setNewAuthorName] = useState('');
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [bulkImportText, setBulkImportText] = useState('');
 
   useEffect(() => {
     if (!isAdmin) {
@@ -296,6 +312,144 @@ export default function TileEventAdmin() {
     } catch (err) {
       console.error('Failed to update user:', err);
       alert('Failed to update user');
+    }
+  };
+  
+  /**
+   * Fetch all Sesh author mappings
+   */
+  const fetchSeshAuthors = async () => {
+    setAuthorsLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/admin/sesh-author-map`, {
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSeshAuthors(data.authors || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch sesh authors:', err);
+    } finally {
+      setAuthorsLoading(false);
+    }
+  };
+  
+  /**
+   * Add a new Sesh author mapping
+   */
+  const addSeshAuthor = async () => {
+    if (!newAuthorId.trim() || !newAuthorName.trim()) {
+      alert('Both Discord ID and display name are required');
+      return;
+    }
+    
+    try {
+      const res = await fetch(`${API_BASE}/admin/sesh-author-map`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          discord_id: newAuthorId.trim(),
+          display_name: newAuthorName.trim()
+        })
+      });
+      
+      if (res.ok) {
+        setNewAuthorId('');
+        setNewAuthorName('');
+        fetchSeshAuthors();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to add author');
+      }
+    } catch (err) {
+      console.error('Failed to add sesh author:', err);
+      alert('Failed to add author');
+    }
+  };
+  
+  /**
+   * Update a Sesh author mapping
+   */
+  const updateSeshAuthor = async (discordId: string, displayName: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/sesh-author-map/${discordId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ display_name: displayName })
+      });
+      
+      if (res.ok) {
+        setEditingAuthor(null);
+        fetchSeshAuthors();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to update author');
+      }
+    } catch (err) {
+      console.error('Failed to update sesh author:', err);
+      alert('Failed to update author');
+    }
+  };
+  
+  /**
+   * Delete a Sesh author mapping
+   */
+  const deleteSeshAuthor = async (discordId: string) => {
+    if (!confirm('Delete this author mapping?')) return;
+    
+    try {
+      const res = await fetch(`${API_BASE}/admin/sesh-author-map/${discordId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (res.ok) {
+        fetchSeshAuthors();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to delete author');
+      }
+    } catch (err) {
+      console.error('Failed to delete sesh author:', err);
+      alert('Failed to delete author');
+    }
+  };
+  
+  /**
+   * Bulk import Sesh author mappings
+   */
+  const bulkImportSeshAuthors = async () => {
+    try {
+      // Parse the bulk import text as JSON object
+      const authors = JSON.parse(bulkImportText);
+      
+      const res = await fetch(`${API_BASE}/admin/sesh-author-map/bulk`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ authors })
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        alert(`Import complete: ${data.added} added, ${data.updated} updated${data.errors?.length ? `, ${data.errors.length} errors` : ''}`);
+        setShowBulkImport(false);
+        setBulkImportText('');
+        fetchSeshAuthors();
+      } else {
+        alert(data.error || 'Failed to bulk import');
+      }
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        alert('Invalid JSON format. Expected format:\n{\n  "discord_id": "Display Name",\n  ...\n}');
+      } else {
+        console.error('Failed to bulk import:', err);
+        alert('Failed to bulk import');
+      }
     }
   };
   
@@ -677,9 +831,9 @@ export default function TileEventAdmin() {
               {events.map(event => (
                 <button
                   key={event.id}
-                  onClick={() => { fetchEventDetails(event.id); setShowUsersView(false); }}
+                  onClick={() => { fetchEventDetails(event.id); setShowUsersView(false); setShowAuthorMapView(false); }}
                   className={`w-full text-left p-4 rounded-xl border transition-all ${
-                    selectedEvent?.id === event.id && !showUsersView
+                    selectedEvent?.id === event.id && !showUsersView && !showAuthorMapView
                       ? 'bg-yume-accent/20 border-yume-accent'
                       : 'bg-yume-card border-yume-border hover:border-yume-accent/50'
                   }`}
@@ -704,7 +858,7 @@ export default function TileEventAdmin() {
           
           {/* Manage Users Button */}
           <button
-            onClick={() => { setShowUsersView(true); setSelectedEvent(null); fetchEventUsers(); }}
+            onClick={() => { setShowUsersView(true); setShowAuthorMapView(false); setSelectedEvent(null); fetchEventUsers(); }}
             className={`w-full p-4 rounded-xl border transition-all flex items-center gap-3 ${
               showUsersView
                 ? 'bg-purple-500/20 border-purple-500'
@@ -715,6 +869,22 @@ export default function TileEventAdmin() {
             <div className="text-left">
               <div className="font-medium text-white">Manage Users</div>
               <div className="text-xs text-gray-500">Link Discord IDs to RSNs</div>
+            </div>
+          </button>
+          
+          {/* Sesh Author Map Button */}
+          <button
+            onClick={() => { setShowAuthorMapView(true); setShowUsersView(false); setSelectedEvent(null); fetchSeshAuthors(); }}
+            className={`w-full p-4 rounded-xl border transition-all flex items-center gap-3 ${
+              showAuthorMapView
+                ? 'bg-amber-500/20 border-amber-500'
+                : 'bg-yume-card border-yume-border hover:border-amber-500/50'
+            }`}
+          >
+            <span className="text-2xl">📅</span>
+            <div className="text-left">
+              <div className="font-medium text-white">Sesh Author Map</div>
+              <div className="text-xs text-gray-500">Calendar event hosts</div>
             </div>
           </button>
         </div>
@@ -1608,6 +1778,135 @@ export default function TileEventAdmin() {
                 </div>
               </div>
             </div>
+          ) : showAuthorMapView ? (
+            /* ========== SESH AUTHOR MAP VIEW ========== */
+            <div className="space-y-4">
+              <div className="bg-yume-card rounded-xl border border-yume-border p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                      📅 Sesh Author Map
+                    </h2>
+                    <p className="text-gray-400 text-sm mt-1">
+                      Map Discord IDs to display names for calendar event hosts
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowBulkImport(true)}
+                      className="px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
+                    >
+                      📥 Bulk Import
+                    </button>
+                    <button
+                      onClick={fetchSeshAuthors}
+                      className="px-3 py-1.5 rounded-lg text-sm font-medium bg-yume-accent/20 text-yume-accent hover:bg-yume-accent/30"
+                    >
+                      🔄 Refresh
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Add New Author Form */}
+                <div className="mb-4 p-4 bg-yume-bg-light rounded-lg">
+                  <h3 className="text-sm font-medium text-white mb-3">Add New Author</h3>
+                  <div className="flex flex-wrap gap-3">
+                    <input
+                      type="text"
+                      placeholder="Discord ID (e.g., 357165893135892482)"
+                      value={newAuthorId}
+                      onChange={(e) => setNewAuthorId(e.target.value)}
+                      className="flex-1 min-w-[200px] px-3 py-2 rounded-lg bg-yume-bg border border-yume-border text-white text-sm placeholder:text-gray-500 focus:outline-none focus:border-yume-accent font-mono"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Display Name"
+                      value={newAuthorName}
+                      onChange={(e) => setNewAuthorName(e.target.value)}
+                      className="flex-1 min-w-[150px] px-3 py-2 rounded-lg bg-yume-bg border border-yume-border text-white text-sm placeholder:text-gray-500 focus:outline-none focus:border-yume-accent"
+                    />
+                    <button
+                      onClick={addSeshAuthor}
+                      disabled={!newAuthorId.trim() || !newAuthorName.trim()}
+                      className="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium text-sm hover:bg-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      + Add
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Authors List */}
+                {authorsLoading ? (
+                  <div className="text-center py-8 text-gray-400">Loading authors...</div>
+                ) : seshAuthors.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <div className="text-4xl mb-2">📅</div>
+                    <p>No author mappings yet</p>
+                    <p className="text-xs mt-2">Add authors above or use bulk import</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                    {seshAuthors.map(author => (
+                      <div
+                        key={author.discord_id}
+                        className="p-3 rounded-lg bg-yume-bg-light flex items-center justify-between group"
+                      >
+                        {editingAuthor?.discord_id === author.discord_id ? (
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              const form = e.target as HTMLFormElement;
+                              const displayName = (form.elements.namedItem('displayName') as HTMLInputElement).value;
+                              updateSeshAuthor(author.discord_id, displayName);
+                            }}
+                            className="flex items-center gap-3 flex-1"
+                          >
+                            <code className="text-xs text-gray-500 font-mono">{author.discord_id}</code>
+                            <input
+                              name="displayName"
+                              defaultValue={author.display_name}
+                              className="flex-1 px-2 py-1 rounded bg-yume-bg border border-yume-border text-white text-sm"
+                              autoFocus
+                            />
+                            <button type="submit" className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 text-sm hover:bg-emerald-500/30">
+                              ✓
+                            </button>
+                            <button type="button" onClick={() => setEditingAuthor(null)} className="px-2 py-1 rounded bg-red-500/20 text-red-400 text-sm hover:bg-red-500/30">
+                              ✕
+                            </button>
+                          </form>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-4">
+                              <code className="text-xs text-gray-500 font-mono">{author.discord_id}</code>
+                              <span className="text-white font-medium">{author.display_name}</span>
+                            </div>
+                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => setEditingAuthor(author)}
+                                className="px-2 py-1 rounded text-sm text-blue-400 hover:bg-blue-500/20"
+                              >
+                                ✏️ Edit
+                              </button>
+                              <button
+                                onClick={() => deleteSeshAuthor(author.discord_id)}
+                                className="px-2 py-1 rounded text-sm text-red-400 hover:bg-red-500/20"
+                              >
+                                🗑️ Delete
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                <div className="mt-4 text-xs text-gray-500">
+                  {seshAuthors.length} author{seshAuthors.length !== 1 ? 's' : ''} configured
+                </div>
+              </div>
+            </div>
           ) : (
             <div className="bg-yume-card rounded-xl border border-yume-border p-12 text-center">
               <div className="text-6xl mb-4">📋</div>
@@ -1619,6 +1918,50 @@ export default function TileEventAdmin() {
           )}
         </div>
       </div>
+      
+      {/* Bulk Import Modal */}
+      {showBulkImport && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-yume-card rounded-2xl border border-yume-border max-w-lg w-full p-6">
+            <h3 className="text-xl font-bold text-white mb-4">📥 Bulk Import Author Map</h3>
+            <p className="text-gray-400 text-sm mb-4">
+              Paste a JSON object mapping Discord IDs to display names.
+            </p>
+            
+            <textarea
+              value={bulkImportText}
+              onChange={(e) => setBulkImportText(e.target.value)}
+              placeholder={`{
+  "357165893135892482": "x flavored",
+  "279100975170453507": "BT VividGrey",
+  "279060499600113666": "BT Nick Nak"
+}`}
+              rows={10}
+              className="w-full px-4 py-3 rounded-lg bg-yume-bg-light border border-yume-border text-white font-mono text-sm placeholder:text-gray-500 focus:border-yume-accent outline-none resize-y"
+            />
+            
+            <p className="text-xs text-gray-500 mt-2">
+              Existing entries will be updated. New entries will be added.
+            </p>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => { setShowBulkImport(false); setBulkImportText(''); }}
+                className="flex-1 px-4 py-2 rounded-lg border border-yume-border text-gray-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={bulkImportSeshAuthors}
+                disabled={!bulkImportText.trim()}
+                className="flex-1 btn-primary disabled:opacity-50"
+              >
+                Import
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Reject Submission Modal */}
       {reviewingSubmission && (
