@@ -167,16 +167,21 @@ export default function Docs() {
               The ecosystem consists of three main components:
             </p>
             {/* Component Cards */}
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-yume-bg-light rounded-xl p-4">
                 <div className="text-2xl mb-2">🌐</div>
                 <h3 className="font-semibold text-white mb-1">yume-pages</h3>
                 <p className="text-gray-500 text-sm">React frontend hosted on Cloudflare Pages (this site)</p>
               </div>
               <div className="bg-yume-bg-light rounded-xl p-4">
+                <div className="text-2xl mb-2">🎮</div>
+                <h3 className="font-semibold text-white mb-1">Iron Forged Events</h3>
+                <p className="text-gray-500 text-sm">Tile events portal at ironforged-events.emuy.gg</p>
+              </div>
+              <div className="bg-yume-bg-light rounded-xl p-4">
                 <div className="text-2xl mb-2">⚡</div>
                 <h3 className="font-semibold text-white mb-1">yume-api</h3>
-                <p className="text-gray-500 text-sm">Cloudflare Worker API with D1 database</p>
+                <p className="text-gray-500 text-sm">Cloudflare Worker API with D1, R2 & Workers AI</p>
               </div>
               <div className="bg-yume-bg-light rounded-xl p-4">
                 <div className="text-2xl mb-2">📦</div>
@@ -187,7 +192,7 @@ export default function Docs() {
           </div>
 
           {/* Quick Links Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
             <a
               href="https://github.com/y-u-m-e"
               target="_blank"
@@ -196,6 +201,15 @@ export default function Docs() {
             >
               <div className="text-2xl mb-2">🐙</div>
               <h3 className="font-semibold text-white group-hover:text-yume-accent text-sm">GitHub Org</h3>
+            </a>
+            <a
+              href="https://ironforged-events.emuy.gg"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-yume-card rounded-2xl border border-yume-border p-4 hover:border-yume-border-accent transition-colors group text-center"
+            >
+              <div className="text-2xl mb-2">🎮</div>
+              <h3 className="font-semibold text-white group-hover:text-yume-accent text-sm">IF Events</h3>
             </a>
             <a
               href="https://yumes-tools.emuy.gg"
@@ -246,6 +260,10 @@ export default function Docs() {
                 <li>Add individual or bulk attendance records</li>
                 <li>View records with search, pagination, and date filtering</li>
                 <li>Group records by event with participant counts</li>
+                <li>Set and filter by event host</li>
+                <li>Rename hosts across all their events</li>
+                <li>Remove duplicate entries per event</li>
+                <li>Add players to specific events inline</li>
                 <li>Leaderboard with date range filtering</li>
                 <li>Delete records (with confirmation)</li>
               </ul>
@@ -263,15 +281,49 @@ export default function Docs() {
               </div>
             </div>
             <div className="space-y-3 text-gray-400">
-              <p><strong className="text-white">Features:</strong></p>
+              <p><strong className="text-white">Tabs:</strong></p>
               <ul className="list-disc list-inside space-y-1 ml-4">
-                <li>Add/remove users to Cruddy Panel access list</li>
-                <li>Add/remove users to Docs access list</li>
-                <li>Toggle permissions per user with one click</li>
-                <li>View environment variable users (read-only)</li>
-                <li>Application settings overview</li>
+                <li><strong className="text-emerald-400">Users:</strong> Manage permissions (Cruddy, Docs, DevOps, Events Admin, Ban)</li>
+                <li><strong className="text-blue-400">Logs:</strong> View activity logs (logins, submissions, admin actions)</li>
+                <li><strong className="text-purple-400">Sesh Authors:</strong> Map Discord IDs to display names for calendar sync</li>
+              </ul>
+              <p className="mt-4"><strong className="text-white">Permissions:</strong></p>
+              <ul className="list-disc list-inside space-y-1 ml-4">
+                <li><span className="text-emerald-400">📊 Cruddy</span> - Access to Cruddy Panel</li>
+                <li><span className="text-blue-400">📚 Docs</span> - Access to Documentation</li>
+                <li><span className="text-orange-400">🚀 DevOps</span> - Access to DevOps Panel</li>
+                <li><span className="text-amber-400">⚔️ Events Admin</span> - Tile event administration</li>
+                <li><span className="text-red-400">🚫 Banned</span> - Block user access</li>
               </ul>
               <p className="mt-4"><strong className="text-white">Access:</strong> Super admin only (hardcoded admin IDs)</p>
+            </div>
+          </div>
+
+          {/* Tile Event Admin */}
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-lg">🎮</div>
+              <div>
+                <h2 className="text-xl font-semibold text-white">Tile Event Admin</h2>
+                <p className="text-gray-500 text-sm">Manage tile events at ironforged-events.emuy.gg</p>
+              </div>
+            </div>
+            <div className="space-y-3 text-gray-400">
+              <p><strong className="text-white">Features:</strong></p>
+              <ul className="list-disc list-inside space-y-1 ml-4">
+                <li>Create/edit tile events with grid layouts</li>
+                <li>Configure tiles with names, points, and keywords</li>
+                <li>Review and approve/reject submissions</li>
+                <li>Link Discord users to RSNs (RuneScape Names)</li>
+                <li>Configure Discord webhooks per event</li>
+                <li>Customize webhook embed templates with placeholders</li>
+                <li>View OCR verification results</li>
+              </ul>
+              <p className="mt-4"><strong className="text-white">Webhook Placeholders:</strong></p>
+              <div className="bg-yume-bg rounded-lg p-3 font-mono text-xs mt-2">
+                {'{username}'}, {'{rsn}'}, {'{tile_name}'}, {'{event_name}'}, {'{points}'}, {'{ocr_status}'}, {'{image_url}'}
+              </div>
+              <p className="mt-4"><strong className="text-white">Access:</strong> Requires Events Admin permission or Super Admin</p>
             </div>
           </div>
 
@@ -428,10 +480,25 @@ export default function Docs() {
           <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
             <h2 className="text-lg font-semibold text-white mb-4">📊 Attendance Records</h2>
             <div className="space-y-3">
-              <ApiEndpoint method="GET" path="/attendance/records" desc="Fetch records. Query: ?page=&limit=&search=&start_date=&end_date=" />
-              <ApiEndpoint method="POST" path="/attendance/records" desc="Add record. Body: { name, event, date }" />
+              <ApiEndpoint method="GET" path="/attendance/records" desc="Fetch records. Query: ?page=&limit=&search=&start_date=&end_date=&host=" />
+              <ApiEndpoint method="POST" path="/attendance/records" desc="Add record. Body: { name, event, date, host? }" />
+              <ApiEndpoint method="PUT" path="/attendance/records/:id" desc="Update record. Body: { name?, event?, date?, host? }" />
               <ApiEndpoint method="DELETE" path="/attendance/records/:id" desc="Delete a record by ID." />
               <ApiEndpoint method="GET" path="/attendance" desc="Get analytics: events list, leaderboard, totals." />
+              <ApiEndpoint method="PUT" path="/attendance/events/host" desc="Set host for all records of an event. Body: { event, date, host }" />
+              <ApiEndpoint method="PUT" path="/attendance/hosts/rename" desc="Rename a host. Body: { old_host, new_host }" />
+            </div>
+          </div>
+
+          {/* Tile Events Endpoints */}
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">🎮 Tile Events</h2>
+            <div className="space-y-3">
+              <ApiEndpoint method="GET" path="/tile-events" desc="List all tile events." />
+              <ApiEndpoint method="GET" path="/tile-events/:eventId" desc="Get event details with tiles and user progress." />
+              <ApiEndpoint method="POST" path="/tile-events/:eventId/tiles/:tileId/submit" desc="Submit screenshot proof. Body: FormData with image." />
+              <ApiEndpoint method="GET" path="/tile-events/:eventId/submissions" desc="Get all submissions for an event (admin)." />
+              <ApiEndpoint method="PUT" path="/tile-events/:eventId/tiles/:tileId/submissions/:id" desc="Approve/reject submission. Body: { status }" />
             </div>
           </div>
 
@@ -440,10 +507,27 @@ export default function Docs() {
             <h2 className="text-lg font-semibold text-white mb-4">👤 Admin (Super Admin Only)</h2>
             <div className="space-y-3">
               <ApiEndpoint method="GET" path="/admin/users" desc="Get all allowed users from DB + env vars." />
-              <ApiEndpoint method="POST" path="/admin/users" desc="Add/update user. Body: { discord_id, username?, access_cruddy, access_docs }" />
+              <ApiEndpoint method="POST" path="/admin/users" desc="Add/update user. Body: { discord_id, username?, access_cruddy, access_docs, access_devops, access_events_admin, is_banned }" />
               <ApiEndpoint method="DELETE" path="/admin/users/:discord_id" desc="Remove a user from DB." />
+              <ApiEndpoint method="GET" path="/admin/activity-logs" desc="Get activity logs. Query: ?limit=&action=" />
+              <ApiEndpoint method="GET" path="/admin/event-users" desc="List event users with RSN mappings." />
+              <ApiEndpoint method="PUT" path="/admin/event-users/:discordId" desc="Update user RSN. Body: { rsn?, notes? }" />
+              <ApiEndpoint method="GET" path="/admin/sesh-author-map" desc="Get Sesh author ID to name mappings." />
+              <ApiEndpoint method="POST" path="/admin/sesh-author-map" desc="Add author mapping. Body: { discord_id, display_name }" />
+              <ApiEndpoint method="PUT" path="/admin/sesh-author-map/:discord_id" desc="Update author mapping." />
+              <ApiEndpoint method="POST" path="/admin/sesh-author-map/bulk" desc="Bulk import mappings. Body: { mappings: [{discord_id, display_name}] }" />
               <ApiEndpoint method="GET" path="/admin/secrets" desc="Get GitHub PAT and CF Account ID for DevOps panel." />
               <ApiEndpoint method="GET" path="/admin/cf-deployments" desc="Get Cloudflare Pages deployments. Query: ?project=yume-pages" />
+            </div>
+          </div>
+
+          {/* Public Endpoints */}
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">🌐 Public Endpoints</h2>
+            <div className="space-y-3">
+              <ApiEndpoint method="GET" path="/health" desc="Health check - returns { status: 'ok' }." />
+              <ApiEndpoint method="GET" path="/sesh-author-map" desc="Public Sesh author mappings for calendar sync." />
+              <ApiEndpoint method="GET" path="/r2/submissions/:key" desc="Serve submission images from R2 (secure random URLs)." />
             </div>
           </div>
 
@@ -466,42 +550,50 @@ export default function Docs() {
           {/* System Diagram */}
           <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
             <h2 className="text-lg font-semibold text-white mb-4">System Architecture</h2>
+            <p className="text-gray-400 text-sm mb-4">
+              See the <a href="/architecture" className="text-yume-accent hover:underline">interactive Architecture diagrams</a> for detailed visual flows.
+            </p>
             <div className="bg-yume-bg rounded-xl p-4 font-mono text-sm text-gray-300 overflow-x-auto">
               <pre>{`
-┌─────────────────────────────────────────────────────────────────┐
-│                         USER INTERFACES                          │
-├─────────────────────────────┬───────────────────────────────────┤
-│     emuy.gg (React SPA)     │    yumes-tools.emuy.gg (Carrd)   │
-│  ┌─────────────────────┐    │    ┌─────────────────────────┐   │
-│  │  • Home             │    │    │  • Mention Maker        │   │
-│  │  • Cruddy Panel     │    │    │  • Event Log Parser     │   │
-│  │  • Admin Panel      │    │    │  • Infographic Maker    │   │
-│  │  • DevOps Panel     │    │    │  • How To Guide         │   │
-│  │  • Docs             │    │    └─────────────────────────┘   │
-│  └─────────────────────┘    │              ↓                    │
-│           ↓                 │    ┌─────────────────────────┐   │
-│  Cloudflare Pages           │    │ jsDelivr CDN (widgets)  │   │
-│  (auto-deploy on push)      │    │ y-u-m-e/yume-tools@SHA  │   │
-└─────────────────────────────┴───────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                    api.emuy.gg (Cloudflare Worker)              │
-│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────┐    │
-│  │ Auth (OAuth) │  │ Attendance   │  │ Admin Endpoints    │    │
-│  │ Discord API  │  │ CRUD API     │  │ User management    │    │
-│  └──────────────┘  └──────────────┘  └────────────────────┘    │
-│                              ↓                                   │
-│                    ┌─────────────────┐                          │
-│                    │   D1 Database   │                          │
-│                    │ (SQLite edge)   │                          │
-│                    └─────────────────┘                          │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│                            USER INTERFACES                                │
+├────────────────────────┬─────────────────────┬───────────────────────────┤
+│   emuy.gg (React SPA)  │ ironforged-events   │  yumes-tools (Carrd)      │
+│  ┌──────────────────┐  │  ┌───────────────┐  │  ┌─────────────────────┐  │
+│  │ • Cruddy Panel   │  │  │ • Tile Events │  │  │ • Mention Maker     │  │
+│  │ • Admin Panel    │  │  │ • Progress    │  │  │ • Event Log Parser  │  │
+│  │ • DevOps Panel   │  │  │ • Submissions │  │  │ • Infographic Maker │  │
+│  │ • Docs           │  │  │ • OCR Verify  │  │  └─────────────────────┘  │
+│  │ • Architecture   │  │  └───────────────┘  │            ↓              │
+│  └──────────────────┘  │         ↓           │  ┌─────────────────────┐  │
+│          ↓             │  Cloudflare Pages   │  │ jsDelivr CDN        │  │
+│  Cloudflare Pages      │                     │  │ y-u-m-e/yume-tools  │  │
+└────────────────────────┴─────────────────────┴───────────────────────────┘
+                                   ↓
+┌──────────────────────────────────────────────────────────────────────────┐
+│                      api.emuy.gg (Cloudflare Worker)                      │
+│  ┌────────────┐  ┌────────────┐  ┌─────────────┐  ┌─────────────────┐   │
+│  │ Auth       │  │ Attendance │  │ Tile Events │  │ Admin           │   │
+│  │ (OAuth2)   │  │ Records    │  │ Submissions │  │ Permissions     │   │
+│  └────────────┘  └────────────┘  └─────────────┘  └─────────────────┘   │
+│                                         ↓                                │
+│        ┌────────────────┬───────────────┬───────────────┐                │
+│        │  D1 Database   │   R2 Bucket   │  Workers AI   │                │
+│        │  (SQLite)      │   (Images)    │  (OCR)        │                │
+│        └────────────────┴───────────────┴───────────────┘                │
+│                                         ↓                                │
+│        ┌────────────────┬───────────────┬───────────────┐                │
+│        │  Discord API   │ Google Sheets │ Sesh Calendar │                │
+│        │  (Webhooks)    │   (Sync)      │   (Events)    │                │
+│        └────────────────┴───────────────┴───────────────┘                │
+└──────────────────────────────────────────────────────────────────────────┘
 
 DEPLOYMENT FLOW:
-───────────────────────────────────────────────────────────────────
-yume-pages → push to main → Cloudflare Pages auto-build → emuy.gg
-yume-api   → push to main → GitHub Action → wrangler deploy
-yume-tools → push to main → jsDelivr CDN (update SHAs in yume-api)
+────────────────────────────────────────────────────────────────────────────
+yume-pages        → push to main → CF Pages auto-build → emuy.gg
+ironforged-events → push to main → CF Pages auto-build → ironforged-events.emuy.gg
+yume-api          → push to main → GitHub Action → wrangler deploy
+yume-tools        → push to main → jsDelivr CDN (update SHAs in yume-api)
 `}</pre>
             </div>
           </div>
@@ -530,6 +622,11 @@ yume-tools → push to main → jsDelivr CDN (update SHAs in yume-api)
                     <td className="py-2 text-gray-500">Discord OAuth secret</td>
                   </tr>
                   <tr className="border-b border-yume-border/50">
+                    <td className="py-2 font-mono text-yume-accent">JWT_SECRET</td>
+                    <td className="py-2">secret</td>
+                    <td className="py-2 text-gray-500">Secret for signing JWT tokens</td>
+                  </tr>
+                  <tr className="border-b border-yume-border/50">
                     <td className="py-2 font-mono text-yume-accent">GITHUB_PAT</td>
                     <td className="py-2">secret</td>
                     <td className="py-2 text-gray-500">GitHub token for DevOps</td>
@@ -545,6 +642,11 @@ yume-tools → push to main → jsDelivr CDN (update SHAs in yume-api)
                     <td className="py-2 text-gray-500">CF account ID</td>
                   </tr>
                   <tr className="border-b border-yume-border/50">
+                    <td className="py-2 font-mono text-yume-accent">R2_PUBLIC_URL</td>
+                    <td className="py-2">var</td>
+                    <td className="py-2 text-gray-500">Public URL for R2 images (imgs.ironforged-events.emuy.gg)</td>
+                  </tr>
+                  <tr className="border-b border-yume-border/50">
                     <td className="py-2 font-mono text-yume-accent">ALLOWED_USER_IDS_*</td>
                     <td className="py-2">var</td>
                     <td className="py-2 text-gray-500">Comma-separated Discord IDs</td>
@@ -557,6 +659,9 @@ yume-tools → push to main → jsDelivr CDN (update SHAs in yume-api)
                 </tbody>
               </table>
             </div>
+            <p className="text-gray-500 text-sm mt-4">
+              <strong className="text-white">Bindings:</strong> DB (D1 database), R2_BUCKET (R2 storage), AI (Workers AI for OCR)
+            </p>
           </div>
         </div>
       )}
