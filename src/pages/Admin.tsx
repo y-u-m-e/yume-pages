@@ -73,7 +73,31 @@ interface DBUser {
 /**
  * Available tabs in the admin panel
  */
-type Tab = 'users' | 'settings' | 'logs' | 'sesh-authors';
+type Tab = 'users' | 'roles' | 'settings' | 'logs' | 'sesh-authors';
+
+/**
+ * RBAC Permission definition
+ */
+interface Permission {
+  id: string;
+  name: string;
+  description?: string;
+  category: string;
+}
+
+/**
+ * RBAC Role definition
+ */
+interface Role {
+  id: string;
+  name: string;
+  description?: string;
+  color: string;
+  priority: number;
+  is_default?: number;
+  permissions: { id: string; name: string; category: string }[];
+  user_count: number;
+}
 
 /**
  * Sesh author mapping for calendar event hosts
@@ -148,6 +172,15 @@ export default function Admin() {
   const [newAuthorName, setNewAuthorName] = useState('');
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [bulkImportText, setBulkImportText] = useState('');
+  
+  // RBAC Roles & Permissions state
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
+  const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [showNewRoleModal, setShowNewRoleModal] = useState(false);
+  const [newRoleData, setNewRoleData] = useState({ id: '', name: '', description: '', color: '#6b7280', permissions: [] as string[] });
+  // Note: assigningRoleToUser state will be added when user role assignment UI is implemented
 
   // ==========================================================================
   // EFFECTS
@@ -187,6 +220,16 @@ export default function Admin() {
   useEffect(() => {
     if (user && isAdmin && activeTab === 'sesh-authors') {
       fetchSeshAuthors();
+    }
+  }, [user, isAdmin, activeTab]);
+  
+  /**
+   * Fetch roles when roles tab is selected
+   */
+  useEffect(() => {
+    if (user && isAdmin && activeTab === 'roles') {
+      fetchRoles();
+      fetchPermissions();
     }
   }, [user, isAdmin, activeTab]);
 
@@ -380,6 +423,140 @@ export default function Admin() {
       }
     }
   };
+  
+  // ==========================================================================
+  // RBAC ROLE MANAGEMENT
+  // ==========================================================================
+  
+  /**
+   * Fetch all roles with their permissions
+   */
+  const fetchRoles = async () => {
+    setRolesLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/admin/roles`, {
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRoles(data.roles || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch roles:', err);
+    } finally {
+      setRolesLoading(false);
+    }
+  };
+  
+  /**
+   * Fetch all available permissions
+   */
+  const fetchPermissions = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/permissions`, {
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPermissions(data.permissions || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch permissions:', err);
+    }
+  };
+  
+  /**
+   * Create a new role
+   */
+  const createRole = async () => {
+    if (!newRoleData.id.trim() || !newRoleData.name.trim()) {
+      alert('Role ID and name are required');
+      return;
+    }
+    
+    try {
+      const res = await fetch(`${API_BASE}/admin/roles`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newRoleData)
+      });
+      
+      if (res.ok) {
+        setShowNewRoleModal(false);
+        setNewRoleData({ id: '', name: '', description: '', color: '#6b7280', permissions: [] });
+        fetchRoles();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to create role');
+      }
+    } catch (err) {
+      console.error('Failed to create role:', err);
+      alert('Failed to create role');
+    }
+  };
+  
+  /**
+   * Update an existing role
+   */
+  const updateRole = async (roleId: string, updates: { name?: string; description?: string; color?: string; priority?: number; permissions?: string[] }) => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/roles/${roleId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      
+      if (res.ok) {
+        setEditingRole(null);
+        fetchRoles();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to update role');
+      }
+    } catch (err) {
+      console.error('Failed to update role:', err);
+      alert('Failed to update role');
+    }
+  };
+  
+  /**
+   * Delete a role
+   */
+  const deleteRole = async (roleId: string) => {
+    if (!confirm(`Are you sure you want to delete this role? All users with this role will lose these permissions.`)) {
+      return;
+    }
+    
+    try {
+      const res = await fetch(`${API_BASE}/admin/roles/${roleId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (res.ok) {
+        fetchRoles();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to delete role');
+      }
+    } catch (err) {
+      console.error('Failed to delete role:', err);
+      alert('Failed to delete role');
+    }
+  };
+  
+  // Note: assignRoleToUser and removeRoleFromUser functions will be added
+  // when user role assignment UI is implemented in the Users tab
+  
+  // Group permissions by category for display
+  const permissionsByCategory = permissions.reduce((acc, perm) => {
+    const cat = perm.category || 'general';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(perm);
+    return acc;
+  }, {} as Record<string, Permission[]>);
 
   // ==========================================================================
   // USER MANAGEMENT HANDLERS
@@ -544,6 +721,7 @@ export default function Admin() {
 
   const tabs: { id: Tab; label: string; icon: string }[] = [
     { id: 'users', label: 'User Management', icon: '👥' },
+    { id: 'roles', label: 'Roles & Permissions', icon: '🛡️' },
     { id: 'sesh-authors', label: 'Sesh Authors', icon: '📅' },
     { id: 'settings', label: 'Settings', icon: '⚙' },
     { id: 'logs', label: 'Activity Logs', icon: '📜' },
@@ -1107,6 +1285,338 @@ export default function Admin() {
                 })}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ========== ROLES TAB ========== */}
+      {activeTab === 'roles' && (
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-semibold text-white text-lg">🛡️ Roles & Permissions</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Manage role-based access control. Assign roles to users to grant permissions.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowNewRoleModal(true)}
+                className="btn-primary"
+              >
+                + New Role
+              </button>
+            </div>
+          </div>
+          
+          {/* Roles List */}
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
+            <h4 className="font-semibold text-white mb-4">Available Roles</h4>
+            
+            {rolesLoading ? (
+              <div className="flex justify-center py-8">
+                <div className="w-6 h-6 border-2 border-yume-accent border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : roles.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">No roles found. Create one to get started.</p>
+            ) : (
+              <div className="space-y-4">
+                {roles.map(role => (
+                  <div 
+                    key={role.id} 
+                    className="bg-yume-bg-light rounded-xl p-4 border border-yume-border"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-4 h-4 rounded-full" 
+                          style={{ backgroundColor: role.color }}
+                        />
+                        <div>
+                          <div className="font-semibold text-white">{role.name}</div>
+                          <div className="text-xs text-gray-500">{role.description || role.id}</div>
+                        </div>
+                        <span className="text-xs bg-yume-bg px-2 py-1 rounded text-gray-400">
+                          {role.user_count} user{role.user_count !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setEditingRole(role)}
+                          className="text-gray-400 hover:text-white text-sm"
+                        >
+                          Edit
+                        </button>
+                        {!role.is_default && (
+                          <button
+                            onClick={() => deleteRole(role.id)}
+                            className="text-red-400 hover:text-red-300 text-sm"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Permissions */}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {role.permissions.length === 0 ? (
+                        <span className="text-xs text-gray-500">No permissions</span>
+                      ) : (
+                        role.permissions.map(perm => (
+                          <span 
+                            key={perm.id}
+                            className="text-xs px-2 py-1 rounded-lg bg-yume-bg text-gray-300 border border-yume-border"
+                          >
+                            {perm.name}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          {/* Permissions Reference */}
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
+            <h4 className="font-semibold text-white mb-4">Available Permissions</h4>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.entries(permissionsByCategory).map(([category, perms]) => (
+                <div key={category} className="bg-yume-bg-light rounded-lg p-3">
+                  <div className="text-xs font-semibold text-gray-400 uppercase mb-2">
+                    {category}
+                  </div>
+                  <div className="space-y-1">
+                    {perms.map(perm => (
+                      <div key={perm.id} className="text-sm">
+                        <span className="text-white">{perm.name}</span>
+                        {perm.description && (
+                          <span className="text-gray-500 text-xs ml-2">- {perm.description}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* New Role Modal */}
+      {showNewRoleModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
+            <h3 className="font-semibold text-white text-lg mb-4">Create New Role</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Role ID (lowercase, no spaces)</label>
+                <input
+                  type="text"
+                  value={newRoleData.id}
+                  onChange={e => setNewRoleData(prev => ({ ...prev, id: e.target.value.toLowerCase().replace(/\s/g, '_') }))}
+                  className="input w-full"
+                  placeholder="e.g., event_host"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Display Name</label>
+                <input
+                  type="text"
+                  value={newRoleData.name}
+                  onChange={e => setNewRoleData(prev => ({ ...prev, name: e.target.value }))}
+                  className="input w-full"
+                  placeholder="e.g., Event Host"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Description</label>
+                <input
+                  type="text"
+                  value={newRoleData.description}
+                  onChange={e => setNewRoleData(prev => ({ ...prev, description: e.target.value }))}
+                  className="input w-full"
+                  placeholder="e.g., Can host and manage events"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Color</label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={newRoleData.color}
+                    onChange={e => setNewRoleData(prev => ({ ...prev, color: e.target.value }))}
+                    className="w-10 h-10 rounded cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={newRoleData.color}
+                    onChange={e => setNewRoleData(prev => ({ ...prev, color: e.target.value }))}
+                    className="input flex-1"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Permissions</label>
+                <div className="max-h-48 overflow-y-auto space-y-2 bg-yume-bg rounded-lg p-3">
+                  {Object.entries(permissionsByCategory).map(([category, perms]) => (
+                    <div key={category}>
+                      <div className="text-xs font-semibold text-gray-500 uppercase mb-1">{category}</div>
+                      {perms.map(perm => (
+                        <label key={perm.id} className="flex items-center gap-2 py-1 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={newRoleData.permissions.includes(perm.id)}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setNewRoleData(prev => ({ ...prev, permissions: [...prev.permissions, perm.id] }));
+                              } else {
+                                setNewRoleData(prev => ({ ...prev, permissions: prev.permissions.filter(p => p !== perm.id) }));
+                              }
+                            }}
+                            className="rounded"
+                          />
+                          <span className="text-sm text-white">{perm.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowNewRoleModal(false);
+                  setNewRoleData({ id: '', name: '', description: '', color: '#6b7280', permissions: [] });
+                }}
+                className="flex-1 px-4 py-2 bg-yume-bg rounded-lg text-gray-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createRole}
+                className="flex-1 btn-primary"
+              >
+                Create Role
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Edit Role Modal */}
+      {editingRole && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
+            <h3 className="font-semibold text-white text-lg mb-4">Edit Role: {editingRole.name}</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Display Name</label>
+                <input
+                  type="text"
+                  value={editingRole.name}
+                  onChange={e => setEditingRole(prev => prev ? { ...prev, name: e.target.value } : null)}
+                  className="input w-full"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Description</label>
+                <input
+                  type="text"
+                  value={editingRole.description || ''}
+                  onChange={e => setEditingRole(prev => prev ? { ...prev, description: e.target.value } : null)}
+                  className="input w-full"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Color</label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={editingRole.color}
+                    onChange={e => setEditingRole(prev => prev ? { ...prev, color: e.target.value } : null)}
+                    className="w-10 h-10 rounded cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={editingRole.color}
+                    onChange={e => setEditingRole(prev => prev ? { ...prev, color: e.target.value } : null)}
+                    className="input flex-1"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Permissions</label>
+                <div className="max-h-48 overflow-y-auto space-y-2 bg-yume-bg rounded-lg p-3">
+                  {Object.entries(permissionsByCategory).map(([category, perms]) => (
+                    <div key={category}>
+                      <div className="text-xs font-semibold text-gray-500 uppercase mb-1">{category}</div>
+                      {perms.map(perm => (
+                        <label key={perm.id} className="flex items-center gap-2 py-1 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={editingRole.permissions.some(p => p.id === perm.id)}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setEditingRole(prev => prev ? { 
+                                  ...prev, 
+                                  permissions: [...prev.permissions, { id: perm.id, name: perm.name, category: perm.category }] 
+                                } : null);
+                              } else {
+                                setEditingRole(prev => prev ? { 
+                                  ...prev, 
+                                  permissions: prev.permissions.filter(p => p.id !== perm.id) 
+                                } : null);
+                              }
+                            }}
+                            className="rounded"
+                          />
+                          <span className="text-sm text-white">{perm.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setEditingRole(null)}
+                className="flex-1 px-4 py-2 bg-yume-bg rounded-lg text-gray-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (editingRole) {
+                    updateRole(editingRole.id, {
+                      name: editingRole.name,
+                      description: editingRole.description,
+                      color: editingRole.color,
+                      permissions: editingRole.permissions.map(p => p.id)
+                    });
+                  }
+                }}
+                className="flex-1 btn-primary"
+              >
+                Save Changes
+              </button>
+            </div>
           </div>
         </div>
       )}
