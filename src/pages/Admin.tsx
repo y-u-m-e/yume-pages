@@ -130,7 +130,6 @@ export default function Admin() {
   // Tab and data state
   const [activeTab, setActiveTab] = useState<Tab>('users');
   const [dbUsers, setDbUsers] = useState<DBUser[]>([]);
-  const [envUsers, setEnvUsers] = useState<{ cruddy: string[]; docs: string[] }>({ cruddy: [], docs: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<DBUser | null>(null);
@@ -138,12 +137,6 @@ export default function Admin() {
   // Form state for adding/editing users
   const [newDiscordId, setNewDiscordId] = useState('');
   const [newUsername, setNewUsername] = useState('');
-  const [newIsAdmin, setNewIsAdmin] = useState(false);
-  const [newAccessCruddy, setNewAccessCruddy] = useState(true);
-  const [newAccessDocs, setNewAccessDocs] = useState(false);
-  const [newAccessDevops, setNewAccessDevops] = useState(false);
-  const [newAccessEvents, setNewAccessEvents] = useState(false);
-  const [newIsBanned, setNewIsBanned] = useState(false);
   const [newNotes, setNewNotes] = useState('');
   const [saving, setSaving] = useState(false);
   
@@ -268,7 +261,6 @@ export default function Admin() {
       const data = await res.json();
       const users = data.users || [];
       setDbUsers(users);
-      setEnvUsers(data.env_users || { cruddy: [], docs: [] });
       // Fetch roles for all users
       await fetchAllUserRoles(users);
     } catch (err) {
@@ -681,12 +673,6 @@ export default function Admin() {
         body: JSON.stringify({
           discord_id: newDiscordId.trim(),
           username: newUsername.trim() || null,
-          is_admin: newIsAdmin,
-          access_cruddy: newAccessCruddy,
-          access_docs: newAccessDocs,
-          access_devops: newAccessDevops,
-          access_events: newAccessEvents,
-          is_banned: newIsBanned,
           notes: newNotes.trim() || null
         })
       });
@@ -713,12 +699,6 @@ export default function Admin() {
     setEditingUser(u);
     setNewDiscordId(u.discord_id);
     setNewUsername(u.username || '');
-    setNewIsAdmin(u.is_admin === 1);
-    setNewAccessCruddy(u.access_cruddy === 1);
-    setNewAccessDocs(u.access_docs === 1);
-    setNewAccessDevops(u.access_devops === 1);
-    setNewAccessEvents(u.access_events === 1);
-    setNewIsBanned(u.is_banned === 1);
     setNewNotes(u.notes || '');
   };
   
@@ -736,12 +716,6 @@ export default function Admin() {
   const resetForm = () => {
     setNewDiscordId('');
     setNewUsername('');
-    setNewIsAdmin(false);
-    setNewAccessCruddy(true);  // Default: grant cruddy access
-    setNewAccessDocs(false);
-    setNewAccessDevops(false);
-    setNewAccessEvents(false);
-    setNewIsBanned(false);
     setNewNotes('');
     setEditingUser(null);
   };
@@ -766,38 +740,6 @@ export default function Admin() {
     }
   };
 
-  /**
-   * Toggle a single permission for a user
-   * Preserves all other permissions while flipping the target one
-   */
-  const handleTogglePermission = async (dbUser: DBUser, field: keyof DBUser) => {
-    const currentValue = dbUser[field];
-    try {
-      const res = await fetch(`${API_BASE}/admin/users`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          discord_id: dbUser.discord_id,
-          username: dbUser.username,
-          global_name: dbUser.global_name,
-          // Toggle the target field, keep others unchanged
-          is_admin: field === 'is_admin' ? !currentValue : dbUser.is_admin,
-          access_cruddy: field === 'access_cruddy' ? !currentValue : dbUser.access_cruddy,
-          access_docs: field === 'access_docs' ? !currentValue : dbUser.access_docs,
-          access_devops: field === 'access_devops' ? !currentValue : dbUser.access_devops,
-          access_events: field === 'access_events' ? !currentValue : dbUser.access_events,
-          is_banned: field === 'is_banned' ? !currentValue : dbUser.is_banned,
-          notes: dbUser.notes
-        })
-      });
-      
-      if (!res.ok) throw new Error('Failed to update user');
-      await fetchUsers();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to update user');
-    }
-  };
 
   // ==========================================================================
   // LOADING STATES
@@ -828,10 +770,9 @@ export default function Admin() {
   // STATISTICS CALCULATIONS
   // ==========================================================================
 
-  const adminCount = dbUsers.filter(u => u.is_admin).length;
-  const cruddyCount = dbUsers.filter(u => u.access_cruddy).length + envUsers.cruddy.length;
-  const docsCount = dbUsers.filter(u => u.access_docs).length + envUsers.docs.length;
-  const bannedCount = dbUsers.filter(u => u.is_banned).length;
+  // Calculate role-based statistics
+  const usersWithRolesCount = Object.values(userRoles).filter(r => r.length > 0).length;
+  const totalRolesAssigned = Object.values(userRoles).reduce((acc, r) => acc + r.length, 0);
   
   // Helper function for time ago display
   const getTimeAgo = (dateString: string): string => {
@@ -864,26 +805,22 @@ export default function Admin() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="stat-card">
           <div className="text-sm text-gray-400 mb-1">Total Users</div>
           <div className="text-3xl font-bold text-yume-accent">{dbUsers.length}</div>
         </div>
         <div className="stat-card">
-          <div className="text-sm text-gray-400 mb-1">Admins</div>
-          <div className="text-3xl font-bold text-purple-400">{adminCount}</div>
+          <div className="text-sm text-gray-400 mb-1">Users with Roles</div>
+          <div className="text-3xl font-bold text-purple-400">{usersWithRolesCount}</div>
         </div>
         <div className="stat-card">
-          <div className="text-sm text-gray-400 mb-1">Cruddy</div>
-          <div className="text-3xl font-bold text-white">{cruddyCount}</div>
+          <div className="text-sm text-gray-400 mb-1">Roles Assigned</div>
+          <div className="text-3xl font-bold text-green-400">{totalRolesAssigned}</div>
         </div>
         <div className="stat-card">
-          <div className="text-sm text-gray-400 mb-1">Docs</div>
-          <div className="text-3xl font-bold text-white">{docsCount}</div>
-        </div>
-        <div className="stat-card">
-          <div className="text-sm text-gray-400 mb-1">Banned</div>
-          <div className="text-3xl font-bold text-red-400">{bannedCount}</div>
+          <div className="text-sm text-gray-400 mb-1">Available Roles</div>
+          <div className="text-3xl font-bold text-blue-400">{roles.length}</div>
         </div>
       </div>
 
@@ -947,90 +884,6 @@ export default function Admin() {
                 </div>
               </div>
               
-              {/* Permission Toggles */}
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Permissions</label>
-                <div className="flex flex-wrap gap-4">
-                  {/* Admin Permission */}
-                  <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
-                    newIsAdmin ? 'bg-purple-500/20 border-purple-500 text-purple-300' : 'bg-yume-bg-light border-yume-border text-gray-400'
-                  }`}>
-                    <input
-                      type="checkbox"
-                      checked={newIsAdmin}
-                      onChange={(e) => setNewIsAdmin(e.target.checked)}
-                      className="w-4 h-4 rounded accent-purple-500"
-                    />
-                    <span className="text-sm">👑 Admin</span>
-                  </label>
-                  
-                  {/* Cruddy Permission */}
-                  <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
-                    newAccessCruddy ? 'bg-green-500/20 border-green-500 text-green-300' : 'bg-yume-bg-light border-yume-border text-gray-400'
-                  }`}>
-                    <input
-                      type="checkbox"
-                      checked={newAccessCruddy}
-                      onChange={(e) => setNewAccessCruddy(e.target.checked)}
-                      className="w-4 h-4 rounded accent-green-500"
-                    />
-                    <span className="text-sm">◉ Cruddy</span>
-                  </label>
-                  
-                  {/* Docs Permission */}
-                  <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
-                    newAccessDocs ? 'bg-blue-500/20 border-blue-500 text-blue-300' : 'bg-yume-bg-light border-yume-border text-gray-400'
-                  }`}>
-                    <input
-                      type="checkbox"
-                      checked={newAccessDocs}
-                      onChange={(e) => setNewAccessDocs(e.target.checked)}
-                      className="w-4 h-4 rounded accent-blue-500"
-                    />
-                    <span className="text-sm">📄 Docs</span>
-                  </label>
-                  
-                  {/* DevOps Permission */}
-                  <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
-                    newAccessDevops ? 'bg-orange-500/20 border-orange-500 text-orange-300' : 'bg-yume-bg-light border-yume-border text-gray-400'
-                  }`}>
-                    <input
-                      type="checkbox"
-                      checked={newAccessDevops}
-                      onChange={(e) => setNewAccessDevops(e.target.checked)}
-                      className="w-4 h-4 rounded accent-orange-500"
-                    />
-                    <span className="text-sm">🚀 DevOps</span>
-                  </label>
-                  
-                  {/* Events Admin Permission */}
-                  <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
-                    newAccessEvents ? 'bg-amber-500/20 border-amber-500 text-amber-300' : 'bg-yume-bg-light border-yume-border text-gray-400'
-                  }`}>
-                    <input
-                      type="checkbox"
-                      checked={newAccessEvents}
-                      onChange={(e) => setNewAccessEvents(e.target.checked)}
-                      className="w-4 h-4 rounded accent-amber-500"
-                    />
-                    <span className="text-sm">⚔️ Events Admin</span>
-                  </label>
-                  
-                  {/* Banned Status */}
-                  <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
-                    newIsBanned ? 'bg-red-500/20 border-red-500 text-red-300' : 'bg-yume-bg-light border-yume-border text-gray-400'
-                  }`}>
-                    <input
-                      type="checkbox"
-                      checked={newIsBanned}
-                      onChange={(e) => setNewIsBanned(e.target.checked)}
-                      className="w-4 h-4 rounded accent-red-500"
-                    />
-                    <span className="text-sm">🚫 Banned</span>
-                  </label>
-                </div>
-              </div>
-              
               {/* Admin Notes */}
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Notes (optional)</label>
@@ -1078,12 +931,7 @@ export default function Admin() {
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">User</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Roles</th>
-                      <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="Admin">👑</th>
-                      <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="Cruddy">◉</th>
-                      <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="Docs">📄</th>
-                      <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="DevOps">🚀</th>
-                      <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="Events Admin">⚔️</th>
-                      <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="Banned">🚫</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Notes</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Last Login</th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-400 uppercase">Actions</th>
                     </tr>
@@ -1166,66 +1014,9 @@ export default function Admin() {
                           </div>
                         </td>
                         
-                        {/* Permission Toggle Cells */}
-                        <td className="px-2 py-3 text-center">
-                          <button 
-                            onClick={() => handleTogglePermission(u, 'is_admin')}
-                            className={`w-6 h-6 rounded text-xs flex items-center justify-center transition-colors ${
-                              u.is_admin ? 'bg-purple-500 text-white' : 'bg-gray-700 hover:bg-gray-600'
-                            }`}
-                          >
-                            {u.is_admin ? '✓' : ''}
-                          </button>
-                        </td>
-                        <td className="px-2 py-3 text-center">
-                          <button 
-                            onClick={() => handleTogglePermission(u, 'access_cruddy')}
-                            className={`w-6 h-6 rounded text-xs flex items-center justify-center transition-colors ${
-                              u.access_cruddy ? 'bg-green-500 text-white' : 'bg-gray-700 hover:bg-gray-600'
-                            }`}
-                          >
-                            {u.access_cruddy ? '✓' : ''}
-                          </button>
-                        </td>
-                        <td className="px-2 py-3 text-center">
-                          <button 
-                            onClick={() => handleTogglePermission(u, 'access_docs')}
-                            className={`w-6 h-6 rounded text-xs flex items-center justify-center transition-colors ${
-                              u.access_docs ? 'bg-blue-500 text-white' : 'bg-gray-700 hover:bg-gray-600'
-                            }`}
-                          >
-                            {u.access_docs ? '✓' : ''}
-                          </button>
-                        </td>
-                        <td className="px-2 py-3 text-center">
-                          <button 
-                            onClick={() => handleTogglePermission(u, 'access_devops')}
-                            className={`w-6 h-6 rounded text-xs flex items-center justify-center transition-colors ${
-                              u.access_devops ? 'bg-orange-500 text-white' : 'bg-gray-700 hover:bg-gray-600'
-                            }`}
-                          >
-                            {u.access_devops ? '✓' : ''}
-                          </button>
-                        </td>
-                        <td className="px-2 py-3 text-center">
-                          <button 
-                            onClick={() => handleTogglePermission(u, 'access_events')}
-                            className={`w-6 h-6 rounded text-xs flex items-center justify-center transition-colors ${
-                              u.access_events ? 'bg-amber-500 text-white' : 'bg-gray-700 hover:bg-gray-600'
-                            }`}
-                          >
-                            {u.access_events ? '✓' : ''}
-                          </button>
-                        </td>
-                        <td className="px-2 py-3 text-center">
-                          <button 
-                            onClick={() => handleTogglePermission(u, 'is_banned')}
-                            className={`w-6 h-6 rounded text-xs flex items-center justify-center transition-colors ${
-                              u.is_banned ? 'bg-red-500 text-white' : 'bg-gray-700 hover:bg-gray-600'
-                            }`}
-                          >
-                            {u.is_banned ? '✓' : ''}
-                          </button>
+                        {/* Notes */}
+                        <td className="px-4 py-3 text-sm text-gray-400 max-w-[200px] truncate" title={u.notes || ''}>
+                          {u.notes || <span className="text-gray-600">-</span>}
                         </td>
                         
                         {/* Last Login */}
@@ -1262,27 +1053,6 @@ export default function Admin() {
             )}
           </div>
 
-          {/* Environment Variable Users (Read-only) */}
-          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
-            <h3 className="font-semibold text-white mb-4">Environment Variable Users (Read-only)</h3>
-            <p className="text-sm text-gray-400 mb-4">
-              These users are configured in the Worker's environment variables. To modify, update <code className="text-yume-accent">wrangler.jsonc</code>.
-            </p>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <div className="text-sm text-gray-400 mb-2">ALLOWED_USER_IDS_CRUDDY</div>
-                <div className="text-sm font-mono text-gray-300 bg-yume-bg-light p-3 rounded-lg break-all">
-                  {envUsers.cruddy.length > 0 ? envUsers.cruddy.join(', ') : '(empty)'}
-                </div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-400 mb-2">ALLOWED_USER_IDS_DOCS</div>
-                <div className="text-sm font-mono text-gray-300 bg-yume-bg-light p-3 rounded-lg break-all">
-                  {envUsers.docs.length > 0 ? envUsers.docs.join(', ') : '(empty)'}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 
