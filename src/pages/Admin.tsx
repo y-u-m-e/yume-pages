@@ -37,7 +37,7 @@
  * @module Admin
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -180,7 +180,21 @@ export default function Admin() {
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [showNewRoleModal, setShowNewRoleModal] = useState(false);
   const [newRoleData, setNewRoleData] = useState({ id: '', name: '', description: '', color: '#6b7280', permissions: [] as string[] });
-  // Note: assigningRoleToUser state will be added when user role assignment UI is implemented
+  // User roles management
+  const [userRoles, setUserRoles] = useState<Record<string, { role_id: string; role_name: string; color: string }[]>>({});
+  const [assigningRoleToUser, setAssigningRoleToUser] = useState<string | null>(null); // discord_id of user being edited
+  const roleDropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Close role dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (assigningRoleToUser && roleDropdownRef.current && !roleDropdownRef.current.contains(event.target as Node)) {
+        setAssigningRoleToUser(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [assigningRoleToUser]);
 
   // ==========================================================================
   // EFFECTS
@@ -202,6 +216,8 @@ export default function Admin() {
   useEffect(() => {
     if (user && isAdmin) {
       fetchUsers();
+      // Also fetch roles for the dropdown
+      fetchRoles();
     }
   }, [user, isAdmin]);
   
@@ -250,8 +266,11 @@ export default function Admin() {
       });
       if (!res.ok) throw new Error('Failed to fetch users');
       const data = await res.json();
-      setDbUsers(data.users || []);
+      const users = data.users || [];
+      setDbUsers(users);
       setEnvUsers(data.env_users || { cruddy: [], docs: [] });
+      // Fetch roles for all users
+      await fetchAllUserRoles(users);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch users');
     } finally {
@@ -547,8 +566,86 @@ export default function Admin() {
     }
   };
   
-  // Note: assignRoleToUser and removeRoleFromUser functions will be added
-  // when user role assignment UI is implemented in the Users tab
+  /**
+   * Fetch roles for a specific user
+   */
+  const fetchUserRoles = async (discordId: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/user-roles/${discordId}`, {
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUserRoles(prev => ({
+          ...prev,
+          [discordId]: (data.roles || []).map((r: { role_id: string; role_name: string; color: string }) => ({
+            role_id: r.role_id,
+            role_name: r.role_name,
+            color: r.color
+          }))
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch user roles:', err);
+    }
+  };
+  
+  /**
+   * Fetch roles for all users
+   */
+  const fetchAllUserRoles = async (users: DBUser[]) => {
+    for (const u of users) {
+      await fetchUserRoles(u.discord_id);
+    }
+  };
+  
+  /**
+   * Assign a role to a user
+   */
+  const assignRoleToUser = async (discordId: string, roleId: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/user-roles`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discord_id: discordId, role_id: roleId })
+      });
+      
+      if (res.ok) {
+        await fetchUserRoles(discordId);
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to assign role');
+      }
+    } catch (err) {
+      console.error('Failed to assign role:', err);
+      alert('Failed to assign role');
+    }
+  };
+  
+  /**
+   * Remove a role from a user
+   */
+  const removeRoleFromUser = async (discordId: string, roleId: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/user-roles`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discord_id: discordId, role_id: roleId })
+      });
+      
+      if (res.ok) {
+        await fetchUserRoles(discordId);
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to remove role');
+      }
+    } catch (err) {
+      console.error('Failed to remove role:', err);
+      alert('Failed to remove role');
+    }
+  };
   
   // Group permissions by category for display
   const permissionsByCategory = permissions.reduce((acc, perm) => {
@@ -980,6 +1077,7 @@ export default function Admin() {
                   <thead className="bg-yume-bg-light">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">User</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">Roles</th>
                       <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="Admin">👑</th>
                       <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="Cruddy">◉</th>
                       <th className="px-2 py-3 text-center text-xs font-medium text-gray-400 uppercase" title="Docs">📄</th>
@@ -1015,6 +1113,56 @@ export default function Admin() {
                               </div>
                               <div className="text-xs text-gray-500 font-mono">{u.discord_id}</div>
                             </div>
+                          </div>
+                        </td>
+                        
+                        {/* Roles Cell */}
+                        <td className="px-4 py-3 relative">
+                          <div className="flex flex-wrap gap-1 items-center">
+                            {(userRoles[u.discord_id] || []).map(role => (
+                              <span 
+                                key={role.role_id}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
+                                style={{ backgroundColor: `${role.color}20`, color: role.color, border: `1px solid ${role.color}40` }}
+                              >
+                                {role.role_name}
+                                <button
+                                  onClick={() => removeRoleFromUser(u.discord_id, role.role_id)}
+                                  className="hover:text-white ml-1"
+                                  title="Remove role"
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            ))}
+                            <button
+                              onClick={() => setAssigningRoleToUser(assigningRoleToUser === u.discord_id ? null : u.discord_id)}
+                              className="w-5 h-5 rounded-full bg-yume-bg-light hover:bg-yume-accent hover:text-yume-bg flex items-center justify-center text-xs text-gray-400"
+                              title="Add role"
+                            >
+                              +
+                            </button>
+                            {/* Role dropdown */}
+                            {assigningRoleToUser === u.discord_id && (
+                              <div ref={roleDropdownRef} className="absolute left-4 top-full mt-1 bg-yume-card border border-yume-border rounded-lg shadow-xl z-20 min-w-[180px] max-h-[200px] overflow-y-auto">
+                                {roles.filter(r => !(userRoles[u.discord_id] || []).some(ur => ur.role_id === r.id)).map(role => (
+                                  <button
+                                    key={role.id}
+                                    onClick={() => {
+                                      assignRoleToUser(u.discord_id, role.id);
+                                      setAssigningRoleToUser(null);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-sm hover:bg-yume-bg-light flex items-center gap-2"
+                                  >
+                                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: role.color }} />
+                                    <span className="text-white">{role.name}</span>
+                                  </button>
+                                ))}
+                                {roles.filter(r => !(userRoles[u.discord_id] || []).some(ur => ur.role_id === r.id)).length === 0 && (
+                                  <div className="px-3 py-2 text-sm text-gray-500">All roles assigned</div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </td>
                         
