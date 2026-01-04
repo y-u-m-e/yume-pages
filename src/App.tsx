@@ -32,9 +32,6 @@ import Docs from '@/pages/Docs'              // API documentation
 import Admin from '@/pages/Admin'            // User management (admin only)
 import DevOps from '@/pages/DevOps'          // System status & deployment info
 import Profile from '@/pages/Profile'        // User profile page
-import TileEvents from '@/pages/TileEvents'  // List of tile events
-import TileEvent from '@/pages/TileEvent'    // Single tile event view/play
-import TileEventAdmin from '@/pages/TileEventAdmin' // Tile event management
 import AIDebug from '@/pages/AIDebug'        // AI scan debug/testing (admin)
 import Architecture from '@/pages/Architecture' // System architecture diagrams
 
@@ -64,14 +61,9 @@ function App() {
           <Route path="architecture" element={<Architecture />} /> {/* /architecture */}
           <Route path="profile" element={<Profile />} />         {/* /profile */}
           
-          {/* TILE EVENTS - Require authentication */}
-          <Route path="tile-events" element={<TileEvents />} />  {/* /tile-events - List */}
-          <Route path="tile-events/:eventId" element={<TileEvent />} /> {/* /tile-events/123 */}
-          
           {/* ADMIN ROUTES - Require admin permissions */}
           <Route path="admin" element={<Admin />} />             {/* /admin - User mgmt */}
           <Route path="devops" element={<DevOps />} />           {/* /devops - System status */}
-          <Route path="admin/tile-events" element={<TileEventAdmin />} /> {/* Event management */}
           <Route path="admin/ai-debug" element={<AIDebug />} />  {/* AI scan testing */}
           
         </Route>
