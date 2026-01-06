@@ -50,16 +50,16 @@ export default function Landing() {
               {/* Personal statement */}
               <div className="space-y-4 text-gray-300 leading-relaxed">
                 <p className="text-lg">
-                  Hey, I'm <span className="text-white font-medium">Yume</span> — a developer who builds tools 
-                  and automation for the things I care about.
+                  Hey, I'm <span className="text-white font-medium">y u m e</span> — a developer who builds tools 
+                  , plugins, and automations for fun and as a hobby.
                 </p>
                 <p>
-                  This is my personal hub where I host utilities for the <span className="text-yume-accent">Iron Forged</span> OSRS clan, 
-                  including attendance tracking, event management, and various integrations 
-                  that make clan life easier.
-                </p>
-                <p className="text-gray-400 text-sm">
-                  Most features here are for clan members and staff, but feel free to look around.
+                  This is my personal hub where I host a multitude of things from OSRS clan tools to personal projects
+                  that make my life a little easier. Feel free to look around and if you have any suggestions, feel free to contact me via discord.
+                   <span className="inline-flex items-center gap-1 text-white font-medium">
+                     <img src="/icons/discord.svg" alt="Discord" className="inline w-5 h-5 mr-1 align-middle" />
+                     itai_
+                   </span> on discord.
                 </p>
               </div>
             </div>
