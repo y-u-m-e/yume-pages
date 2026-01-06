@@ -39,12 +39,14 @@ export default function EventsList() {
   const { user } = useAuth();
   const [events, setEvents] = useState<TileEventSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchEvents();
   }, []);
 
   const fetchEvents = async () => {
+    setError(null);
     try {
       const res = await fetch(`${API_BASE}/tile-events`, {
         credentials: 'include'
@@ -52,9 +54,12 @@ export default function EventsList() {
       if (res.ok) {
         const data = await res.json();
         setEvents(data.events || []);
+      } else {
+        setError('Failed to load events. Please try again.');
       }
     } catch (err) {
       console.error('Failed to fetch events:', err);
+      setError('Unable to connect to server. Please check your internet connection.');
     } finally {
       setLoading(false);
     }
@@ -64,6 +69,24 @@ export default function EventsList() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-lg mx-auto text-center py-12">
+        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-8">
+          <div className="text-4xl mb-4">⚠️</div>
+          <h2 className="text-xl font-bold text-white mb-2">Something went wrong</h2>
+          <p className="text-gray-400 mb-4">{error}</p>
+          <button
+            onClick={() => { setLoading(true); fetchEvents(); }}
+            className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }

@@ -86,9 +86,17 @@ export const auth = {
     return apiFetch<AuthMeResponse>('/auth/me');
   },
 
-  getLoginUrl(returnUrl?: string): string {
+  getLoginUrl(returnUrl?: string, source?: string): string {
     const url = returnUrl || window.location.href;
-    return `${API_BASE}/auth/login?return_url=${encodeURIComponent(url)}`;
+    let loginUrl = `${API_BASE}/auth/login?return_url=${encodeURIComponent(url)}`;
+    // Auto-detect source from hostname for events subdomain
+    if (!source && window.location.hostname.includes('ironforged-events')) {
+      source = 'ironforged-events';
+    }
+    if (source) {
+      loginUrl += `&source=${encodeURIComponent(source)}`;
+    }
+    return loginUrl;
   },
 
   getLogoutUrl(returnUrl?: string): string {

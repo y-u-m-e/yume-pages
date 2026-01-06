@@ -388,21 +388,29 @@ export default function TileEvent() {
 
   const snakePositions = generateSnakePath();
 
+  // Detect if on events subdomain for consistent theming
+  const isEventsSubdomain = window.location.hostname.includes('ironforged-events');
+  const accentColor = isEventsSubdomain ? 'orange-500' : 'yume-accent';
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yume-accent"></div>
+        <div className={`animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${isEventsSubdomain ? 'border-orange-500' : 'border-yume-accent'}`}></div>
       </div>
     );
   }
 
   if (!event) {
+    // Detect if on events subdomain to use correct route
+    const isEventsSubdomain = window.location.hostname.includes('ironforged-events');
+    const eventsPath = isEventsSubdomain ? '/events' : '/tile-events';
+    
     return (
       <div className="max-w-4xl mx-auto text-center py-12">
         <div className="text-6xl mb-4">🎮</div>
         <h1 className="text-2xl font-bold text-white mb-2">Event Not Found</h1>
         <p className="text-gray-400 mb-6">This tile event doesn't exist or has been removed.</p>
-        <Link to="/tile-events" className="btn-primary">
+        <Link to={eventsPath} className="btn-primary">
           View All Events
         </Link>
       </div>
