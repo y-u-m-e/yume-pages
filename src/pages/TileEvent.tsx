@@ -600,6 +600,7 @@ export default function TileEvent() {
                       <img 
                         src={sub.image_url} 
                         alt="Submission" 
+                        crossOrigin="use-credentials"
                         className="w-12 h-12 rounded object-cover cursor-pointer hover:opacity-80"
                         onClick={() => window.open(sub.image_url, '_blank')}
                       />
