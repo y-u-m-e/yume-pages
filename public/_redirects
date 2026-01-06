@@ -8,5 +8,6 @@
 # This is handled by Cloudflare Pages custom domain routing
 
 # SPA fallback - serves index.html for any unmatched routes
-/*    /index.html   200
+# Static files are served automatically before this rule applies
+/*    /index.html   200!
 

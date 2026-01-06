@@ -23,9 +23,15 @@ export async function onRequest(context: { request: Request; env: Env; next: () 
     pathname.endsWith('.js') ||
     pathname.endsWith('.css') ||
     pathname.endsWith('.png') ||
+    pathname.endsWith('.jpg') ||
+    pathname.endsWith('.jpeg') ||
+    pathname.endsWith('.gif') ||
+    pathname.endsWith('.webp') ||
     pathname.endsWith('.ico') ||
     pathname.endsWith('.svg') ||
     pathname.endsWith('.json') ||
+    pathname.endsWith('.woff') ||
+    pathname.endsWith('.woff2') ||
     pathname.endsWith('.webmanifest')
   ) {
     return context.next();
