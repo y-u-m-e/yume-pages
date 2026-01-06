@@ -1537,7 +1537,8 @@ export default function TileEventAdmin() {
                                 {eu.global_name || eu.username}
                               </div>
                               <div className="text-xs text-gray-500">
-                                {eu.username} • {eu.discord_id}
+                                {eu.rsn ? <span className="text-emerald-400">{eu.rsn}</span> : eu.username}
+                                {eu.rsn && <span> • {eu.username}</span>}
                               </div>
                             </div>
                           </div>
@@ -1629,7 +1630,7 @@ export default function TileEventAdmin() {
           <div className="bg-yume-card rounded-2xl border border-yume-border max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-white mb-4">Reject Submission</h3>
             <p className="text-gray-400 mb-4">
-              Rejecting submission from <span className="text-white">{reviewingSubmission.global_name || reviewingSubmission.discord_username}</span> for tile #{reviewingSubmission.tile_position + 1}.
+              Rejecting submission from <span className="text-white">{reviewingSubmission.rsn || reviewingSubmission.global_name || reviewingSubmission.discord_username}</span> for tile #{reviewingSubmission.tile_position + 1}.
             </p>
             <div className="mb-4">
               <label className="block text-sm text-gray-400 mb-1">Reason (optional)</label>
