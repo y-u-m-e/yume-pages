@@ -151,17 +151,36 @@ export default function TileEvent() {
       return;
     }
     
-    // Find the most recent submission
-    const latestSubmission = submissions.reduce((latest, s) => {
-      const sTime = new Date(s.created_at).getTime();
-      const latestTime = new Date(latest.created_at).getTime();
-      return sTime > latestTime ? s : latest;
-    }, submissions[0]);
+    // Find the most recent submission by parsing dates
+    let latestTime = 0;
+    for (const s of submissions) {
+      const createdAt = s.created_at;
+      let time: number;
+      
+      // Handle different timestamp formats from SQLite
+      if (createdAt.includes('T')) {
+        time = new Date(createdAt.endsWith('Z') ? createdAt : createdAt + 'Z').getTime();
+      } else {
+        // SQLite format: "2024-01-05 12:00:00" - treat as UTC
+        time = new Date(createdAt.replace(' ', 'T') + 'Z').getTime();
+      }
+      
+      if (!isNaN(time) && time > latestTime) {
+        latestTime = time;
+      }
+    }
     
-    const submissionTime = new Date(latestSubmission.created_at).getTime();
+    if (latestTime === 0) {
+      setCooldownRemaining(0);
+      return;
+    }
+    
     const now = Date.now();
-    const elapsed = (now - submissionTime) / 1000;
-    const remaining = Math.max(0, SUBMISSION_COOLDOWN - elapsed);
+    const elapsed = (now - latestTime) / 1000;
+    
+    // Calculate remaining, but NEVER more than the cooldown period
+    // This prevents crazy values from timestamp parsing issues
+    const remaining = Math.min(SUBMISSION_COOLDOWN, Math.max(0, SUBMISSION_COOLDOWN - elapsed));
     
     setCooldownRemaining(Math.ceil(remaining));
   }, [submissions]);
