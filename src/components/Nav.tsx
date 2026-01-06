@@ -13,10 +13,10 @@ interface NavItem {
 // All possible nav items with their permission requirements
 const allNavItems: NavItem[] = [
   { to: '/', label: 'Home', icon: '🏠' },
-  { to: '/dashboard', label: 'Dashboard', icon: '📊' },
+  { to: '/dashboard', label: 'Dashboard', icon: '📊', permission: 'view_dashboard' },
   { to: '/cruddy-panel', label: 'Cruddy', icon: '◉', permission: 'view_cruddy' },
   { to: '/docs', label: 'Docs', icon: '📄', permission: 'view_docs' },
-  { to: '/architecture', label: 'Arch', icon: '🗺️', permission: 'view_docs' },
+  { to: '/architecture', label: 'Arch', icon: '🗺️', permission: 'view_architecture' },
   { to: '/admin', label: 'Admin', icon: '⚙️', adminOnly: true },
   { to: '/devops', label: 'DevOps', icon: '🚀', permission: 'view_devops' },
 ];
@@ -44,9 +44,6 @@ export default function Nav() {
     return allNavItems.filter(item => {
       // Home is always visible
       if (item.to === '/') return true;
-      
-      // Dashboard requires login
-      if (item.to === '/dashboard') return !!user;
       
       // Admin-only items
       if (item.adminOnly) return isAdmin;

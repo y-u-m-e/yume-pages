@@ -915,15 +915,15 @@ export default function Architecture() {
   const [activeDiagram, setActiveDiagram] = useState<DiagramKey>('systemOverview');
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
-  // Check permission (admins always have access, docs permission includes architecture)
-  const canViewDocs = isAdmin || hasPermission('view_docs');
+  // Check permission (admins always have access)
+  const canViewArchitecture = isAdmin || hasPermission('view_architecture');
 
   // Redirect if not authenticated or missing permission
   useEffect(() => {
-    if (!loading && (!user || !canViewDocs)) {
+    if (!loading && (!user || !canViewArchitecture)) {
       navigate('/');
     }
-  }, [user, loading, canViewDocs, navigate]);
+  }, [user, loading, canViewArchitecture, navigate]);
 
   const handleNodeClick = useCallback((nodeId: string) => {
     setSelectedNode(nodeId);
@@ -933,7 +933,7 @@ export default function Architecture() {
     setSelectedNode(null);
   }, []);
 
-  if (loading || !user || !canViewDocs) {
+  if (loading || !user || !canViewArchitecture) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="w-8 h-8 border-2 border-yume-accent border-t-transparent rounded-full animate-spin" />

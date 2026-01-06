@@ -57,6 +57,9 @@ export default function Dashboard() {
   const { user, loading, isAdmin, hasPermission } = useAuth();
   const navigate = useNavigate();
   
+  // Check permission (admins always have access)
+  const canViewDashboard = isAdmin || hasPermission('view_dashboard');
+  
   // System status
   const [projects, setProjects] = useState<ProjectStatus[]>([
     { name: 'yume-api', url: `${API_BASE}/health`, status: 'checking', icon: '⚡', description: 'API Backend' },
@@ -72,12 +75,12 @@ export default function Dashboard() {
   // Stats
   const [stats, setStats] = useState<Stats>({ records: 0, events: 0, users: 0 });
   
-  // Redirect non-authenticated users to landing page
+  // Redirect users without permission to landing page
   useEffect(() => {
-    if (!loading && !user) {
+    if (!loading && (!user || !canViewDashboard)) {
       navigate('/');
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, canViewDashboard, navigate]);
 
   // Check API health on mount
   useEffect(() => {
@@ -160,10 +163,10 @@ export default function Dashboard() {
   };
 
   // ============================================================================
-  // LOADING / NOT AUTHENTICATED
+  // LOADING / NOT AUTHORIZED
   // ============================================================================
   
-  if (loading || !user) {
+  if (loading || !user || !canViewDashboard) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="w-8 h-8 border-2 border-yume-accent border-t-transparent rounded-full animate-spin" />
