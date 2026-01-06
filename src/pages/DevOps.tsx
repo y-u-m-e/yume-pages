@@ -1334,7 +1334,7 @@ export default function DevOps() {
                   { href: 'https://railway.app/dashboard', icon: '🚂', label: 'Railway' },
                   { href: `https://github.com/${GITHUB_ORG}`, icon: '🐙', label: 'GitHub' },
                   { href: 'https://api.emuy.gg/health', icon: '💚', label: 'API Health' },
-                  { href: 'https://yumes-tools.emuy.gg', icon: '🎴', label: 'Carrd Site' },
+                  { href: 'https://yumes-tools.itai.gg', icon: '🎴', label: 'Carrd Site' },
                   { href: 'https://discord.com/developers/applications', icon: '🎮', label: 'Discord' },
                 ].map(link => (
                   <a

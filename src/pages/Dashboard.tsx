@@ -65,7 +65,7 @@ export default function Dashboard() {
     { name: 'yume-api', url: `${API_BASE}/health`, status: 'checking', icon: '⚡', description: 'API Backend' },
     { name: 'emuy.gg', url: 'https://emuy.gg', status: 'online', icon: '🌐', description: 'Main Site' },
     { name: 'IF Events', url: 'https://ironforged-events.emuy.gg', status: 'online', icon: '🎮', description: 'Tile Events' },
-    { name: 'Carrd', url: 'https://yumes-tools.emuy.gg', status: 'online', icon: '📄', description: 'Widgets' },
+    { name: 'Carrd', url: 'https://yumes-tools.itai.gg', status: 'online', icon: '📄', description: 'Widgets' },
   ]);
   
   // Activity logs
@@ -431,7 +431,7 @@ export default function Dashboard() {
             <h3 className="font-semibold text-white mb-4">🔗 Quick Links</h3>
             <div className="grid grid-cols-3 gap-3">
               <a
-                href="https://yumes-tools.emuy.gg"
+                href="https://yumes-tools.itai.gg"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex flex-col items-center gap-2 p-3 rounded-xl bg-yume-bg-light hover:bg-yume-bg transition-colors group"

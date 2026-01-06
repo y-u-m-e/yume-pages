@@ -175,7 +175,7 @@ export default function Landing() {
           </a>
           <span className="text-gray-700">•</span>
           <a 
-            href="https://yumes-tools.emuy.gg" 
+            href="https://yumes-tools.itai.gg" 
             target="_blank" 
             rel="noopener noreferrer"
             className="hover:text-gray-300 transition-colors"

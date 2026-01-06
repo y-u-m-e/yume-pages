@@ -215,7 +215,7 @@ export default function Docs() {
               <h3 className="font-semibold text-white group-hover:text-yume-accent text-sm">IF Events</h3>
             </a>
             <a
-              href="https://yumes-tools.emuy.gg"
+              href="https://yumes-tools.itai.gg"
               target="_blank"
               rel="noopener noreferrer"
               className="bg-yume-card rounded-2xl border border-yume-border p-4 hover:border-yume-border-accent transition-colors group text-center"
@@ -366,7 +366,7 @@ export default function Docs() {
           <div className="bg-yume-card rounded-2xl border border-yume-border p-6 mb-6">
             <p className="text-gray-400">
               These widgets are vanilla JavaScript components hosted on jsDelivr CDN and embedded in the 
-              <a href="https://yumes-tools.emuy.gg" target="_blank" rel="noopener noreferrer" className="text-yume-accent hover:underline ml-1">
+              <a href="https://yumes-tools.itai.gg" target="_blank" rel="noopener noreferrer" className="text-yume-accent hover:underline ml-1">
                 Carrd site
               </a>. They can be embedded in any HTML page.
             </p>

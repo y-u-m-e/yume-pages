@@ -82,7 +82,7 @@ const nodeDetailsMap: Record<string, NodeDetails> = {
     title: 'Carrd Site',
     description: 'Simple landing page hosting embedded widgets for quick access to tools.',
     tech: ['Carrd', 'Embedded Widgets'],
-    url: 'https://yumes-tools.emuy.gg',
+    url: 'https://yumes-tools.itai.gg',
     features: ['Mention Maker', 'Event Parser'],
     status: 'active',
   },
