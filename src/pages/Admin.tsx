@@ -495,7 +495,7 @@ export default function Admin() {
       
       if (res.ok) {
         setShowNewRoleModal(false);
-        setNewRoleData({ id: '', name: '', description: '', color: '#6b7280', permissions: [] });
+        setNewRoleData({ id: '', name: '', description: '', color: '#6b7280', priority: 0, permissions: [] });
         fetchRoles();
       } else {
         const data = await res.json();
