@@ -1,9 +1,9 @@
 /**
  * =============================================================================
- * ADMIN PANEL - User & Permission Management
+ * ADMIN PANEL - User & Permission Management (RBAC)
  * =============================================================================
  * 
- * Super-admin only dashboard for managing users and their granular permissions.
+ * Super-admin only dashboard for managing users and RBAC permissions.
  * This is the central control panel for access management across the application.
  * 
  * Access Control:
@@ -13,26 +13,16 @@
  * Features:
  * - View all users in the D1 database
  * - Add new users by Discord ID
- * - Edit existing user permissions
- * - Toggle individual permissions with one click
- * - Remove users from the database
- * - View environment variable users (read-only reference)
- * - Application settings overview
- * - Activity logs (placeholder for future implementation)
+ * - Assign/remove RBAC roles to users
+ * - Manage roles and their permissions
+ * - View activity logs
+ * - Manage Sesh calendar author mappings
  * 
- * Permission Types:
- * - is_admin: Full admin access (can access this panel)
- * - access_cruddy: Attendance tracking system
- * - access_docs: Documentation access
- * - access_devops: DevOps control panel
- * - access_events: Events admin panel (create/manage tile events)
- * - is_banned: Blocks all access
- * 
- * Database Table: admin_users
- * - discord_id (unique identifier)
- * - username, global_name, avatar (from Discord)
- * - Permission flags (is_admin, access_*, is_banned)
- * - notes, last_login, created_at, updated_at
+ * Database Structure:
+ * - users: Unified user table with discord_id, username, avatar, rsn, notes, is_banned
+ * - rbac_roles: Role definitions with permissions
+ * - rbac_permissions: Available permission definitions
+ * - rbac_user_roles: User-to-role mappings
  * 
  * @module Admin
  */
@@ -49,25 +39,22 @@ const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
 // =============================================================================
 
 /**
- * Database user record from admin_users table
- * Contains all permission flags and metadata
+ * Database user record from unified users table
  */
 interface DBUser {
-  id: number;                   // Auto-increment primary key
-  discord_id: string;           // Discord user ID (17-20 digit string)
-  username: string | null;      // Discord username (handle)
-  global_name: string | null;   // Discord display name
-  avatar: string | null;        // Discord avatar hash
-  is_admin: number;             // 1 = admin, 0 = not admin
-  access_cruddy: number;        // 1 = has access, 0 = no access
-  access_docs: number;          // 1 = has access, 0 = no access
-  access_devops: number;        // 1 = has access, 0 = no access
-  access_events: number;        // 1 = has access (events admin), 0 = no access
-  is_banned: number;            // 1 = banned, 0 = not banned
-  notes: string | null;         // Admin notes about user
-  last_login: string | null;    // Last login timestamp
-  created_at: string;           // Record creation timestamp
-  updated_at: string | null;    // Last update timestamp
+  id: number;                     // Auto-increment primary key
+  discord_id: string;             // Discord user ID (17-20 digit string)
+  username: string | null;        // Discord username (handle)
+  global_name: string | null;     // Discord display name
+  avatar: string | null;          // Discord avatar hash
+  rsn: string | null;             // RuneScape Name (for events)
+  notes: string | null;           // Admin notes about user
+  is_banned: number;              // 1 = banned, 0 = not banned
+  first_login_at: string | null;  // First login timestamp
+  last_login_at: string | null;   // Last login timestamp
+  login_count: number;            // Number of logins
+  created_at: string;             // Record creation timestamp
+  updated_at: string | null;      // Last update timestamp
 }
 
 /**
@@ -1021,8 +1008,8 @@ export default function Admin() {
                         
                         {/* Last Login */}
                         <td className="px-4 py-3 text-sm text-gray-400">
-                          {u.last_login 
-                            ? new Date(u.last_login.replace(' ', 'T') + 'Z').toLocaleDateString() 
+                          {u.last_login_at 
+                            ? new Date(u.last_login_at.replace(' ', 'T') + 'Z').toLocaleDateString() 
                             : 'Never'}
                         </td>
                         
