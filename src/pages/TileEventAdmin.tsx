@@ -109,7 +109,7 @@ interface EventUser {
  * Redirects non-admins to home page.
  */
 export default function TileEventAdmin() {
-  const { isAdmin } = useAuth();
+  const { isEventsAdmin } = useAuth();
   const navigate = useNavigate();
   
   // ==========================================================================
@@ -171,12 +171,12 @@ export default function TileEventAdmin() {
   const [editingUser, setEditingUser] = useState<EventUser | null>(null);
 
   useEffect(() => {
-    if (!isAdmin) {
+    if (!isEventsAdmin) {
       navigate('/');
       return;
     }
     fetchEvents();
-  }, [isAdmin, navigate]);
+  }, [isEventsAdmin, navigate]);
 
   const fetchEvents = async () => {
     try {
@@ -633,7 +633,7 @@ export default function TileEventAdmin() {
     }
   };
 
-  if (!isAdmin) {
+  if (!isEventsAdmin) {
     return null;
   }
 
