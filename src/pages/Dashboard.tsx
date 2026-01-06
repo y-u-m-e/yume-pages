@@ -1,19 +1,18 @@
 /**
  * =============================================================================
- * HOME PAGE - Bento Grid Dashboard
+ * DASHBOARD PAGE - Bento Grid Dashboard
  * =============================================================================
  * 
  * Personal command center / dashboard for managing the Yume Tools ecosystem.
- * Shows different content based on authentication state:
+ * Requires authentication - redirects to landing page if not logged in.
  * 
- * - Logged out: Welcome message with Discord login button
  * - Logged in: Bento grid dashboard with status, projects, tools, and stats
  * - Admin: Full dashboard with all modules
  * 
- * @module Home
+ * @module Dashboard
  */
 
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
 
@@ -52,10 +51,11 @@ interface Stats {
 }
 
 /**
- * Home Page Component - Bento Grid Dashboard
+ * Dashboard Page Component - Bento Grid Dashboard
  */
-export default function Home() {
-  const { user, login, isAdmin, hasPermission } = useAuth();
+export default function Dashboard() {
+  const { user, loading, isAdmin, hasPermission } = useAuth();
+  const navigate = useNavigate();
   
   // System status
   const [projects, setProjects] = useState<ProjectStatus[]>([
@@ -72,6 +72,13 @@ export default function Home() {
   // Stats
   const [stats, setStats] = useState<Stats>({ records: 0, events: 0, users: 0 });
   
+  // Redirect non-authenticated users to landing page
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/');
+    }
+  }, [user, loading, navigate]);
+
   // Check API health on mount
   useEffect(() => {
     const checkHealth = async () => {
@@ -153,40 +160,13 @@ export default function Home() {
   };
 
   // ============================================================================
-  // LOGGED OUT VIEW
+  // LOADING / NOT AUTHENTICATED
   // ============================================================================
   
-  if (!user) {
+  if (loading || !user) {
     return (
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* Hero Section */}
-        <div className="text-center py-12">
-          <div className="flex justify-center mb-6">
-            <img 
-              src="/favicon/android-chrome-192x192.png?v=3" 
-              alt="Yume Tools" 
-              className="w-24 h-24 rounded-2xl shadow-lg shadow-yume-accent/20"
-            />
-          </div>
-          <h1 className="text-4xl font-bold text-white mb-3">Yume Tools</h1>
-          <p className="text-lg text-gray-400 max-w-md mx-auto">
-            Personal automation hub & OSRS clan management tools
-          </p>
-        </div>
-        
-        {/* Login Card */}
-        <div className="bg-yume-card rounded-2xl border border-yume-border p-10 text-center">
-          <div className="w-20 h-20 rounded-full bg-yume-bg-light flex items-center justify-center mx-auto mb-6">
-            <span className="text-4xl">🔒</span>
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-3">Sign In Required</h2>
-          <p className="text-gray-400 mb-6 max-w-sm mx-auto">
-            Connect with Discord to access the dashboard and tools.
-          </p>
-          <button onClick={login} className="btn-primary text-lg px-8 py-3">
-            Login with Discord
-          </button>
-        </div>
+      <div className="flex items-center justify-center py-20">
+        <div className="w-8 h-8 border-2 border-yume-accent border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }

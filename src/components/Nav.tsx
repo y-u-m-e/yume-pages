@@ -1,27 +1,28 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 
-// Public pages visible to everyone
-const publicNavItems = [
+interface NavItem {
+  to: string;
+  label: string;
+  icon: string;
+  permission?: string;  // RBAC permission required
+  adminOnly?: boolean;  // Requires isAdmin
+}
+
+// All possible nav items with their permission requirements
+const allNavItems: NavItem[] = [
   { to: '/', label: 'Home', icon: '🏠' },
-];
-
-// Protected pages only visible when logged in
-const protectedNavItems = [
-  { to: '/cruddy-panel', label: 'Cruddy', icon: '◉' },
-  { to: '/docs', label: 'Docs', icon: '📄' },
-  { to: '/architecture', label: 'Arch', icon: '🗺️' },
-];
-
-// Admin pages - only for admins
-const adminNavItems = [
-  { to: '/admin', label: 'Admin', icon: '⚙️' },
-  { to: '/devops', label: 'DevOps', icon: '🚀' },
+  { to: '/dashboard', label: 'Dashboard', icon: '📊' },
+  { to: '/cruddy-panel', label: 'Cruddy', icon: '◉', permission: 'view_cruddy' },
+  { to: '/docs', label: 'Docs', icon: '📄', permission: 'view_docs' },
+  { to: '/architecture', label: 'Arch', icon: '🗺️', permission: 'view_docs' },
+  { to: '/admin', label: 'Admin', icon: '⚙️', adminOnly: true },
+  { to: '/devops', label: 'DevOps', icon: '🚀', permission: 'view_devops' },
 ];
 
 export default function Nav() {
-  const { user, loading, login, logout, isAdmin } = useAuth();
+  const { user, loading, login, logout, isAdmin, hasPermission } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -38,14 +39,28 @@ export default function Nav() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
   
-  // Combine nav items based on auth status
-  let navItems = [...publicNavItems];
-  if (user) {
-    navItems = [...navItems, ...protectedNavItems];
-    if (isAdmin) {
-      navItems = [...navItems, ...adminNavItems];
-    }
-  }
+  // Build nav items based on auth status and permissions
+  const navItems = useMemo(() => {
+    return allNavItems.filter(item => {
+      // Home is always visible
+      if (item.to === '/') return true;
+      
+      // Dashboard requires login
+      if (item.to === '/dashboard') return !!user;
+      
+      // Admin-only items
+      if (item.adminOnly) return isAdmin;
+      
+      // Permission-based items
+      if (item.permission) {
+        // Must be logged in AND have permission (or be admin)
+        return user && (isAdmin || hasPermission(item.permission));
+      }
+      
+      // Default: require login
+      return !!user;
+    });
+  }, [user, isAdmin, hasPermission]);
 
   // Check if path is active (for mobile nav)
   const isActivePath = (path: string) => {

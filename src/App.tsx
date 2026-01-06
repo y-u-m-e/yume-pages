@@ -26,7 +26,8 @@ import Layout from '@/components/Layout'
 // =============================================================================
 // All page components are lazy-loadable but imported directly for simplicity
 
-import Home from '@/pages/Home'              // Landing page with status dashboard
+import Landing from '@/pages/Landing'        // Public landing page
+import Dashboard from '@/pages/Dashboard'    // Protected dashboard
 import CruddyPanel from '@/pages/CruddyPanel' // Attendance tracking interface
 import Docs from '@/pages/Docs'              // API documentation
 import Admin from '@/pages/Admin'            // User management (admin only)
@@ -53,9 +54,10 @@ function App() {
         <Route path="/" element={<Layout />}>
           
           {/* PUBLIC ROUTES - Accessible to all users */}
-          <Route index element={<Home />} />            {/* / - Landing page */}
+          <Route index element={<Landing />} />            {/* / - Public landing page */}
           
           {/* PROTECTED ROUTES - Require authentication */}
+          <Route path="dashboard" element={<Dashboard />} />     {/* /dashboard - Main hub */}
           <Route path="cruddy-panel" element={<CruddyPanel />} /> {/* /cruddy-panel */}
           <Route path="docs" element={<Docs />} />               {/* /docs */}
           <Route path="architecture" element={<Architecture />} /> {/* /architecture */}
