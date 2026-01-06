@@ -76,9 +76,10 @@ interface Participant {
   id: number;                   // Progress record ID
   discord_id: string;           // Discord user ID
   discord_username: string;     // Discord username
-  username?: string;            // From admin_users table
+  username?: string;            // From users table
   global_name?: string;         // Discord display name
   avatar?: string;              // Discord avatar hash
+  rsn?: string;                 // RuneScape name
   current_tile: number;         // Highest tile position
   tiles_unlocked: number[];     // Array of completed tile positions
   completed_at?: string;        // ISO timestamp if finished
@@ -132,6 +133,8 @@ export default function TileEventAdmin() {
     discord_username: string;
     global_name?: string;
     avatar?: string;
+    rsn?: string;               // RuneScape name
+    username?: string;          // Discord username from users table
     image_url: string;
     status: string;
     ocr_text?: string;
@@ -510,7 +513,7 @@ export default function TileEventAdmin() {
     
     // Confirm before stepping back
     const tileName = tiles[tilePosition]?.title || `Tile ${tilePosition + 1}`;
-    if (!confirm(`Step ${participant.global_name || participant.discord_username} back to before "${tileName}"? This will also remove any tiles after it.`)) {
+    if (!confirm(`Step ${participant.rsn || participant.global_name || participant.discord_username} back to before "${tileName}"? This will also remove any tiles after it.`)) {
       return;
     }
     
@@ -534,7 +537,7 @@ export default function TileEventAdmin() {
   };
 
   const resetUserProgress = async (participant: Participant) => {
-    if (!selectedEvent || !confirm(`Reset progress for ${participant.global_name || participant.discord_username}?`)) return;
+    if (!selectedEvent || !confirm(`Reset progress for ${participant.rsn || participant.global_name || participant.discord_username}?`)) return;
     
     try {
       const res = await fetch(`${API_BASE}/admin/tile-events/${selectedEvent.id}/reset-user`, {
@@ -553,7 +556,7 @@ export default function TileEventAdmin() {
   };
 
   const removeParticipant = async (participant: Participant) => {
-    if (!selectedEvent || !confirm(`Remove ${participant.global_name || participant.discord_username} from this event? Their progress will be deleted.`)) return;
+    if (!selectedEvent || !confirm(`Remove ${participant.rsn || participant.global_name || participant.discord_username} from this event? Their progress will be deleted.`)) return;
     
     try {
       const res = await fetch(`${API_BASE}/admin/tile-events/${selectedEvent.id}/participants/${participant.discord_id}`, {
@@ -940,7 +943,7 @@ export default function TileEventAdmin() {
                               )}
                               <div>
                                 <div className="font-medium text-white">
-                                  {participant.global_name || participant.username || participant.discord_username}
+                                  {participant.rsn || participant.global_name || participant.username || participant.discord_username}
                                 </div>
                                 <div className="text-xs text-gray-500">
                                   {participant.tiles_unlocked.length}/{tiles.length} tiles
@@ -1093,7 +1096,7 @@ export default function TileEventAdmin() {
                               )}
                               <div>
                                 <div className="font-medium text-white">
-                                  {submission.global_name || submission.discord_username}
+                                  {submission.rsn || submission.global_name || submission.username || submission.discord_username}
                                 </div>
                                 <div className="text-xs text-gray-500">
                                   Tile #{submission.tile_position + 1}: {submission.tile_title}
