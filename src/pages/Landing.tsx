@@ -50,8 +50,8 @@ export default function Landing() {
               {/* Personal statement */}
               <div className="space-y-4 text-gray-300 leading-relaxed">
                 <p className="text-lg">
-                  Hey, I'm <span className="text-white font-medium">y u m e</span> — a developer who builds tools 
-                  , plugins, and automations for fun and as a hobby.
+                  Hey, I'm <span className="text-white font-medium">y u m e</span> — a developer who builds tools,
+                  plugins, and automations for fun and as a hobby.
                 </p>
                 <p>
                   This is my personal hub where I host a multitude of things from OSRS clan tools to personal projects
