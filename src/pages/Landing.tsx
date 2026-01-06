@@ -56,10 +56,16 @@ export default function Landing() {
                 <p>
                   This is my personal hub where I host a multitude of things from OSRS clan tools to personal projects
                   that make my life a little easier. Feel free to look around and if you have any suggestions, feel free to contact me via discord.
+                   <br />
                    <span className="inline-flex items-center gap-1 text-white font-medium">
-                     <img src="/icons/discord.svg" alt="Discord" className="inline w-5 h-5 mr-1 align-middle" />
+                     <img
+                       src="/icons/discord.svg"
+                       alt="Discord"
+                       className="inline w-5 h-5 mr-1 align-middle"
+                     />
                      itai_
-                   </span> on discord.
+                   </span>{" "}
+                   on discord.
                 </p>
               </div>
             </div>
