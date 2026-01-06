@@ -172,7 +172,7 @@ export default function Admin() {
   const [rolesLoading, setRolesLoading] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [showNewRoleModal, setShowNewRoleModal] = useState(false);
-  const [newRoleData, setNewRoleData] = useState({ id: '', name: '', description: '', color: '#6b7280', permissions: [] as string[] });
+  const [newRoleData, setNewRoleData] = useState({ id: '', name: '', description: '', color: '#6b7280', priority: 0, permissions: [] as string[] });
   // User roles management
   const [userRoles, setUserRoles] = useState<Record<string, { role_id: string; role_name: string; color: string }[]>>({});
   const [assigningRoleToUser, setAssigningRoleToUser] = useState<string | null>(null); // discord_id of user being edited
@@ -1383,6 +1383,18 @@ export default function Admin() {
               </div>
               
               <div>
+                <label className="block text-sm text-gray-400 mb-1">Priority</label>
+                <input
+                  type="number"
+                  value={newRoleData.priority}
+                  onChange={e => setNewRoleData(prev => ({ ...prev, priority: parseInt(e.target.value) || 0 }))}
+                  className="input w-full"
+                  placeholder="0"
+                />
+                <p className="text-xs text-gray-500 mt-1">Higher priority roles are displayed first. Use negative values for lower priority.</p>
+              </div>
+              
+              <div>
                 <label className="block text-sm text-gray-400 mb-2">Permissions</label>
                 <div className="max-h-48 overflow-y-auto space-y-2 bg-yume-bg rounded-lg p-3">
                   {Object.entries(permissionsByCategory).map(([category, perms]) => (
@@ -1415,7 +1427,7 @@ export default function Admin() {
               <button
                 onClick={() => {
                   setShowNewRoleModal(false);
-                  setNewRoleData({ id: '', name: '', description: '', color: '#6b7280', permissions: [] });
+                  setNewRoleData({ id: '', name: '', description: '', color: '#6b7280', priority: 0, permissions: [] });
                 }}
                 className="flex-1 px-4 py-2 bg-yume-bg rounded-lg text-gray-400 hover:text-white"
               >
@@ -1478,6 +1490,18 @@ export default function Admin() {
               </div>
               
               <div>
+                <label className="block text-sm text-gray-400 mb-1">Priority</label>
+                <input
+                  type="number"
+                  value={editingRole.priority}
+                  onChange={e => setEditingRole(prev => prev ? { ...prev, priority: parseInt(e.target.value) || 0 } : null)}
+                  className="input w-full"
+                  placeholder="Higher = more important"
+                />
+                <p className="text-xs text-gray-500 mt-1">Higher priority roles are displayed first. Use negative values for lower priority.</p>
+              </div>
+              
+              <div>
                 <label className="block text-sm text-gray-400 mb-2">Permissions</label>
                 <div className="max-h-48 overflow-y-auto space-y-2 bg-yume-bg rounded-lg p-3">
                   {Object.entries(permissionsByCategory).map(([category, perms]) => (
@@ -1526,6 +1550,7 @@ export default function Admin() {
                       name: editingRole.name,
                       description: editingRole.description,
                       color: editingRole.color,
+                      priority: editingRole.priority,
                       permissions: editingRole.permissions.map(p => p.id)
                     });
                   }
