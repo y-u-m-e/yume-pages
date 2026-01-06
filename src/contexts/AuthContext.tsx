@@ -196,16 +196,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return perms.every(p => permissions.includes(p));
   }, [permissions, isSuperAdmin]);
 
-  // Compute admin status (combines legacy + RBAC)
-  const isAdmin = isSuperAdmin || 
-    access?.admin === true || 
-    (access?.docs === true && access?.cruddy === true) ||
-    hasPermission('view_admin');
+  // Compute admin status - ONLY from RBAC now (no legacy access checks)
+  const isAdmin = isSuperAdmin || hasPermission('view_admin');
   
-  // Events admin: has events permission or is general admin
-  const isEventsAdmin = access?.events === true || 
-    hasPermission('view_events_admin') || 
-    isAdmin;
+  // Events admin: has events admin permission or is general admin
+  const isEventsAdmin = hasPermission('view_events_admin') || isAdmin;
 
   return (
     <AuthContext.Provider value={{ 
