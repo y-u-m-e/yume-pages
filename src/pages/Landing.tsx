@@ -68,13 +68,10 @@ export default function Landing() {
             <div className="flex-shrink-0">
               <div className="relative">
                 <img 
-                  src="/ironforged-icon.gif" 
-                  alt="Iron Forged" 
-                  className="w-48 h-48 md:w-64 md:h-64 rounded-2xl shadow-2xl shadow-orange-500/20 ring-2 ring-orange-500/30"
+                  src="/yume-pfp/yume_pfp.gif" 
+                  alt="Yume" 
+                  className="w-48 h-48 md:w-64 md:h-64 rounded-2xl shadow-2xl shadow-yume-accent/20 ring-2 ring-yume-accent/30"
                 />
-                <div className="absolute -bottom-3 -right-3 px-3 py-1 bg-yume-card rounded-full border border-yume-border text-xs text-gray-400">
-                  Iron Forged
-                </div>
               </div>
             </div>
           </div>
