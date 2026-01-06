@@ -30,13 +30,16 @@
  * @module TileEvent
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { compressImage, MAX_AI_SIZE } from '@/utils/imageCompression';
 
 // API base URL from environment
 const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
+
+// Rate limit cooldown in seconds
+const SUBMISSION_COOLDOWN = 60;
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -108,8 +111,19 @@ export default function TileEvent() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
-  const [submissions, setSubmissions] = useState<{id: number; tile_id: number; status: string; created_at: string}[]>([]);
+  const [submissions, setSubmissions] = useState<{
+    id: number; 
+    tile_id: number; 
+    status: string; 
+    created_at: string;
+    image_url?: string;
+    admin_notes?: string;
+  }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Cooldown state
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const [showSubmissionHistory, setShowSubmissionHistory] = useState(false);
 
   // ==========================================================================
   // EFFECTS
@@ -129,6 +143,40 @@ export default function TileEvent() {
       fetchSubmissions();
     }
   }, [eventId, user]);
+
+  // Calculate and update cooldown timer
+  const updateCooldown = useCallback(() => {
+    if (submissions.length === 0) {
+      setCooldownRemaining(0);
+      return;
+    }
+    
+    // Find the most recent submission
+    const latestSubmission = submissions.reduce((latest, s) => {
+      const sTime = new Date(s.created_at).getTime();
+      const latestTime = new Date(latest.created_at).getTime();
+      return sTime > latestTime ? s : latest;
+    }, submissions[0]);
+    
+    const submissionTime = new Date(latestSubmission.created_at).getTime();
+    const now = Date.now();
+    const elapsed = (now - submissionTime) / 1000;
+    const remaining = Math.max(0, SUBMISSION_COOLDOWN - elapsed);
+    
+    setCooldownRemaining(Math.ceil(remaining));
+  }, [submissions]);
+
+  // Update cooldown on submissions change and tick every second
+  useEffect(() => {
+    updateCooldown();
+    
+    if (cooldownRemaining > 0) {
+      const timer = setInterval(() => {
+        setCooldownRemaining(prev => Math.max(0, prev - 1));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [submissions, updateCooldown, cooldownRemaining]);
 
   const fetchEventData = async () => {
     try {
@@ -221,10 +269,22 @@ export default function TileEvent() {
       const data = await res.json();
       
       if (!res.ok) {
+        // Handle rate limit specifically
+        if (res.status === 429) {
+          // Parse the wait time from error message if available
+          const waitMatch = data.error?.match(/wait (\d+) seconds/);
+          if (waitMatch) {
+            setCooldownRemaining(parseInt(waitMatch[1]));
+          } else {
+            setCooldownRemaining(SUBMISSION_COOLDOWN);
+          }
+        }
         setUploadError(data.error || 'Failed to submit');
         return;
       }
       
+      // Set cooldown after successful submission
+      setCooldownRemaining(SUBMISSION_COOLDOWN);
       setUploadSuccess(data.message + compressionNote);
       
       // Refresh progress and submissions
@@ -354,9 +414,22 @@ export default function TileEvent() {
     return 'locked';
   };
 
+  // Responsive tile sizing
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+  
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Tile dimensions based on screen size
+  const tileSize = isMobile ? 70 : 100;
+  const tileGap = isMobile ? 8 : 16;
+  const tilesPerRow = isMobile ? 4 : 5;
+
   // Generate snake path coordinates
   const generateSnakePath = () => {
-    const tilesPerRow = 5;
     const positions: { x: number; y: number; direction: 'right' | 'left' }[] = [];
     
     let row = 0;
@@ -390,7 +463,6 @@ export default function TileEvent() {
 
   // Detect if on events subdomain for consistent theming
   const isEventsSubdomain = window.location.hostname.includes('ironforged-events');
-  const accentColor = isEventsSubdomain ? 'orange-500' : 'yume-accent';
   
   if (loading) {
     return (
@@ -474,13 +546,97 @@ export default function TileEvent() {
         </div>
       </div>
 
-      {/* Snake Tile Board - always visible, but progress requires joining */}
-      <div className="bg-yume-card rounded-2xl border border-yume-border p-6 overflow-x-auto">
+      {/* Snake Tile Board - responsive grid */}
+      <div className="bg-yume-card rounded-2xl border border-yume-border p-4 sm:p-6 overflow-x-auto">
+        {/* Submission History Toggle */}
+        {user && joined && submissions.length > 0 && (
+          <div className="flex items-center justify-between mb-4 pb-4 border-b border-yume-border">
+            <button
+              onClick={() => setShowSubmissionHistory(!showSubmissionHistory)}
+              className="text-sm text-gray-400 hover:text-white transition-colors flex items-center gap-2"
+            >
+              <span>📋</span>
+              <span>Submission History ({submissions.length})</span>
+              <span className={`transition-transform ${showSubmissionHistory ? 'rotate-180' : ''}`}>▼</span>
+            </button>
+            
+            {/* Cooldown indicator */}
+            {cooldownRemaining > 0 && (
+              <div className="flex items-center gap-2 text-amber-400 text-sm">
+                <div className="relative w-6 h-6">
+                  <svg className="w-6 h-6 transform -rotate-90">
+                    <circle cx="12" cy="12" r="10" fill="none" stroke="#374151" strokeWidth="2" />
+                    <circle 
+                      cx="12" cy="12" r="10" fill="none" 
+                      stroke="#f59e0b" strokeWidth="2"
+                      strokeDasharray={`${(cooldownRemaining / SUBMISSION_COOLDOWN) * 62.8} 62.8`}
+                      className="transition-all duration-1000"
+                    />
+                  </svg>
+                </div>
+                <span>Wait {cooldownRemaining}s</span>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Submission History Panel */}
+        {showSubmissionHistory && (
+          <div className="mb-4 space-y-2 max-h-60 overflow-y-auto">
+            {submissions
+              .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+              .map(sub => {
+                const tile = tiles.find(t => t.id === sub.tile_id);
+                return (
+                  <div 
+                    key={sub.id}
+                    className={`flex items-center gap-3 p-3 rounded-lg border ${
+                      sub.status === 'approved' ? 'bg-emerald-500/10 border-emerald-500/30' :
+                      sub.status === 'rejected' ? 'bg-red-500/10 border-red-500/30' :
+                      'bg-amber-500/10 border-amber-500/30'
+                    }`}
+                  >
+                    {sub.image_url && (
+                      <img 
+                        src={sub.image_url} 
+                        alt="Submission" 
+                        className="w-12 h-12 rounded object-cover cursor-pointer hover:opacity-80"
+                        onClick={() => window.open(sub.image_url, '_blank')}
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-white truncate">
+                        {tile?.title || `Tile #${sub.tile_id}`}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {new Date(sub.created_at).toLocaleString()}
+                      </div>
+                      {sub.admin_notes && sub.status === 'rejected' && (
+                        <div className="text-xs text-red-400 mt-1">
+                          Note: {sub.admin_notes}
+                        </div>
+                      )}
+                    </div>
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                      sub.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400' :
+                      sub.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
+                      'bg-amber-500/20 text-amber-400'
+                    }`}>
+                      {sub.status === 'approved' ? '✓ Approved' :
+                       sub.status === 'rejected' ? '✕ Rejected' : '⏳ Pending'}
+                    </span>
+                  </div>
+                );
+              })}
+          </div>
+        )}
+        
+        {/* Tile Grid */}
         <div 
           className="relative mx-auto"
           style={{ 
-            width: `${5 * 100 + 4 * 16}px`,
-            minHeight: `${(Math.ceil(tiles.length / 5)) * 100 + (Math.ceil(tiles.length / 5) - 1) * 16}px`
+            width: `${tilesPerRow * tileSize + (tilesPerRow - 1) * tileGap}px`,
+            minHeight: `${(Math.ceil(tiles.length / tilesPerRow)) * tileSize + (Math.ceil(tiles.length / tilesPerRow) - 1) * tileGap}px`
           }}
         >
           {tiles.map((tile, index) => {
@@ -493,8 +649,8 @@ export default function TileEvent() {
                 key={tile.id}
                 onClick={() => setSelectedTile(tile)}
                 className={`
-                  absolute w-[100px] h-[100px] rounded-xl border-2 transition-all duration-300
-                  flex flex-col items-center justify-center gap-1 text-center p-2 cursor-pointer
+                  absolute rounded-xl border-2 transition-all duration-300
+                  flex flex-col items-center justify-center gap-0.5 sm:gap-1 text-center p-1 sm:p-2 cursor-pointer
                   ${status === 'completed'
                     ? 'bg-emerald-500/20 border-emerald-500/50 hover:border-emerald-400'
                     : status === 'pending'
@@ -505,20 +661,23 @@ export default function TileEvent() {
                   }
                 `}
                 style={{
-                  left: `${pos.x * (100 + 16)}px`,
-                  top: `${pos.y * (100 + 16)}px`
+                  width: `${tileSize}px`,
+                  height: `${tileSize}px`,
+                  left: `${pos.x * (tileSize + tileGap)}px`,
+                  top: `${pos.y * (tileSize + tileGap)}px`
                 }}
               >
                 {/* Lock overlay for locked tiles */}
                 {isLocked && (
                   <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                    <span className="text-2xl opacity-40">🔒</span>
+                    <span className={`${isMobile ? 'text-lg' : 'text-2xl'} opacity-40`}>🔒</span>
                   </div>
                 )}
                 
                 {/* Tile number */}
                 <div className={`
-                  text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center
+                  text-xs font-bold rounded-full flex items-center justify-center
+                  ${isMobile ? 'w-5 h-5' : 'w-6 h-6'}
                   ${status === 'completed' ? 'bg-emerald-500 text-white' : 
                     status === 'pending' ? 'bg-amber-500 text-white' :
                     status === 'current' ? 'bg-yume-accent text-yume-bg' :
@@ -527,17 +686,17 @@ export default function TileEvent() {
                   {status === 'completed' ? '✓' : status === 'pending' ? '⏳' : tile.position + 1}
                 </div>
                 
-                {/* Tile title (truncated) */}
-                <div className={`text-xs font-medium line-clamp-2 ${isLocked ? 'text-gray-500' : 'text-white'}`}>
+                {/* Tile title (truncated) - hide on very small screens */}
+                <div className={`text-xs font-medium line-clamp-2 ${isLocked ? 'text-gray-500' : 'text-white'} ${isMobile ? 'hidden sm:block' : ''}`}>
                   {tile.title}
                 </div>
                 
                 {/* Start/End indicators */}
                 {tile.is_start === 1 && (
-                  <div className="absolute -top-2 -right-2 text-lg">🏁</div>
+                  <div className={`absolute -top-1 -right-1 ${isMobile ? 'text-sm' : 'text-lg'}`}>🏁</div>
                 )}
                 {tile.is_end === 1 && (
-                  <div className="absolute -top-2 -right-2 text-lg">🏆</div>
+                  <div className={`absolute -top-1 -right-1 ${isMobile ? 'text-sm' : 'text-lg'}`}>🏆</div>
                 )}
               </button>
             );
@@ -547,8 +706,8 @@ export default function TileEvent() {
           <svg 
             className="absolute inset-0 pointer-events-none"
             style={{ 
-              width: `${5 * 100 + 4 * 16}px`,
-              height: `${(Math.ceil(tiles.length / 5)) * 100 + (Math.ceil(tiles.length / 5) - 1) * 16}px`
+              width: `${tilesPerRow * tileSize + (tilesPerRow - 1) * tileGap}px`,
+              height: `${(Math.ceil(tiles.length / tilesPerRow)) * tileSize + (Math.ceil(tiles.length / tilesPerRow) - 1) * tileGap}px`
             }}
           >
             {tiles.slice(1).map((_, index) => {
@@ -560,10 +719,10 @@ export default function TileEvent() {
               const currStatus = getTileStatus(currTile);
               const isCompleted = prevStatus === 'completed' && (currStatus === 'completed' || currStatus === 'current' || currStatus === 'pending');
               
-              const x1 = prevPos.x * (100 + 16) + 50;
-              const y1 = prevPos.y * (100 + 16) + 50;
-              const x2 = currPos.x * (100 + 16) + 50;
-              const y2 = currPos.y * (100 + 16) + 50;
+              const x1 = prevPos.x * (tileSize + tileGap) + tileSize / 2;
+              const y1 = prevPos.y * (tileSize + tileGap) + tileSize / 2;
+              const x2 = currPos.x * (tileSize + tileGap) + tileSize / 2;
+              const y2 = currPos.y * (tileSize + tileGap) + tileSize / 2;
               
               return (
                 <line
@@ -739,18 +898,25 @@ export default function TileEvent() {
                         }}
                       />
                       
-                      {/* Upload button */}
+                      {/* Upload button with cooldown */}
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        disabled={uploading}
-                        className="w-full py-3 rounded-xl border-2 border-dashed border-yume-border hover:border-yume-accent 
-                                   bg-yume-bg-light hover:bg-yume-accent/10 transition-all
-                                   text-gray-400 hover:text-yume-accent disabled:opacity-50"
+                        disabled={uploading || cooldownRemaining > 0}
+                        className={`w-full py-3 rounded-xl border-2 border-dashed transition-all
+                          ${cooldownRemaining > 0 
+                            ? 'border-amber-500/50 bg-amber-500/10 text-amber-400 cursor-not-allowed' 
+                            : 'border-yume-border hover:border-yume-accent bg-yume-bg-light hover:bg-yume-accent/10 text-gray-400 hover:text-yume-accent'
+                          } disabled:opacity-50`}
                       >
                         {uploading ? (
                           <span className="flex items-center justify-center gap-2">
                             <span className="animate-spin">⏳</span>
                             Uploading...
+                          </span>
+                        ) : cooldownRemaining > 0 ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <span>⏱️</span>
+                            Wait {cooldownRemaining}s before next submission
                           </span>
                         ) : (
                           <span className="flex items-center justify-center gap-2">
@@ -761,7 +927,7 @@ export default function TileEvent() {
                       </button>
                       
                       <p className="text-xs text-gray-500 text-center">
-                        Supported: JPEG, PNG, WebP, GIF (max 5MB)
+                        Supported: JPEG, PNG, WebP, GIF (max 5MB) • 1 submission per minute
                       </p>
                     </div>
                   )}
