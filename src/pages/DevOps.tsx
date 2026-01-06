@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 interface RepoStatus {
@@ -140,7 +141,11 @@ const GITHUB_ORG = 'y-u-m-e';
 const API_BASE = import.meta.env.VITE_API_URL || 'https://api.emuy.gg';
 
 export default function DevOps() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, hasPermission, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  
+  // Check permission (admins always have access)
+  const canViewDevOps = isAdmin || hasPermission('view_devops');
   const [repos, setRepos] = useState<RepoStatus[]>(
     REPOS.map(r => ({ ...r, loading: true }))
   );
@@ -572,7 +577,14 @@ export default function DevOps() {
     }
   };
 
-  if (authLoading || !user) {
+  // Redirect users without permission
+  useEffect(() => {
+    if (!authLoading && (!user || !canViewDevOps)) {
+      navigate('/');
+    }
+  }, [user, authLoading, canViewDevOps, navigate]);
+
+  if (authLoading || !user || !canViewDevOps) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="w-8 h-8 border-2 border-yume-mint border-t-transparent rounded-full animate-spin" />
@@ -580,7 +592,8 @@ export default function DevOps() {
     );
   }
 
-  if (user.id !== '166201366228762624') {
+  // This check is now redundant since canViewDevOps handles it, but keeping for safety
+  if (!canViewDevOps) {
     return (
       <div className="max-w-xl mx-auto text-center py-20">
         <h1 className="text-3xl font-bold text-yume-mint mb-4">🚫 Access Denied</h1>

@@ -69,7 +69,7 @@ export default function TileEvents() {
   // AUTH STATE
   // ==========================================================================
   
-  const { isAdmin } = useAuth();
+  const { isEventsAdmin } = useAuth();
   
   // ==========================================================================
   // STATE
@@ -149,7 +149,7 @@ export default function TileEvents() {
         </div>
         
         {/* Admin Management Link */}
-        {isAdmin && (
+        {isEventsAdmin && (
           <Link 
             to="/admin/tile-events"
             className="btn-primary flex items-center gap-2"
@@ -257,11 +257,11 @@ export default function TileEvents() {
           <div className="text-6xl mb-4">🎮</div>
           <h3 className="text-xl font-bold text-white mb-2">No Events Yet</h3>
           <p className="text-gray-400 mb-6">
-            {isAdmin 
+            {isEventsAdmin 
               ? "Create your first tile event to get started!"
               : "Check back later for upcoming clan events."}
           </p>
-          {isAdmin && (
+          {isEventsAdmin && (
             <Link to="/admin/tile-events" className="btn-primary">
               Create Event
             </Link>

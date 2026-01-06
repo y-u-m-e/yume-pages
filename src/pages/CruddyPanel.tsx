@@ -81,8 +81,11 @@ export default function CruddyPanel() {
   // AUTH & NAVIGATION
   // ==========================================================================
   
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, hasPermission, isAdmin } = useAuth();
   const navigate = useNavigate();
+  
+  // Check permission (admins always have access)
+  const canViewCruddy = isAdmin || hasPermission('view_cruddy');
   
   // ==========================================================================
   // STATE MANAGEMENT
@@ -153,13 +156,13 @@ export default function CruddyPanel() {
   // ==========================================================================
 
   /**
-   * Redirect unauthenticated users to home
+   * Redirect users without permission to home
    */
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (!authLoading && (!user || !canViewCruddy)) {
       navigate('/');
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, canViewCruddy, navigate]);
 
   // ==========================================================================
   // DATA FETCHING CALLBACKS
@@ -629,7 +632,7 @@ export default function CruddyPanel() {
   // LOADING STATE
   // ==========================================================================
 
-  if (authLoading || !user) {
+  if (authLoading || !user || !canViewCruddy) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="w-8 h-8 border-2 border-yume-accent border-t-transparent rounded-full animate-spin" />

@@ -75,8 +75,11 @@ export default function Docs() {
   // AUTH & NAVIGATION
   // ==========================================================================
   
-  const { user, loading } = useAuth();
+  const { user, loading, hasPermission, isAdmin } = useAuth();
   const navigate = useNavigate();
+  
+  // Check permission (admins always have access)
+  const canViewDocs = isAdmin || hasPermission('view_docs');
   
   // Currently active documentation section
   const [activeSection, setActiveSection] = useState<DocSection>('overview');
@@ -86,19 +89,19 @@ export default function Docs() {
   // ==========================================================================
 
   /**
-   * Redirect unauthenticated users to home
+   * Redirect users without permission to home
    */
   useEffect(() => {
-    if (!loading && !user) {
+    if (!loading && (!user || !canViewDocs)) {
       navigate('/');
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, canViewDocs, navigate]);
 
   // ==========================================================================
   // LOADING STATE
   // ==========================================================================
 
-  if (loading || !user) {
+  if (loading || !user || !canViewDocs) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="w-8 h-8 border-2 border-yume-accent border-t-transparent rounded-full animate-spin" />
