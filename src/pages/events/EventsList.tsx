@@ -63,7 +63,7 @@ export default function EventsList() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
       </div>
     );
   }
@@ -87,7 +87,7 @@ export default function EventsList() {
       {activeEvents.length > 0 && (
         <section>
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+            <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
             Active Events
           </h2>
           <div className="grid md:grid-cols-2 gap-4">
@@ -95,13 +95,13 @@ export default function EventsList() {
               <Link
                 key={event.id}
                 to={`/events/${event.id}`}
-                className="group bg-yume-card rounded-2xl border border-yume-border p-6 hover:border-amber-500/50 transition-all"
+                className="group bg-yume-card rounded-2xl border border-yume-border p-6 hover:border-orange-500/50 transition-all"
               >
                 <div className="flex items-start justify-between mb-3">
-                  <h3 className="text-xl font-bold text-white group-hover:text-amber-400 transition-colors">
+                  <h3 className="text-xl font-bold text-white group-hover:text-orange-400 transition-colors">
                     {event.name}
                   </h3>
-                  <span className="px-2 py-0.5 text-xs font-medium bg-emerald-500/20 text-emerald-400 rounded-full">
+                  <span className="px-2 py-0.5 text-xs font-medium bg-orange-500/20 text-orange-400 rounded-full">
                     Active
                   </span>
                 </div>
@@ -124,7 +124,7 @@ export default function EventsList() {
                 </div>
                 
                 <div className="mt-4 pt-4 border-t border-yume-border">
-                  <span className="text-amber-400 text-sm font-medium group-hover:underline">
+                  <span className="text-orange-400 text-sm font-medium group-hover:underline">
                     View Event →
                   </span>
                 </div>
@@ -183,7 +183,7 @@ export default function EventsList() {
         <h3 className="text-lg font-semibold text-white mb-4">How It Works</h3>
         <div className="grid sm:grid-cols-3 gap-6">
           <div className="text-center">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center mx-auto mb-3 text-2xl">
+            <div className="w-12 h-12 rounded-xl bg-orange-500/20 flex items-center justify-center mx-auto mb-3 text-2xl">
               1️⃣
             </div>
             <div className="font-medium text-white mb-1">Join an Event</div>
@@ -192,7 +192,7 @@ export default function EventsList() {
             </div>
           </div>
           <div className="text-center">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center mx-auto mb-3 text-2xl">
+            <div className="w-12 h-12 rounded-xl bg-orange-500/20 flex items-center justify-center mx-auto mb-3 text-2xl">
               🎯
             </div>
             <div className="font-medium text-white mb-1">Complete Tasks</div>
@@ -201,7 +201,7 @@ export default function EventsList() {
             </div>
           </div>
           <div className="text-center">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center mx-auto mb-3 text-2xl">
+            <div className="w-12 h-12 rounded-xl bg-orange-500/20 flex items-center justify-center mx-auto mb-3 text-2xl">
               🏆
             </div>
             <div className="font-medium text-white mb-1">Finish the Event</div>

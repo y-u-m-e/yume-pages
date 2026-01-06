@@ -34,12 +34,14 @@ export default function EventsLayout() {
             to="/" 
             className="flex items-center gap-3 hover:opacity-80 transition-opacity"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-xl font-bold text-white shadow-lg">
-              ⚔️
-            </div>
+            <img 
+              src="/ironforged-icon.gif" 
+              alt="Ironforged" 
+              className="w-10 h-10 rounded-xl shadow-lg shadow-orange-500/30"
+            />
             <div>
               <span className="text-lg font-bold text-white">Ironforged</span>
-              <span className="text-lg font-light text-amber-400 ml-1">Events</span>
+              <span className="text-lg font-light text-orange-400 ml-1">Events</span>
             </div>
           </Link>
 
@@ -58,7 +60,7 @@ export default function EventsLayout() {
             {user && isEventsAdmin && !isAdminPage && (
               <Link 
                 to="/admin" 
-                className="flex items-center gap-1.5 text-amber-400 hover:text-amber-300 transition-colors text-sm font-medium"
+                className="flex items-center gap-1.5 text-orange-400 hover:text-orange-300 transition-colors text-sm font-medium"
               >
                 <span>⚙️</span>
                 Admin
@@ -86,10 +88,10 @@ export default function EventsLayout() {
                     <img 
                       src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=32`}
                       alt={user.username}
-                      className="w-8 h-8 rounded-full ring-2 ring-amber-500/50"
+                      className="w-8 h-8 rounded-full ring-2 ring-orange-500/50"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 text-sm font-medium">
+                    <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 text-sm font-medium">
                       {user.username.charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -131,7 +133,7 @@ export default function EventsLayout() {
       <footer className="border-t border-yume-border py-6 px-4">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
           <div className="flex items-center gap-2">
-            <span>⚔️</span>
+            <img src="/ironforged-icon.gif" alt="" className="w-5 h-5" />
             <span>Ironforged Clan Events</span>
           </div>
           <div className="flex items-center gap-4">

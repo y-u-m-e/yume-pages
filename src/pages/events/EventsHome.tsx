@@ -38,7 +38,7 @@ export default function EventsHome() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
       </div>
     );
   }
@@ -54,14 +54,14 @@ export default function EventsHome() {
       {/* Hero Section */}
       <section className="text-center py-16 md:py-24">
         {/* Event Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/30 rounded-full text-amber-400 text-sm font-medium mb-8">
-          <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500/10 border border-orange-500/30 rounded-full text-orange-400 text-sm font-medium mb-8">
+          <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
           Active Events Available
         </div>
 
         {/* Main Headline */}
         <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
-          <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-orange-400 via-red-500 to-orange-500 bg-clip-text text-transparent">
             Ironforged
           </span>
           <br />
@@ -97,7 +97,7 @@ export default function EventsHome() {
         <div className="grid md:grid-cols-3 gap-8">
           {/* Step 1 */}
           <div className="text-center group">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 flex items-center justify-center text-4xl group-hover:scale-110 transition-transform">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-orange-500/30 flex items-center justify-center text-4xl group-hover:scale-110 transition-transform">
               🔗
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">
@@ -110,7 +110,7 @@ export default function EventsHome() {
 
           {/* Step 2 */}
           <div className="text-center group">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 flex items-center justify-center text-4xl group-hover:scale-110 transition-transform">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-orange-500/30 flex items-center justify-center text-4xl group-hover:scale-110 transition-transform">
               🎯
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">
@@ -123,7 +123,7 @@ export default function EventsHome() {
 
           {/* Step 3 */}
           <div className="text-center group">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30 flex items-center justify-center text-4xl group-hover:scale-110 transition-transform">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-orange-500/30 flex items-center justify-center text-4xl group-hover:scale-110 transition-transform">
               🏆
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">
@@ -138,7 +138,7 @@ export default function EventsHome() {
 
       {/* Bottom CTA */}
       <section className="py-16 text-center">
-        <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-2xl p-8 md:p-12">
+        <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/30 rounded-2xl p-8 md:p-12">
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
             Ready to Join?
           </h2>
@@ -147,7 +147,7 @@ export default function EventsHome() {
           </p>
           <button
             onClick={handleLogin}
-            className="inline-flex items-center gap-3 px-8 py-4 bg-amber-500 hover:bg-amber-600 text-black rounded-xl font-semibold transition-all transform hover:scale-105"
+            className="inline-flex items-center gap-3 px-8 py-4 bg-orange-500 hover:bg-orange-600 text-black rounded-xl font-semibold transition-all transform hover:scale-105"
           >
             Get Started
             <span>→</span>
