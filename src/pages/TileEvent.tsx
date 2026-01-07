@@ -205,6 +205,20 @@ export default function TileEvent() {
     }
   }, [eventId, user]);
 
+  // Auto-refresh progress every 30 seconds (only when tab is visible and user is joined)
+  useEffect(() => {
+    if (!eventId || !user || !joined) return;
+    
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchProgress();
+        fetchSubmissions();
+      }
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, [eventId, user, joined]);
+
   // Calculate and update cooldown timer
   const updateCooldown = useCallback(() => {
     if (submissions.length === 0) {

@@ -192,6 +192,19 @@ export default function TileEventAdmin() {
     fetchEvents();
   }, [isEventsAdmin, navigate]);
 
+  // Auto-refresh selected event data every 15 seconds (only when tab is visible)
+  useEffect(() => {
+    if (!selectedEvent) return;
+    
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchEventDetails(selectedEvent.id);
+      }
+    }, 15000);
+    
+    return () => clearInterval(interval);
+  }, [selectedEvent?.id, submissionFilter]);
+
   const fetchEvents = async () => {
     try {
       const res = await fetch(`${API_BASE}/tile-events`, {

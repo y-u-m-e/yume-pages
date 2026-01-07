@@ -45,6 +45,17 @@ export default function EventsList() {
     fetchEvents();
   }, []);
 
+  // Auto-refresh events list every 60 seconds (only when tab is visible)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchEvents();
+      }
+    }, 60000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   const fetchEvents = async () => {
     setError(null);
     try {
