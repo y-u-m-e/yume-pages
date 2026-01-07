@@ -153,12 +153,14 @@ export default function TileEvent() {
     return maxSkips - (progress.skips_used || 0);
   };
   
-  // Calculate ingots earned (50k per 6 tiles)
+  // Calculate ingots earned (increasing rewards: 50k at tile 6, 100k at tile 12, 150k at tile 18)
+  // Total: 50k + 100k + 150k = 300k
   const getIngotsEarned = () => {
     if (!progress) return 0;
     const tilesCompleted = progress.tiles_unlocked.length;
     const milestones = Math.floor(tilesCompleted / 6);
-    return milestones * 50000;
+    // Sum formula: 50k * (1 + 2 + 3 + ... + n) = 50k * n(n+1)/2
+    return 50000 * milestones * (milestones + 1) / 2;
   };
   
   // Handle skip tile
@@ -272,17 +274,19 @@ export default function TileEvent() {
     }
   }, [submissions, updateCooldown, cooldownRemaining]);
 
-  // Detect milestone hits (ingot rewards every 6 tiles)
+  // Detect milestone hits (ingot rewards every 6 tiles: 50k, 100k, 150k = 300k total)
   useEffect(() => {
     if (!progress || !event || !user) return;
     
     const tilesCompleted = progress.tiles_unlocked.length;
-    const ingots = Math.floor(tilesCompleted / 6) * 50000;
+    const milestones = Math.floor(tilesCompleted / 6);
+    // Using same formula: 50k * n(n+1)/2
+    const totalIngots = 50000 * milestones * (milestones + 1) / 2;
     
-    // Check if we hit a new milestone (6, 12, 18 tiles = 50k, 100k, 150k)
-    if (tilesCompleted > 0 && tilesCompleted % 6 === 0 && ingots > lastSeenMilestone) {
-      setShowMilestone(ingots);
-      setLastSeenMilestone(ingots);
+    // Check if we hit a new milestone (6, 12, 18 tiles)
+    if (tilesCompleted > 0 && tilesCompleted % 6 === 0 && totalIngots > lastSeenMilestone) {
+      setShowMilestone(totalIngots);
+      setLastSeenMilestone(totalIngots);
     }
   }, [progress?.tiles_unlocked.length, event, user, lastSeenMilestone]);
 
@@ -1255,7 +1259,11 @@ export default function TileEvent() {
             <p className="text-orange-200/70 text-sm mb-6">
               {showMilestone >= 300000 
                 ? "You've earned all available ingots! Amazing!" 
-                : `Next milestone: ${(showMilestone + 50000) / 1000}k at tile ${Math.floor(progress!.tiles_unlocked.length / 6) * 6 + 6}`
+                : (() => {
+                    const nextMilestoneNum = Math.floor(progress!.tiles_unlocked.length / 6) + 1;
+                    const nextTotal = 50000 * nextMilestoneNum * (nextMilestoneNum + 1) / 2;
+                    return `Next milestone: ${nextTotal / 1000}k total at tile ${nextMilestoneNum * 6}`;
+                  })()
               }
             </p>
             <button
