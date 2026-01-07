@@ -158,6 +158,7 @@ export default function TileEventAdmin() {
   // Tile editing
   const [editingTile, setEditingTile] = useState<Tile | null>(null);
   const [showTileForm, setShowTileForm] = useState(false);
+  const [savingTiles, setSavingTiles] = useState(false);
   
   // Sheet sync states
   const [sheetId, setSheetId] = useState('');
@@ -426,22 +427,38 @@ export default function TileEventAdmin() {
   };
 
   const saveTiles = async () => {
-    if (!selectedEvent) return;
+    if (!selectedEvent || savingTiles) return;
     
+    setSavingTiles(true);
     try {
+      // Normalize tiles to ensure clean data without duplicates
+      const cleanTiles = tiles.map((tile, index) => ({
+        title: tile.title || '',
+        description: tile.description || '',
+        image_url: tile.image_url || '',
+        unlock_keywords: tile.unlock_keywords || '',
+        position: index
+      }));
+      
       const res = await fetch(`${API_BASE}/admin/tile-events/${selectedEvent.id}/tiles/bulk`, {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tiles })
+        body: JSON.stringify({ tiles: cleanTiles })
       });
       
       if (res.ok) {
-        fetchEventDetails(selectedEvent.id);
+        await fetchEventDetails(selectedEvent.id);
         fetchEvents();
+      } else {
+        const data = await res.json();
+        alert(`Failed to save: ${data.error}`);
       }
     } catch (err) {
       console.error('Failed to save tiles:', err);
+      alert('Failed to save tiles');
+    } finally {
+      setSavingTiles(false);
     }
   };
 
@@ -841,9 +858,10 @@ export default function TileEventAdmin() {
                       </button>
                       <button
                         onClick={saveTiles}
-                        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
+                        disabled={savingTiles}
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Save All
+                        {savingTiles ? '⏳ Saving...' : 'Save All'}
                       </button>
                     </div>
                   </div>
