@@ -124,7 +124,8 @@ export default function TileEvent() {
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
   const [submissions, setSubmissions] = useState<{
     id: number; 
-    tile_id: number; 
+    tile_id: number;
+    tile_position: number;
     status: string; 
     created_at: string;
     image_url?: string;
@@ -416,10 +417,10 @@ export default function TileEvent() {
   };
 
   /**
-   * Get submission status for a specific tile
+   * Get submission status for a specific tile (by position for stability)
    */
-  const getTileSubmission = (tileId: number) => {
-    return submissions.find(s => s.tile_id === tileId);
+  const getTileSubmission = (tile: Tile) => {
+    return submissions.find(s => s.tile_position === tile.position);
   };
 
   const joinEvent = async () => {
@@ -503,8 +504,8 @@ export default function TileEvent() {
       return 'locked';
     }
     
-    // Single submission tile - original logic
-    const submission = submissions.find(s => s.tile_id === tile.id);
+    // Single submission tile - use tile_position for stable lookup after bulk updates
+    const submission = submissions.find(s => s.tile_position === tile.position);
     
     // If there's an approved submission, it's completed
     if (submission?.status === 'approved') {
@@ -1084,7 +1085,7 @@ export default function TileEvent() {
                 <div className="space-y-4">
                   {/* Check for rejected submission */}
                   {(() => {
-                    const submission = getTileSubmission(selectedTile.id);
+                    const submission = getTileSubmission(selectedTile);
                     if (submission?.status === 'rejected') {
                       return (
                         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-4">
