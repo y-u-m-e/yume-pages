@@ -61,11 +61,12 @@ interface Tile {
 }
 
 /**
- * Progress for a tile (approved submissions count)
+ * Progress for a tile (submission counts)
  */
 interface TileProgress {
-  approved: number;
-  required: number;
+  submitted: number;  // Total non-rejected submissions (pending + approved)
+  approved: number;   // Approved submissions only
+  required: number;   // Required submissions to unlock
 }
 
 /**
@@ -725,11 +726,11 @@ export default function TileEvent() {
                 {/* Submission progress indicator for multi-submission tiles */}
                 {(tile.required_submissions || 1) > 1 && tileProgress[tile.id] && (
                   <div className={`text-[10px] font-medium ${
-                    tileProgress[tile.id].approved >= tileProgress[tile.id].required 
+                    tileProgress[tile.id].submitted >= tileProgress[tile.id].required 
                       ? 'text-emerald-400' 
                       : 'text-amber-400'
                   }`}>
-                    {tileProgress[tile.id].approved}/{tileProgress[tile.id].required}
+                    {tileProgress[tile.id].submitted}/{tileProgress[tile.id].required}
                   </div>
                 )}
                 
@@ -840,27 +841,37 @@ export default function TileEvent() {
             {(selectedTile.required_submissions || 1) > 1 && user && joined && (
               <div className="bg-yume-bg-light/50 rounded-xl p-3 mb-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-400">Submissions Required</span>
+                  <span className="text-sm text-gray-400">Submissions</span>
                   <span className={`text-sm font-bold ${
-                    (tileProgress[selectedTile.id]?.approved || 0) >= (selectedTile.required_submissions || 1)
+                    (tileProgress[selectedTile.id]?.submitted || 0) >= (selectedTile.required_submissions || 1)
                       ? 'text-emerald-400'
                       : 'text-amber-400'
                   }`}>
-                    {tileProgress[selectedTile.id]?.approved || 0} / {selectedTile.required_submissions || 1}
+                    {tileProgress[selectedTile.id]?.submitted || 0} / {selectedTile.required_submissions || 1}
+                    {(tileProgress[selectedTile.id]?.approved || 0) > 0 && (
+                      <span className="text-emerald-400 ml-1">
+                        (✓{tileProgress[selectedTile.id]?.approved})
+                      </span>
+                    )}
                   </span>
                 </div>
                 <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
                   <div 
                     className={`h-full rounded-full transition-all ${
-                      (tileProgress[selectedTile.id]?.approved || 0) >= (selectedTile.required_submissions || 1)
+                      (tileProgress[selectedTile.id]?.submitted || 0) >= (selectedTile.required_submissions || 1)
                         ? 'bg-emerald-500'
                         : 'bg-amber-500'
                     }`}
                     style={{ 
-                      width: `${Math.min(100, ((tileProgress[selectedTile.id]?.approved || 0) / (selectedTile.required_submissions || 1)) * 100)}%` 
+                      width: `${Math.min(100, ((tileProgress[selectedTile.id]?.submitted || 0) / (selectedTile.required_submissions || 1)) * 100)}%` 
                     }}
                   />
                 </div>
+                {(tileProgress[selectedTile.id]?.submitted || 0) > (tileProgress[selectedTile.id]?.approved || 0) && (
+                  <p className="text-xs text-amber-400 mt-2">
+                    ⏳ {(tileProgress[selectedTile.id]?.submitted || 0) - (tileProgress[selectedTile.id]?.approved || 0)} pending review
+                  </p>
+                )}
               </div>
             )}
             
