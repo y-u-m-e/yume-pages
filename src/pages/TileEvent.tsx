@@ -919,9 +919,26 @@ export default function TileEvent() {
               const currPos = snakePositions[index + 1];
               const prevStatus = getTileStatus(prevTile);
               const currStatus = getTileStatus(currTile);
-              // Line is completed when prev tile has all required submissions (completed OR pending with all submissions)
-              const prevTileHasAllSubmissions = prevStatus === 'completed' || prevStatus === 'pending';
-              const isCompleted = prevTileHasAllSubmissions && (currStatus === 'completed' || currStatus === 'current' || currStatus === 'pending');
+              
+              // Determine line style based on previous tile status
+              const isPrevCompleted = prevStatus === 'completed';
+              const isPrevPending = prevStatus === 'pending';
+              const nextTileAccessible = currStatus === 'completed' || currStatus === 'current' || currStatus === 'pending';
+              
+              // Line colors: green (completed), amber (pending), gray (locked)
+              let strokeColor = '#374151'; // gray - locked
+              let strokeWidth = 2;
+              let strokeDash: string | undefined = '5,5';
+              
+              if (isPrevCompleted && nextTileAccessible) {
+                strokeColor = '#10b981'; // green - fully completed
+                strokeWidth = 3;
+                strokeDash = undefined;
+              } else if (isPrevPending && nextTileAccessible) {
+                strokeColor = '#f59e0b'; // amber - pending approval
+                strokeWidth = 3;
+                strokeDash = undefined;
+              }
               
               const x1 = prevPos.x * (tileSize + tileGap) + tileSize / 2;
               const y1 = prevPos.y * (tileSize + tileGap) + tileSize / 2;
@@ -935,9 +952,9 @@ export default function TileEvent() {
                   y1={y1}
                   x2={x2}
                   y2={y2}
-                  stroke={isCompleted ? '#10b981' : '#374151'}
-                  strokeWidth={isCompleted ? 3 : 2}
-                  strokeDasharray={isCompleted ? undefined : '5,5'}
+                  stroke={strokeColor}
+                  strokeWidth={strokeWidth}
+                  strokeDasharray={strokeDash}
                   className="transition-all duration-300"
                 />
               );
