@@ -83,6 +83,7 @@ interface Participant {
   rsn?: string;                 // RuneScape name
   current_tile: number;         // Highest tile position
   tiles_unlocked: number[];     // Array of completed tile positions
+  skips_used: number;           // Number of skips used
   completed_at?: string;        // ISO timestamp if finished
   updated_at: string;           // Last activity timestamp
 }
@@ -166,6 +167,14 @@ export default function TileEventAdmin() {
   const [sheetTab, setSheetTab] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [showSheetConfig, setShowSheetConfig] = useState(false);
+  
+  // Tile submissions view (for viewing approved images per tile)
+  const [viewingTileSubmissions, setViewingTileSubmissions] = useState<{
+    tile: Tile;
+    participant: Participant;
+    submissions: Submission[];
+  } | null>(null);
+  const [loadingTileSubmissions, setLoadingTileSubmissions] = useState(false);
   
   // Event users management (RSN linking)
   const [showUsersView, setShowUsersView] = useState(false);
@@ -593,6 +602,53 @@ export default function TileEventAdmin() {
     }
   };
 
+  const adjustSkips = async (participant: Participant, newSkipsUsed: number) => {
+    if (!selectedEvent) return;
+    
+    try {
+      const res = await fetch(`${API_BASE}/admin/tile-events/${selectedEvent.id}/participants/${participant.discord_id}/skips`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skips_used: newSkipsUsed })
+      });
+      
+      if (res.ok) {
+        fetchEventDetails(selectedEvent.id);
+      } else {
+        const data = await res.json();
+        alert(`Failed to adjust skips: ${data.error}`);
+      }
+    } catch (err) {
+      console.error('Failed to adjust skips:', err);
+    }
+  };
+
+  const viewTileSubmissions = async (participant: Participant, tile: Tile) => {
+    if (!selectedEvent) return;
+    
+    setLoadingTileSubmissions(true);
+    try {
+      const res = await fetch(
+        `${API_BASE}/admin/tile-events/${selectedEvent.id}/participants/${participant.discord_id}/tiles/${tile.position}/submissions`,
+        { credentials: 'include' }
+      );
+      
+      if (res.ok) {
+        const data = await res.json();
+        setViewingTileSubmissions({
+          tile,
+          participant,
+          submissions: data.submissions || []
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch tile submissions:', err);
+    } finally {
+      setLoadingTileSubmissions(false);
+    }
+  };
+
   const saveSheetConfig = async () => {
     if (!selectedEvent) return;
     
@@ -981,15 +1037,37 @@ export default function TileEventAdmin() {
                                 <div className="font-medium text-white">
                                   {participant.rsn || participant.global_name || participant.username || participant.discord_username}
                                 </div>
-                                <div className="text-xs text-gray-500">
-                                  {participant.tiles_unlocked.length}/{tiles.length} tiles
+                                <div className="text-xs text-gray-500 flex items-center gap-3">
+                                  <span>{participant.tiles_unlocked.length}/{tiles.length} tiles</span>
+                                  <span className="text-purple-400">
+                                    ⏭️ {participant.skips_used || 0} skips used
+                                  </span>
                                   {participant.completed_at && (
-                                    <span className="text-emerald-400 ml-2">✓ Completed</span>
+                                    <span className="text-emerald-400">✓ Completed</span>
                                   )}
                                 </div>
                               </div>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex items-center gap-3">
+                              {/* Skip controls */}
+                              <div className="flex items-center gap-1 bg-purple-500/10 rounded-lg px-2 py-1">
+                                <button
+                                  onClick={() => adjustSkips(participant, Math.max(0, (participant.skips_used || 0) - 1))}
+                                  disabled={(participant.skips_used || 0) <= 0}
+                                  className="w-5 h-5 rounded bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-white disabled:opacity-30 text-xs"
+                                  title="Remove a skip"
+                                >
+                                  −
+                                </button>
+                                <span className="text-xs text-purple-400 w-4 text-center">{participant.skips_used || 0}</span>
+                                <button
+                                  onClick={() => adjustSkips(participant, (participant.skips_used || 0) + 1)}
+                                  className="w-5 h-5 rounded bg-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-white text-xs"
+                                  title="Add a skip"
+                                >
+                                  +
+                                </button>
+                              </div>
                               <button
                                 onClick={() => resetUserProgress(participant)}
                                 className="text-xs text-yellow-400 hover:underline"
@@ -1005,7 +1083,7 @@ export default function TileEventAdmin() {
                             </div>
                           </div>
                           
-                          {/* Tile progress grid - click to toggle unlock/lock */}
+                          {/* Tile progress grid - click to view submissions, right-click to toggle */}
                           <div className="flex flex-wrap gap-1">
                             {tiles.map((tile, index) => {
                               const isUnlocked = participant.tiles_unlocked.includes(index);
@@ -1014,15 +1092,19 @@ export default function TileEventAdmin() {
                               return (
                                 <button
                                   key={index}
-                                  onClick={() => isUnlocked ? lockTile(participant, index) : unlockTile(participant, index)}
+                                  onClick={() => isUnlocked ? viewTileSubmissions(participant, tile) : unlockTile(participant, index)}
+                                  onContextMenu={(e) => {
+                                    e.preventDefault();
+                                    isUnlocked ? lockTile(participant, index) : unlockTile(participant, index);
+                                  }}
                                   className={`w-8 h-8 rounded text-xs font-bold transition-all cursor-pointer ${
                                     isUnlocked
-                                      ? 'bg-emerald-500 text-white hover:bg-red-500'
+                                      ? 'bg-emerald-500 text-white hover:bg-emerald-600'
                                       : isNext
                                       ? 'bg-yume-accent/20 text-yume-accent hover:bg-yume-accent hover:text-yume-bg'
                                       : 'bg-gray-700 text-gray-500 hover:bg-gray-600'
                                   }`}
-                                  title={`${tile.title} - ${isUnlocked ? 'Click to step back' : 'Click to unlock'}`}
+                                  title={`${tile.title} - ${isUnlocked ? 'Click to view submissions, right-click to lock' : 'Click to unlock'}`}
                                 >
                                   {isUnlocked ? '✓' : index + 1}
                                 </button>
@@ -2031,6 +2113,109 @@ export default function TileEventAdmin() {
               >
                 Save Configuration
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tile Submissions Modal - View accepted images for a tile */}
+      {viewingTileSubmissions && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-yume-card rounded-2xl border border-yume-border max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-yume-border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-white">
+                    {viewingTileSubmissions.tile.title}
+                  </h3>
+                  <p className="text-sm text-gray-400">
+                    Submissions by {viewingTileSubmissions.participant.rsn || viewingTileSubmissions.participant.global_name || viewingTileSubmissions.participant.discord_username}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setViewingTileSubmissions(null)}
+                  className="w-8 h-8 rounded-lg bg-yume-bg-light text-gray-400 hover:text-white flex items-center justify-center"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6">
+              {loadingTileSubmissions ? (
+                <div className="text-center py-8 text-gray-400">
+                  <div className="animate-spin w-8 h-8 border-2 border-yume-accent border-t-transparent rounded-full mx-auto mb-2" />
+                  Loading submissions...
+                </div>
+              ) : viewingTileSubmissions.submissions.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">
+                  <div className="text-4xl mb-2">📭</div>
+                  <p>No submissions for this tile yet.</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    This tile may have been skipped or unlocked manually.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {viewingTileSubmissions.submissions.map((submission) => (
+                    <div
+                      key={submission.id}
+                      className={`rounded-xl border p-4 ${
+                        submission.status === 'approved' 
+                          ? 'bg-emerald-500/10 border-emerald-500/30' 
+                          : submission.status === 'rejected'
+                          ? 'bg-red-500/10 border-red-500/30'
+                          : 'bg-amber-500/10 border-amber-500/30'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            submission.status === 'approved' 
+                              ? 'bg-emerald-500/20 text-emerald-400' 
+                              : submission.status === 'rejected'
+                              ? 'bg-red-500/20 text-red-400'
+                              : 'bg-amber-500/20 text-amber-400'
+                          }`}>
+                            {submission.status.toUpperCase()}
+                          </span>
+                          {submission.ai_confidence && (
+                            <span className="text-xs text-gray-500">
+                              AI: {Math.round(submission.ai_confidence * 100)}%
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {new Date(submission.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      
+                      {/* Submission Image */}
+                      {submission.image_url && (
+                        <a
+                          href={submission.image_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block"
+                        >
+                          <img
+                            src={submission.image_url}
+                            alt="Submission"
+                            className="w-full max-h-64 object-contain rounded-lg bg-black/30 hover:opacity-90 transition-opacity"
+                          />
+                        </a>
+                      )}
+                      
+                      {/* Admin notes */}
+                      {submission.admin_notes && (
+                        <div className="mt-3 text-sm text-gray-400 bg-yume-bg-light/50 rounded-lg p-2">
+                          <span className="text-gray-500">Admin notes:</span> {submission.admin_notes}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
