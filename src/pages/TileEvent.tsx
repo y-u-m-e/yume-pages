@@ -528,12 +528,27 @@ export default function TileEvent() {
     
     // Check if this is the current tile (next to unlock)
     // First tile is accessible if nothing unlocked
-    // Otherwise, current tile is one after the highest unlocked
+    // Otherwise, current tile is one after the highest COMPLETED tile
     const maxUnlocked = progress.tiles_unlocked.length > 0 
       ? Math.max(...progress.tiles_unlocked) 
       : -1;
     
     if (tile.position === maxUnlocked + 1) {
+      // Before showing as current, verify the previous tile is actually COMPLETE
+      // (not just unlocked with pending submissions)
+      if (maxUnlocked >= 0) {
+        const prevTile = tiles.find(t => t.position === maxUnlocked);
+        if (prevTile) {
+          const prevRequired = prevTile.required_submissions || 1;
+          const prevProgress = tileProgress[prevTile.id];
+          const prevApproved = prevProgress?.approved || 0;
+          
+          // If previous tile needs more approvals, this tile stays locked
+          if (prevApproved < prevRequired) {
+            return 'locked';
+          }
+        }
+      }
       return 'current';
     }
     
