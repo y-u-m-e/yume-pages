@@ -895,8 +895,11 @@ export default function TileEventAdmin() {
                             <div className="font-medium text-white truncate">{tile.title || 'Untitled'}</div>
                             <div className="flex gap-3 text-xs">
                               {tile.unlock_keywords && (
-                                <span className="text-emerald-400 truncate" title={tile.unlock_keywords}>
-                                  🔑 {tile.unlock_keywords}
+                                <span 
+                                  className="text-emerald-400 cursor-help" 
+                                  title={tile.unlock_keywords}
+                                >
+                                  🔑 {tile.unlock_keywords.split(',').filter(k => k.trim()).length} keywords
                                 </span>
                               )}
                               {(tile.required_submissions || 1) > 1 && (
@@ -1802,21 +1805,111 @@ export default function TileEventAdmin() {
                 />
               </div>
               
-              {/* Drop Keywords for this tile */}
+              {/* Drop Keywords for this tile - Tag Editor */}
               <div>
                 <label className="block text-sm text-gray-400 mb-1">
-                  🎯 Drop Keywords <span className="text-gray-500">(comma-separated)</span>
+                  🎯 Drop Keywords 
+                  <span className="text-gray-500 ml-2">
+                    ({(editingTile.unlock_keywords || '').split(',').filter(k => k.trim()).length} keywords)
+                  </span>
                 </label>
-                <input
-                  type="text"
-                  value={editingTile.unlock_keywords || ''}
-                  onChange={e => setEditingTile({ ...editingTile, unlock_keywords: e.target.value })}
-                  placeholder="dragon axe, warrior ring, berserker ring"
-                  className="w-full px-4 py-2 rounded-lg bg-yume-bg-light border border-yume-border text-white placeholder:text-gray-500 focus:border-yume-accent outline-none"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  At least ONE of these must appear in the screenshot (with the event's required keyword)
-                </p>
+                
+                {/* Keyword Tags Display */}
+                <div className="min-h-[80px] max-h-[200px] overflow-y-auto p-3 rounded-lg bg-yume-bg-light border border-yume-border mb-2">
+                  {(editingTile.unlock_keywords || '').split(',').filter(k => k.trim()).length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {(editingTile.unlock_keywords || '').split(',').filter(k => k.trim()).map((keyword, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-sm group"
+                        >
+                          <span>{keyword.trim()}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const keywords = (editingTile.unlock_keywords || '').split(',').filter(k => k.trim());
+                              keywords.splice(idx, 1);
+                              setEditingTile({ ...editingTile, unlock_keywords: keywords.join(', ') });
+                            }}
+                            className="w-4 h-4 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 flex items-center justify-center text-xs opacity-60 group-hover:opacity-100 transition-opacity"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-gray-500 text-sm">No keywords added yet</div>
+                  )}
+                </div>
+                
+                {/* Add Keywords Input */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    id="keyword-input"
+                    placeholder="Type keyword and press Enter (or paste comma-separated list)"
+                    className="flex-1 px-4 py-2 rounded-lg bg-yume-bg-light border border-yume-border text-white placeholder:text-gray-500 focus:border-yume-accent outline-none text-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const input = e.currentTarget;
+                        const newKeywords = input.value.split(',').map(k => k.trim()).filter(k => k);
+                        if (newKeywords.length > 0) {
+                          const existing = (editingTile.unlock_keywords || '').split(',').map(k => k.trim()).filter(k => k);
+                          const combined = [...new Set([...existing, ...newKeywords])]; // Dedupe
+                          setEditingTile({ ...editingTile, unlock_keywords: combined.join(', ') });
+                          input.value = '';
+                        }
+                      }
+                    }}
+                    onPaste={(e) => {
+                      // Handle paste of comma-separated keywords
+                      setTimeout(() => {
+                        const input = e.currentTarget;
+                        const newKeywords = input.value.split(',').map(k => k.trim()).filter(k => k);
+                        if (newKeywords.length > 1) {
+                          const existing = (editingTile.unlock_keywords || '').split(',').map(k => k.trim()).filter(k => k);
+                          const combined = [...new Set([...existing, ...newKeywords])];
+                          setEditingTile({ ...editingTile, unlock_keywords: combined.join(', ') });
+                          input.value = '';
+                        }
+                      }, 0);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const input = document.getElementById('keyword-input') as HTMLInputElement;
+                      if (input && input.value.trim()) {
+                        const newKeywords = input.value.split(',').map(k => k.trim()).filter(k => k);
+                        const existing = (editingTile.unlock_keywords || '').split(',').map(k => k.trim()).filter(k => k);
+                        const combined = [...new Set([...existing, ...newKeywords])];
+                        setEditingTile({ ...editingTile, unlock_keywords: combined.join(', ') });
+                        input.value = '';
+                      }
+                    }}
+                    className="px-4 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30 transition-colors text-sm"
+                  >
+                    Add
+                  </button>
+                </div>
+                
+                {/* Quick Actions */}
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-xs text-gray-500">
+                    At least ONE keyword must appear in the screenshot
+                  </p>
+                  {(editingTile.unlock_keywords || '').split(',').filter(k => k.trim()).length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingTile({ ...editingTile, unlock_keywords: '' })}
+                      className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
               </div>
               
               {/* Required Submissions */}
