@@ -919,7 +919,9 @@ export default function TileEvent() {
               const currPos = snakePositions[index + 1];
               const prevStatus = getTileStatus(prevTile);
               const currStatus = getTileStatus(currTile);
-              const isCompleted = prevStatus === 'completed' && (currStatus === 'completed' || currStatus === 'current' || currStatus === 'pending');
+              // Line is completed when prev tile has all required submissions (completed OR pending with all submissions)
+              const prevTileHasAllSubmissions = prevStatus === 'completed' || prevStatus === 'pending';
+              const isCompleted = prevTileHasAllSubmissions && (currStatus === 'completed' || currStatus === 'current' || currStatus === 'pending');
               
               const x1 = prevPos.x * (tileSize + tileGap) + tileSize / 2;
               const y1 = prevPos.y * (tileSize + tileGap) + tileSize / 2;
