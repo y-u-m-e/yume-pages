@@ -403,7 +403,38 @@ export default function TileEvent() {
    * - 'completed': Approved submission (green)
    */
   const getTileStatus = (tile: Tile): 'locked' | 'current' | 'pending' | 'completed' => {
-    // Check if there's a submission for this tile
+    const requiredSubmissions = tile.required_submissions || 1;
+    const progress_data = tileProgress[tile.id];
+    const submittedCount = progress_data?.submitted || 0;
+    const approvedCount = progress_data?.approved || 0;
+    
+    // For multi-submission tiles, check if fully complete
+    if (requiredSubmissions > 1) {
+      // All submissions approved = completed
+      if (approvedCount >= requiredSubmissions) {
+        return 'completed';
+      }
+      
+      // Has enough submissions (pending or approved) but not all approved yet
+      if (submittedCount >= requiredSubmissions && submittedCount > approvedCount) {
+        return 'pending';
+      }
+      
+      // Not enough submissions yet - check if tile is accessible
+      if (!progress) {
+        return tile.position === 0 ? 'current' : 'locked';
+      }
+      
+      // Check if previous tiles are complete (can access this tile)
+      const prevTileUnlocked = tile.position === 0 || progress.tiles_unlocked.includes(tile.position - 1);
+      if (prevTileUnlocked || progress.tiles_unlocked.includes(tile.position)) {
+        return 'current'; // Still need more submissions
+      }
+      
+      return 'locked';
+    }
+    
+    // Single submission tile - original logic
     const submission = submissions.find(s => s.tile_id === tile.id);
     
     // If there's an approved submission, it's completed
@@ -911,7 +942,7 @@ export default function TileEvent() {
                   <span className="text-lg">✓</span>
                   <span>Approved & Completed!</span>
                 </div>
-              ) : getTileStatus(selectedTile) === 'pending' ? (
+              ) : getTileStatus(selectedTile) === 'pending' && (selectedTile.required_submissions || 1) === 1 ? (
                 <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
                   <div className="flex items-center gap-2 text-amber-400 mb-2">
                     <span>⏳</span>
@@ -922,7 +953,7 @@ export default function TileEvent() {
                     You can continue to the next tile while waiting!
                   </p>
                 </div>
-              ) : getTileStatus(selectedTile) === 'current' ? (
+              ) : (getTileStatus(selectedTile) === 'current' || getTileStatus(selectedTile) === 'pending') ? (
                 <div className="space-y-4">
                   {/* Check for rejected submission */}
                   {(() => {
