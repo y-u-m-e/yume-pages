@@ -20,6 +20,8 @@ export async function onRequest(context: { request: Request; env: Env; next: () 
   if (
     pathname.startsWith('/assets/') ||
     pathname.startsWith('/favicon/') ||
+    pathname.startsWith('/images/') ||
+    pathname.startsWith('/yume-pfp/') ||
     pathname.endsWith('.js') ||
     pathname.endsWith('.css') ||
     pathname.endsWith('.png') ||
