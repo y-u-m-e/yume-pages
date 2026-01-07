@@ -872,6 +872,11 @@ export default function TileEventAdmin() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-white truncate">{tile.title || 'Untitled'}</div>
+                            {tile.unlock_keywords && (
+                              <div className="text-xs text-emerald-400 truncate" title={tile.unlock_keywords}>
+                                🔑 {tile.unlock_keywords}
+                              </div>
+                            )}
                           </div>
                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
