@@ -57,6 +57,15 @@ interface Tile {
   image_url?: string;   // Optional image for the tile
   is_start: number;     // 1 if this is the first tile
   is_end: number;       // 1 if this is the final tile
+  required_submissions?: number; // Number of approved submissions needed (default 1)
+}
+
+/**
+ * Progress for a tile (approved submissions count)
+ */
+interface TileProgress {
+  approved: number;
+  required: number;
 }
 
 /**
@@ -119,6 +128,7 @@ export default function TileEvent() {
     image_url?: string;
     admin_notes?: string;
   }[]>([]);
+  const [tileProgress, setTileProgress] = useState<Record<number, TileProgress>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Cooldown state
@@ -241,6 +251,7 @@ export default function TileEvent() {
       if (res.ok) {
         const data = await res.json();
         setSubmissions(data.submissions || []);
+        setTileProgress(data.tileProgress || {});
       }
     } catch (err) {
       console.error('Failed to fetch submissions:', err);
@@ -711,6 +722,17 @@ export default function TileEvent() {
                   {tile.title}
                 </div>
                 
+                {/* Submission progress indicator for multi-submission tiles */}
+                {(tile.required_submissions || 1) > 1 && tileProgress[tile.id] && (
+                  <div className={`text-[10px] font-medium ${
+                    tileProgress[tile.id].approved >= tileProgress[tile.id].required 
+                      ? 'text-emerald-400' 
+                      : 'text-amber-400'
+                  }`}>
+                    {tileProgress[tile.id].approved}/{tileProgress[tile.id].required}
+                  </div>
+                )}
+                
                 {/* Start/End indicators */}
                 {tile.is_start === 1 && (
                   <div className={`absolute -top-1 -right-1 ${isMobile ? 'text-sm' : 'text-lg'}`}>🏁</div>
@@ -812,6 +834,34 @@ export default function TileEvent() {
             
             {selectedTile.description && (
               <p className="text-gray-300 mb-4">{selectedTile.description}</p>
+            )}
+            
+            {/* Multi-submission progress indicator */}
+            {(selectedTile.required_submissions || 1) > 1 && user && joined && (
+              <div className="bg-yume-bg-light/50 rounded-xl p-3 mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-400">Submissions Required</span>
+                  <span className={`text-sm font-bold ${
+                    (tileProgress[selectedTile.id]?.approved || 0) >= (selectedTile.required_submissions || 1)
+                      ? 'text-emerald-400'
+                      : 'text-amber-400'
+                  }`}>
+                    {tileProgress[selectedTile.id]?.approved || 0} / {selectedTile.required_submissions || 1}
+                  </span>
+                </div>
+                <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full rounded-full transition-all ${
+                      (tileProgress[selectedTile.id]?.approved || 0) >= (selectedTile.required_submissions || 1)
+                        ? 'bg-emerald-500'
+                        : 'bg-amber-500'
+                    }`}
+                    style={{ 
+                      width: `${Math.min(100, ((tileProgress[selectedTile.id]?.approved || 0) / (selectedTile.required_submissions || 1)) * 100)}%` 
+                    }}
+                  />
+                </div>
+              </div>
             )}
             
             {/* Submission Status & Upload Section */}
