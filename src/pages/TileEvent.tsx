@@ -692,11 +692,11 @@ export default function TileEvent() {
           </div>
           
           {/* Ingots */}
-          <div className="flex-1 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 rounded-xl border border-amber-500/30 px-4 py-3 flex items-center gap-3">
-            <span className="text-2xl">🪙</span>
+          <div className="flex-1 bg-gradient-to-r from-orange-600/20 to-red-600/20 rounded-xl border border-orange-500/30 px-4 py-3 flex items-center gap-3">
+            <img src="/ingot_icon.png" alt="Ingot" className="w-8 h-8 object-contain" />
             <div>
-              <div className="text-xs text-amber-400">Ingots Earned</div>
-              <div className="text-lg font-bold text-amber-300">
+              <div className="text-xs text-orange-400">Ingots Earned</div>
+              <div className="text-lg font-bold text-orange-300">
                 {getIngotsEarned() > 0 ? `${(getIngotsEarned() / 1000).toFixed(0)}k` : '0'}
               </div>
             </div>
@@ -1222,13 +1222,13 @@ export default function TileEvent() {
       {/* Milestone Celebration Modal */}
       {showMilestone && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 animate-in fade-in duration-300">
-          <div className="bg-gradient-to-br from-amber-900/90 to-yellow-900/90 rounded-3xl border-2 border-amber-500 p-8 text-center max-w-md mx-4 animate-in zoom-in duration-300 shadow-2xl shadow-amber-500/20">
-            <div className="text-6xl mb-4 animate-bounce">🪙</div>
-            <h2 className="text-3xl font-bold text-amber-300 mb-2">Milestone Reached!</h2>
-            <p className="text-amber-100 text-xl mb-2">
+          <div className="bg-gradient-to-br from-orange-900/90 to-red-900/90 rounded-3xl border-2 border-orange-500 p-8 text-center max-w-md mx-4 animate-in zoom-in duration-300 shadow-2xl shadow-orange-500/20">
+            <img src="/ingot_icon.png" alt="Ingot" className="w-20 h-20 mx-auto mb-4 animate-bounce object-contain" />
+            <h2 className="text-3xl font-bold text-orange-300 mb-2">Milestone Reached!</h2>
+            <p className="text-orange-100 text-xl mb-2">
               You've earned
             </p>
-            <p className="text-4xl font-bold text-yellow-300 mb-4">
+            <p className="text-4xl font-bold text-orange-200 mb-4">
               {(showMilestone / 1000).toFixed(0)}k Ingots!
             </p>
             <div className="text-5xl mb-6 space-x-2">
@@ -1236,7 +1236,7 @@ export default function TileEvent() {
               <span className="inline-block animate-bounce" style={{ animationDelay: '100ms' }}>✨</span>
               <span className="inline-block animate-bounce" style={{ animationDelay: '200ms' }}>🎊</span>
             </div>
-            <p className="text-amber-200/70 text-sm mb-6">
+            <p className="text-orange-200/70 text-sm mb-6">
               {showMilestone >= 300000 
                 ? "You've earned all available ingots! Amazing!" 
                 : `Next milestone: ${(showMilestone + 50000) / 1000}k at tile ${Math.floor(progress!.tiles_unlocked.length / 6) * 6 + 6}`
@@ -1244,7 +1244,7 @@ export default function TileEvent() {
             </p>
             <button
               onClick={() => setShowMilestone(null)}
-              className="px-8 py-3 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors text-lg"
+              className="px-8 py-3 bg-orange-500 hover:bg-orange-400 text-black font-bold rounded-xl transition-colors text-lg"
             >
               Awesome! 🎯
             </button>
