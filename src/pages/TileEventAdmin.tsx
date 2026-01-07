@@ -66,6 +66,7 @@ interface Tile {
   is_start?: number;      // 1 if first tile
   is_end?: number;        // 1 if final tile
   unlock_keywords?: string; // Comma-separated keywords for AI auto-approval
+  required_submissions?: number; // Number of approved submissions needed (default 1)
 }
 
 /**
@@ -437,6 +438,7 @@ export default function TileEventAdmin() {
         description: tile.description || '',
         image_url: tile.image_url || '',
         unlock_keywords: tile.unlock_keywords || '',
+        required_submissions: tile.required_submissions || 1,
         position: index
       }));
       
@@ -468,7 +470,8 @@ export default function TileEventAdmin() {
       title: '',
       description: '',
       image_url: '',
-      unlock_keywords: ''
+      unlock_keywords: '',
+      required_submissions: 1
     };
     setEditingTile(newTile);
     setShowTileForm(true);
@@ -890,11 +893,18 @@ export default function TileEventAdmin() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-white truncate">{tile.title || 'Untitled'}</div>
-                            {tile.unlock_keywords && (
-                              <div className="text-xs text-emerald-400 truncate" title={tile.unlock_keywords}>
-                                🔑 {tile.unlock_keywords}
-                              </div>
-                            )}
+                            <div className="flex gap-3 text-xs">
+                              {tile.unlock_keywords && (
+                                <span className="text-emerald-400 truncate" title={tile.unlock_keywords}>
+                                  🔑 {tile.unlock_keywords}
+                                </span>
+                              )}
+                              {(tile.required_submissions || 1) > 1 && (
+                                <span className="text-amber-400">
+                                  📸 ×{tile.required_submissions}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
@@ -1806,6 +1816,24 @@ export default function TileEventAdmin() {
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   At least ONE of these must appear in the screenshot (with the event's required keyword)
+                </p>
+              </div>
+              
+              {/* Required Submissions */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  📸 Required Submissions
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="99"
+                  value={editingTile.required_submissions || 1}
+                  onChange={e => setEditingTile({ ...editingTile, required_submissions: Math.max(1, parseInt(e.target.value) || 1) })}
+                  className="w-24 px-4 py-2 rounded-lg bg-yume-bg-light border border-yume-border text-white placeholder:text-gray-500 focus:border-yume-accent outline-none"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Number of approved submissions needed before tile unlocks (default: 1)
                 </p>
               </div>
               
