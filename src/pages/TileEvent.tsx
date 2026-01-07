@@ -538,17 +538,17 @@ export default function TileEvent() {
       : -1;
     
     if (tile.position === maxUnlocked + 1) {
-      // Before showing as current, verify the previous tile is actually COMPLETE
-      // (not just unlocked with pending submissions)
+      // Before showing as current, verify the previous tile has enough SUBMISSIONS
+      // (matching backend logic: unlock when submitted, not when approved)
       if (maxUnlocked >= 0) {
         const prevTile = tiles.find(t => t.position === maxUnlocked);
         if (prevTile) {
           const prevRequired = prevTile.required_submissions || 1;
           const prevProgress = tileProgress[prevTile.id];
-          const prevApproved = prevProgress?.approved || 0;
+          const prevSubmitted = prevProgress?.submitted || 0;
           
-          // If previous tile needs more approvals, this tile stays locked
-          if (prevApproved < prevRequired) {
+          // If previous tile needs more submissions, this tile stays locked
+          if (prevSubmitted < prevRequired) {
             return 'locked';
           }
         }
