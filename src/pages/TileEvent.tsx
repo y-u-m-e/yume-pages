@@ -88,6 +88,7 @@ interface UserProgress {
   current_tile: number;       // Highest tile position unlocked
   tiles_unlocked: number[];   // Array of unlocked tile positions
   completed_at?: string;      // ISO timestamp if event is completed
+  skips_used: number;         // Number of skips used (earn 1 at start, 1 more after 10 tiles)
 }
 
 /**
@@ -135,6 +136,55 @@ export default function TileEvent() {
   // Cooldown state
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [showSubmissionHistory, setShowSubmissionHistory] = useState(false);
+  
+  // Milestone celebration state
+  const [showMilestone, setShowMilestone] = useState<number | null>(null);
+  const [lastSeenMilestone, setLastSeenMilestone] = useState<number>(0);
+
+  // ==========================================================================
+  // HELPER FUNCTIONS - Skips & Ingots
+  // ==========================================================================
+  
+  // Calculate available skips: 1 at start + 1 after 10 tiles
+  const getSkipsAvailable = () => {
+    if (!progress) return 0;
+    const tilesCompleted = progress.tiles_unlocked.length;
+    const maxSkips = tilesCompleted >= 10 ? 2 : 1;
+    return maxSkips - (progress.skips_used || 0);
+  };
+  
+  // Calculate ingots earned (50k per 6 tiles)
+  const getIngotsEarned = () => {
+    if (!progress) return 0;
+    const tilesCompleted = progress.tiles_unlocked.length;
+    const milestones = Math.floor(tilesCompleted / 6);
+    return milestones * 50000;
+  };
+  
+  // Handle skip tile
+  const handleSkipTile = async (tilePosition: number) => {
+    if (!event || getSkipsAvailable() <= 0) return;
+    
+    try {
+      const res = await fetch(`${API_BASE}/tile-events/${event.id}/skip`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tile_position: tilePosition })
+      });
+      
+      if (res.ok) {
+        fetchProgress();
+        fetchSubmissions();
+        setSelectedTile(null);
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to skip tile');
+      }
+    } catch (err) {
+      console.error('Failed to skip tile:', err);
+    }
+  };
 
   // ==========================================================================
   // EFFECTS
@@ -207,6 +257,20 @@ export default function TileEvent() {
       return () => clearInterval(timer);
     }
   }, [submissions, updateCooldown, cooldownRemaining]);
+
+  // Detect milestone hits (ingot rewards every 6 tiles)
+  useEffect(() => {
+    if (!progress || !event || !user) return;
+    
+    const tilesCompleted = progress.tiles_unlocked.length;
+    const ingots = Math.floor(tilesCompleted / 6) * 50000;
+    
+    // Check if we hit a new milestone (6, 12, 18 tiles = 50k, 100k, 150k)
+    if (tilesCompleted > 0 && tilesCompleted % 6 === 0 && ingots > lastSeenMilestone) {
+      setShowMilestone(ingots);
+      setLastSeenMilestone(ingots);
+    }
+  }, [progress?.tiles_unlocked.length, event, user, lastSeenMilestone]);
 
   const fetchEventData = async () => {
     try {
@@ -607,6 +671,49 @@ export default function TileEvent() {
           )}
         </div>
       </div>
+
+      {/* Stats Bar - Skips & Ingots */}
+      {user && joined && progress && (
+        <div className="flex flex-wrap gap-4">
+          {/* Skips */}
+          <div className="bg-yume-card rounded-xl border border-yume-border px-4 py-3 flex items-center gap-3">
+            <span className="text-2xl">⏭️</span>
+            <div>
+              <div className="text-xs text-gray-400">Skips Available</div>
+              <div className="text-lg font-bold text-white">
+                {getSkipsAvailable()} / {progress.tiles_unlocked.length >= 10 ? 2 : 1}
+              </div>
+            </div>
+            {getSkipsAvailable() > 0 && progress.tiles_unlocked.length < 10 && (
+              <div className="text-xs text-gray-500 ml-2">
+                +1 at tile 10
+              </div>
+            )}
+          </div>
+          
+          {/* Ingots */}
+          <div className="flex-1 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 rounded-xl border border-amber-500/30 px-4 py-3 flex items-center gap-3">
+            <span className="text-2xl">🪙</span>
+            <div>
+              <div className="text-xs text-amber-400">Ingots Earned</div>
+              <div className="text-lg font-bold text-amber-300">
+                {getIngotsEarned() > 0 ? `${(getIngotsEarned() / 1000).toFixed(0)}k` : '0'}
+              </div>
+            </div>
+            {/* Next milestone indicator */}
+            {getIngotsEarned() < 300000 && (
+              <div className="text-xs text-gray-400 ml-auto">
+                Next reward: Tile {(Math.floor(progress.tiles_unlocked.length / 6) + 1) * 6}
+              </div>
+            )}
+            {getIngotsEarned() >= 300000 && (
+              <div className="text-xs text-emerald-400 ml-auto">
+                🏆 Max rewards earned!
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Snake Tile Board - responsive grid */}
       <div className="bg-yume-card rounded-2xl border border-yume-border p-4 sm:p-6 overflow-x-auto">
@@ -1043,6 +1150,23 @@ export default function TileEvent() {
                       </p>
                     </div>
                   )}
+                  
+                  {/* Skip Tile Option */}
+                  {getSkipsAvailable() > 0 && (
+                    <div className="mt-4 pt-4 border-t border-yume-border">
+                      <button
+                        onClick={() => {
+                          if (confirm(`Use a skip on "${selectedTile.title}"?\n\nYou have ${getSkipsAvailable()} skip(s) remaining.\nSkips: 1 at start + 1 after completing 10 tiles.`)) {
+                            handleSkipTile(selectedTile.position);
+                          }
+                        }}
+                        className="w-full py-2 rounded-xl border border-purple-500/50 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition-all flex items-center justify-center gap-2"
+                      >
+                        <span>⏭️</span>
+                        <span>Skip This Tile ({getSkipsAvailable()} remaining)</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-gray-400">
@@ -1092,6 +1216,39 @@ export default function TileEvent() {
           >
             Leave Event
           </button>
+        </div>
+      )}
+
+      {/* Milestone Celebration Modal */}
+      {showMilestone && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 animate-in fade-in duration-300">
+          <div className="bg-gradient-to-br from-amber-900/90 to-yellow-900/90 rounded-3xl border-2 border-amber-500 p-8 text-center max-w-md mx-4 animate-in zoom-in duration-300 shadow-2xl shadow-amber-500/20">
+            <div className="text-6xl mb-4 animate-bounce">🪙</div>
+            <h2 className="text-3xl font-bold text-amber-300 mb-2">Milestone Reached!</h2>
+            <p className="text-amber-100 text-xl mb-2">
+              You've earned
+            </p>
+            <p className="text-4xl font-bold text-yellow-300 mb-4">
+              {(showMilestone / 1000).toFixed(0)}k Ingots!
+            </p>
+            <div className="text-5xl mb-6 space-x-2">
+              <span className="inline-block animate-bounce" style={{ animationDelay: '0ms' }}>🎉</span>
+              <span className="inline-block animate-bounce" style={{ animationDelay: '100ms' }}>✨</span>
+              <span className="inline-block animate-bounce" style={{ animationDelay: '200ms' }}>🎊</span>
+            </div>
+            <p className="text-amber-200/70 text-sm mb-6">
+              {showMilestone >= 300000 
+                ? "You've earned all available ingots! Amazing!" 
+                : `Next milestone: ${(showMilestone + 50000) / 1000}k at tile ${Math.floor(progress!.tiles_unlocked.length / 6) * 6 + 6}`
+              }
+            </p>
+            <button
+              onClick={() => setShowMilestone(null)}
+              className="px-8 py-3 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-colors text-lg"
+            >
+              Awesome! 🎯
+            </button>
+          </div>
         </div>
       )}
     </div>
