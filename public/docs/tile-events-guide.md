@@ -48,7 +48,7 @@ This event you will complete loot-based challenges (tiles) in a specific sequenc
 ### Tile Colors
 
 | Color | Status | Action |
-|-------|--------|--------|
+|------|--------|--------|
 | 🟢 **Green** | Completed | No action needed |
 | 🔵 **Pulsing Blue**| Current Tile | Submit proof here! |
 | 🟡 **Yellow/Orange**| Pending Review | Waiting for approval |
@@ -90,8 +90,8 @@ The lines between tiles show your progress:
 - **Auto-Approved** ✅ → Tile turns green, next tile unlocks
 - **Pending Review** ⏳ → An admin will review within 24 hours
 - **Rejected** ❌ → You'll need to resubmit with better proof
-    - At the top of your board, you will see a note if the submission was rejected
-    - EX: ![Rejection Example Image](https://emuy.gg/images/markdown_assets/rejection_example.png)
+    - At the top of your board, you will see a note if the submission was rejected (example below)
+    - ![Rejection Example Image](https://emuy.gg/images/markdown_assets/rejection_example.png)
 
 ---
 
