@@ -464,97 +464,48 @@ export default function TileEvent() {
 
   /**
    * Determine tile status for visual display
-   * Tiles are visible to everyone but locked until unlocked sequentially
+   * 
+   * SINGLE SOURCE OF TRUTH: tiles_unlocked array
+   * This is the ONLY authority on which tiles are completed.
+   * Tiles can be added to tiles_unlocked via:
+   * - Submission approval
+   * - Skip
+   * - Admin manual adjustment
    * 
    * Status meanings:
-   * - 'locked': Cannot interact, previous tile not completed
-   * - 'current': The next tile to work on (highlighted)
-   * - 'pending': Submitted but awaiting approval (yellow)
-   * - 'completed': Approved submission (green)
+   * - 'completed': Tile is in tiles_unlocked (green)
+   * - 'current': Next tile to work on (orange/highlighted)
+   * - 'pending': Current tile with pending submissions (yellow)
+   * - 'locked': Cannot interact yet (gray)
    */
   const getTileStatus = (tile: Tile): 'locked' | 'current' | 'pending' | 'completed' => {
-    const requiredSubmissions = tile.required_submissions || 1;
-    const progress_data = tileProgress[tile.id];
-    const submittedCount = progress_data?.submitted || 0;
-    const approvedCount = progress_data?.approved || 0;
-    
-    // For multi-submission tiles, check if fully complete
-    if (requiredSubmissions > 1) {
-      // All submissions approved = completed
-      if (approvedCount >= requiredSubmissions) {
-        return 'completed';
-      }
-      
-      // Has enough submissions (pending or approved) but not all approved yet
-      if (submittedCount >= requiredSubmissions && submittedCount > approvedCount) {
-        return 'pending';
-      }
-      
-      // Not enough submissions yet - check if tile is accessible
-      if (!progress) {
-        return tile.position === 0 ? 'current' : 'locked';
-      }
-      
-      // Check if previous tiles are complete (can access this tile)
-      const prevTileUnlocked = tile.position === 0 || progress.tiles_unlocked.includes(tile.position - 1);
-      if (prevTileUnlocked || progress.tiles_unlocked.includes(tile.position)) {
-        return 'current'; // Still need more submissions
-      }
-      
-      return 'locked';
-    }
-    
-    // Single submission tile - use tile_position for stable lookup after bulk updates
-    const submission = submissions.find(s => s.tile_position === tile.position);
-    
-    // If there's an approved submission, it's completed
-    if (submission?.status === 'approved') {
-      return 'completed';
-    }
-    
-    // If there's a pending submission, show as pending
-    if (submission?.status === 'pending') {
-      return 'pending';
-    }
-    
+    // Preview mode - not joined event yet
     if (!progress) {
-      // Not joined yet - show first as current, rest as locked (preview mode)
       return tile.position === 0 ? 'current' : 'locked';
     }
     
-    // Check if this tile position is in unlocked array (may include pending submissions)
-    if (progress.tiles_unlocked.includes(tile.position)) {
-      // Check if there's any submission - if pending, show pending
-      if (submission?.status === 'pending') {
-        return 'pending';
-      }
+    const unlockedTiles = progress.tiles_unlocked || [];
+    
+    // ============================================
+    // SOURCE OF TRUTH: tiles_unlocked array
+    // If tile position is in this array, it's DONE
+    // ============================================
+    if (unlockedTiles.includes(tile.position)) {
       return 'completed';
     }
     
-    // Check if this is the current tile (next to unlock)
-    // First tile is accessible if nothing unlocked
-    // Otherwise, current tile is one after the highest COMPLETED tile
-    const maxUnlocked = progress.tiles_unlocked.length > 0 
-      ? Math.max(...progress.tiles_unlocked) 
-      : -1;
+    // Calculate current tile position (next after highest unlocked, or 0 if none)
+    const maxUnlocked = unlockedTiles.length > 0 ? Math.max(...unlockedTiles) : -1;
+    const currentTilePosition = maxUnlocked + 1;
     
-    if (tile.position === maxUnlocked + 1) {
-      // Before showing as current, verify the previous tile has enough SUBMISSIONS
-      // (matching backend logic: unlock when submitted, not when approved)
-      if (maxUnlocked >= 0) {
-        const prevTile = tiles.find(t => t.position === maxUnlocked);
-        if (prevTile) {
-          const prevRequired = prevTile.required_submissions || 1;
-          const prevProgress = tileProgress[prevTile.id];
-          const prevSubmitted = prevProgress?.submitted || 0;
-          
-          // If previous tile needs more submissions, this tile stays locked
-          if (prevSubmitted < prevRequired) {
-            return 'locked';
-          }
-        }
-      }
-      return 'current';
+    // This is the current tile
+    if (tile.position === currentTilePosition) {
+      // Check for any pending submissions on this tile
+      const hasPendingSubmissions = submissions.some(
+        s => s.tile_position === tile.position && s.status === 'pending'
+      );
+      
+      return hasPendingSubmissions ? 'pending' : 'current';
     }
     
     // All other tiles are locked

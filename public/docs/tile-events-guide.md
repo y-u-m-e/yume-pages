@@ -1,12 +1,12 @@
-# 🎯 Tile Events - Participant Guide
+# 🎯 Ironforged Mini-Seasonal Event How-Tos
 
-Welcome to Ironforged Events! This guide will help you understand how to participate in tile-based bingo events and track your progress.
+Welcome to Ironforged Events! This guide will help you understand how to participate in tile-based Mini-Seasonal events and track your progress.
 
 ---
 
-## What Are Tile Events?
+## What is this Mini-Seasonal Event?
 
-Tile events are progression-based challenges where you complete tasks (tiles) in sequence. Each tile represents a specific challenge - typically a boss kill, skilling milestone, or other in-game achievement. Complete tiles to earn **ingots** and unlock rewards!
+This event you will complete loot-based challenges (tiles) in a specific sequence. Each tile will specify what drop(s) needed to complete the tile. Progress through the snake of tiles to earn **ingots** and more!
 
 ---
 
@@ -18,13 +18,30 @@ Tile events are progression-based challenges where you complete tasks (tiles) in
 2. Click **"Login with Discord"**
 3. Authorize the app to verify your clan membership
 
-### Step 2: Join an Event
+### Step 2: Join the Event
 
-1. Browse available events on the home page
+1. Locate the event on the homepage
 2. Click on an event card to view the game board
-3. Your progress is automatically tracked once you start submitting
+3. Join the event at the bottom of the page
+4. Your progress is automatically tracked once you start submitting
 
 ---
+
+## Basic Game Loop
+
+1. Locate your current tile to see what its objective is: (EX: Scurrius' Spine)
+2. Confirm you have the clan event passphrase visible on the screen using the [Clant Events plugin](https://runelite.net/plugin-hub/show/elysiumevents-plugin) 
+    - If on mobile, please type the passphrase into the chat
+3. Kill the designated boss until you get the drop
+4. Take a Screenshot with the following clearly displayed in the image:
+    - Your RSN
+    - The Clan Event Passphrase 
+    - The Notification of the drop (Either Collection log pop-up or the drop in the game chat box)
+5. Continue onto the next tile
+6. Repeat
+---
+
+# Game Specifics
 
 ## Understanding the Game Board
 
@@ -33,8 +50,8 @@ Tile events are progression-based challenges where you complete tasks (tiles) in
 | Color | Status | Action |
 |-------|--------|--------|
 | 🟢 **Green** | Completed | No action needed |
-| 🟡 **Yellow/Orange** | Current Tile | Submit proof here! |
-| 🔵 **Blue** | Pending Review | Waiting for approval |
+| 🟢 **Pulsing Green**| Current Tile | Submit proof here! |
+| 🟡 **Yellow/Orange**| Pending Review | Waiting for approval |
 | ⚫ **Gray** | Locked | Complete previous tiles first |
 
 ### Connection Lines
