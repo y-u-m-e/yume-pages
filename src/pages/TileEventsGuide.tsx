@@ -35,12 +35,12 @@ export default function TileEventsGuide() {
     }
   }, [authLoading, canAccess, navigate]);
 
-  // Fetch markdown content
+  // Fetch markdown content (with cache-busting to bypass CDN cache)
   useEffect(() => {
     if (!canAccess) return;
     
     setLoading(true);
-    fetch('/docs/tile-events-guide.md')
+    fetch(`/docs/tile-events-guide.md?t=${Date.now()}`)
       .then(res => {
         if (!res.ok) throw new Error('Failed to load guide');
         return res.text();
