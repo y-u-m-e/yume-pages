@@ -91,15 +91,15 @@ The lines between tiles show your progress:
 - **Pending Review** ⏳ → An admin will review within 24 hours
 - **Rejected** ❌ → You'll need to resubmit with better proof
     - At the top of your board, you will see a note if the submission was rejected
-    - EX: ![Rejection Example Image](Markdown-mark.png)
+    - EX: ![Rejection Example Image](https://emuy.gg/images/markdown_assets/rejection_example.png)
 
 ---
 
 ## Multi-Submission Tiles
 
-Some tiles require **multiple completions** (e.g., "Kill Zulrah 3 times").
+Some tiles require **multiple completions** (e.g., "Get GWD 2 drops times").
 
-- Progress shows as "1/3 submitted", "2/3 submitted", etc.
+- Progress shows as "1/2 submitted", "2/2 submitted", etc.
 - Keep submitting until you reach the required count
 - The next tile unlocks once you've submitted all required proofs
 - You don't need to wait for approval to continue submitting
@@ -108,13 +108,12 @@ Some tiles require **multiple completions** (e.g., "Kill Zulrah 3 times").
 
 ## Skips
 
-At milestone tiles, you earn **skips** that let you bypass difficult tiles:
+You start with a tile skip and at the 10 tile milestone, you earn another **skip** for a total of **2** skips earned throughout the event. Skips let you bypass difficult tiles:
 
 | Milestone | Skips Earned |
 |-----------|--------------|
-| Tile 6 | +1 skip |
-| Tile 12 | +2 skips |
-| Tile 18 | +3 skips |
+| Start | +1 skip |
+| Tile 10 | +1 skip |
 
 ### Using a Skip
 
@@ -122,7 +121,7 @@ At milestone tiles, you earn **skips** that let you bypass difficult tiles:
 2. If you have skips available, you'll see **"⏭️ Skip This Tile"**
 3. Click to use one skip and move to the next tile
 
-> **Strategy:** Save skips for tiles you truly can't complete. Some boss requirements might be too difficult for your account build!
+> **Strategy:** Save skips for tiles you truly can't complete. Some bosses might not be doable for you, you might have already green logged them, or they could just not be putting out.
 
 ---
 
@@ -148,8 +147,9 @@ The AI couldn't auto-verify your screenshot. This happens when:
 - Text isn't clearly readable
 - The screenshot doesn't contain expected keywords
 - It's an uncommon format or layout
+- The AI is just dumb and parsing it incorrectly
 
-Don't worry - an admin will review it manually within 24 hours.
+Don't worry - an admin will review it manually and reach out if there are any issues.
 
 ### "Can I redo a rejected submission?"
 
@@ -158,10 +158,6 @@ Yes! Simply click on the tile and submit a new screenshot. Make sure to address 
 ### "What if I complete a tile but forget to screenshot?"
 
 Unfortunately, proof must be submitted at the time of completion. Always screenshot your achievements!
-
-### "Can I participate in multiple events?"
-
-Yes! Your progress is tracked separately for each event.
 
 ### "How do I check my overall progress?"
 

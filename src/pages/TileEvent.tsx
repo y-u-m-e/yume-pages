@@ -798,7 +798,7 @@ export default function TileEvent() {
                     : status === 'pending'
                     ? 'bg-amber-500/20 border-amber-500/50 hover:border-amber-400'
                     : status === 'current'
-                    ? 'bg-yume-accent/20 border-yume-accent animate-pulse hover:scale-105'
+                    ? 'bg-blue-500/20 border-blue-500 animate-pulse hover:scale-105'
                     : 'bg-gray-800/50 border-gray-700 opacity-60 hover:opacity-80'
                   }
                 `}
@@ -822,7 +822,7 @@ export default function TileEvent() {
                   ${isMobile ? 'w-5 h-5' : 'w-6 h-6'}
                   ${status === 'completed' ? 'bg-emerald-500 text-white' : 
                     status === 'pending' ? 'bg-amber-500 text-white' :
-                    status === 'current' ? 'bg-yume-accent text-yume-bg' :
+                    status === 'current' ? 'bg-blue-500 text-white' :
                     'bg-gray-700 text-gray-400'}
                 `}>
                   {status === 'completed' ? '✓' : status === 'pending' ? '⏳' : tile.position + 1}
