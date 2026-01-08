@@ -874,11 +874,11 @@ export default function TileEvent() {
               const isCurrUnlocked = progress?.tiles_unlocked?.includes(currTile.position) || false;
               const isCurrAccessible = isCurrUnlocked || (isPrevUnlocked && currTile.position === prevTile.position + 1);
               
-              // Check if prev tile has pending submissions (submitted but not yet in tiles_unlocked)
-              const prevProgress = tileProgress[prevTile.id];
-              const prevRequired = prevTile.required_submissions || 1;
-              const prevSubmitted = prevProgress?.submitted || 0;
-              const isPrevPendingSubmissions = !isPrevUnlocked && prevSubmitted >= prevRequired;
+              // Check if prev tile has pending submissions (use tile_position for stable lookup)
+              const prevPendingSubmissions = submissions.filter(
+                s => s.tile_position === prevTile.position && s.status === 'pending'
+              );
+              const isPrevPending = !isPrevUnlocked && prevPendingSubmissions.length > 0;
               
               // Line colors: green (unlocked/completed/skipped), amber (pending), gray (locked)
               let strokeColor = '#374151'; // gray - locked
@@ -890,8 +890,8 @@ export default function TileEvent() {
                 strokeColor = '#10b981'; // green
                 strokeWidth = 3;
                 strokeDash = undefined;
-              } else if (isPrevPendingSubmissions && isCurrAccessible) {
-                // Previous tile has all submissions but awaiting approval
+              } else if (isPrevPending) {
+                // Previous tile has pending submissions awaiting approval
                 strokeColor = '#f59e0b'; // amber
                 strokeWidth = 3;
                 strokeDash = undefined;

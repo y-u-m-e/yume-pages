@@ -69,11 +69,11 @@ The lines between tiles show your progress:
 
 ✅ **Do Include:**
 - Clear, full screenshot of completion
-- Visible kill count (KC), loot, or achievement popup
+- Visible loot via popup or via chatlog
 - Your RuneScape name visible in the screenshot
-- Any keywords mentioned in the tile description
+- The Clan Event passphrase either via the plugin or in the chatbox (only if on mobile)
 
-❌ **Avoid:**
+❌ **Do Not Submit if:**
 - Blurry or cropped screenshots
 - Screenshots from the wiki or other sources
 - Screenshots without your RSN visible
@@ -90,8 +90,7 @@ The lines between tiles show your progress:
 - **Auto-Approved** ✅ → Tile turns green, next tile unlocks
 - **Pending Review** ⏳ → An admin will review within 24 hours
 - **Rejected** ❌ → You'll need to resubmit with better proof
-
-> **Pro Tip:** Include keywords from the tile description in your screenshot for faster auto-approval!
+    -- At the top of your board, you will see a note if the submission was rejected
 
 ---
 
