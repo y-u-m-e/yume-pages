@@ -44,6 +44,14 @@ This event you will complete loot-based challenges (tiles) in a specific sequenc
 # Game Specifics
 
 ## Table of Contents
+* [Understanding the Game Board](#Understanding-the-Game-Board)
+* [Submitting Proof](#Submitting-Proof)
+* [Multi-Submission Tiles](#Multi-Submission-Tiles)
+* [Skips](#Skips)
+* [Ingots (Rewards)](#Ingots-(Rewards))
+* [Frequently Asked Questions](#Frequently-Asked-Questions)
+* [Need Help?](#Need-Help?)
+* [Quick Final Note](#Quick-Final-Note)
 
 ## Understanding the Game Board
 
