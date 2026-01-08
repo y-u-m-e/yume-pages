@@ -35,6 +35,8 @@ import DevOps from '@/pages/DevOps'          // System status & deployment info
 import Profile from '@/pages/Profile'        // User profile page
 import AIDebug from '@/pages/AIDebug'        // AI scan debug/testing (admin)
 import Architecture from '@/pages/Architecture' // System architecture diagrams
+import TileEventsGuide from '@/pages/TileEventsGuide' // Tile events user guide
+import TileEventsAdminGuide from '@/pages/TileEventsAdminGuide' // Tile events admin guide
 
 /**
  * Main Application Component
@@ -67,6 +69,10 @@ function App() {
           <Route path="admin" element={<Admin />} />             {/* /admin - User mgmt */}
           <Route path="devops" element={<DevOps />} />           {/* /devops - System status */}
           <Route path="admin/ai-debug" element={<AIDebug />} />  {/* AI scan testing */}
+          
+          {/* GUIDE PAGES - Permission protected documentation */}
+          <Route path="events/guide" element={<TileEventsGuide />} />        {/* /events/guide - User guide */}
+          <Route path="events/admin/guide" element={<TileEventsAdminGuide />} /> {/* /events/admin/guide - Admin guide */}
           
         </Route>
       </Routes>
