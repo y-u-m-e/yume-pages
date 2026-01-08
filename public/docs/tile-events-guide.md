@@ -50,7 +50,7 @@ This event you will complete loot-based challenges (tiles) in a specific sequenc
 | Color | Status | Action |
 |------|--------|--------|
 | 🟢 **Green** | Completed | No action needed |
-| 🔵 **Pulsing Blue**| Current Tile | Submit proof here! |
+| 🔵 **Blue**| Current Tile | Submit proof here! |
 | 🟡 **Yellow/Orange**| Pending Review | Waiting for approval |
 | ⚫ **Gray** | Locked | Complete previous tiles first |
 
@@ -71,7 +71,9 @@ The lines between tiles show your progress:
 - Clear, full screenshot of completion
 - Visible loot via popup or via chatlog
 - Your RuneScape name visible in the screenshot
-- The Clan Event passphrase either via the plugin or in the chatbox (only if on mobile)
+- The Clan Event passphrase using either:
+    - [Clan Events plugin](https://runelite.net/plugin-hub/show/elysiumevents-plugin) on Runelite
+    - Passphrase in the chatbox
 
 ❌ **Do Not Submit if:**
 - Blurry or cropped screenshots
