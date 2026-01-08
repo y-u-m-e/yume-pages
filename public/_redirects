@@ -9,5 +9,6 @@
 
 # SPA fallback - serves index.html for any unmatched routes
 # Static files are served automatically before this rule applies
-/*    /index.html   200!
+# Note: No ! modifier so static files (like .md) are served first
+/*    /index.html   200
 
