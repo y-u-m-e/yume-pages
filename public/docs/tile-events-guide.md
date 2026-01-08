@@ -1,12 +1,12 @@
-# 🎯 Ironforged Mini-Seasonal Event How-Tos
+# 🎯 Iron forged Mini-Seasonal Event How-Tos
 
-Welcome to Ironforged Events! This guide will help you understand how to participate in tile-based Mini-Seasonal events and track your progress.
+Welcome to Iron forged Events! This guide will help you understand how to participate in tile-based Mini-Seasonal events and track your progress.
 
 ---
 
 ## What is this Mini-Seasonal Event?
 
-This event you will complete loot-based challenges (tiles) in a specific sequence. Each tile will specify what drop(s) needed to complete the tile. Progress through the snake of tiles to earn **ingots** and more!
+This event you will complete loot-based challenges (tiles) in a specific sequence. Each tile will specify what drop(s) are needed to complete the tile. Progress through the snake of tiles to earn **ingots** and more!
 
 ---
 
@@ -93,7 +93,7 @@ The lines between tiles show your progress:
 ### How to Submit
 
 1. **Click your current tile** (highlighted in yellow/orange)
-2. **Click "Upload Screenshot"** in the modal
+2. **Click "Upload Screenshot"** in the modal/Popup
 3. **Select your image file** (PNG, JPG supported)
 4. **Wait for processing** - the AI will analyze your screenshot
 
@@ -172,9 +172,9 @@ Yes! Simply click on the tile and submit a new screenshot. Make sure to address 
 
 Unfortunately, proof must be submitted at the time of completion. Always screenshot your achievements!
 
-### "My board is in a weird state, I can't get ahold off anyone, and I dont know if I should move onto the next tile or not"
+### "My board is in a weird state, I can't get ahold of anyone, and I dont know if I should move onto the next tile or not"
 
-The entire board is viewable from the start for this very reason! If some weird shennanigans are happening, submit a ticket or reachout, and  continue onward to the next tile. Someone will get with you to sort everything out at their earliest conveince.
+The entire board is viewable from the start for this very reason! If some weird shennanigans are happening, submit a ticket or reach out, and  continue onward to the next tile. Someone will get with you to sort everything out at their earliest conveince.
 
 ### "How do I check my overall progress?"
 
