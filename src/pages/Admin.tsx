@@ -157,6 +157,10 @@ export default function Admin() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [rolesLoading, setRolesLoading] = useState(false);
+  
+  // Site settings state
+  const [siteSettings, setSiteSettings] = useState<Record<string, string>>({});
+  const [settingsLoading, setSettingsLoading] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [showNewRoleModal, setShowNewRoleModal] = useState(false);
   const [newRoleData, setNewRoleData] = useState({ id: '', name: '', description: '', color: '#6b7280', priority: 0, permissions: [] as string[] });
@@ -226,6 +230,16 @@ export default function Admin() {
     if (user && isAdmin && activeTab === 'roles') {
       fetchRoles();
       fetchPermissions();
+    }
+  }, [user, isAdmin, activeTab]);
+  
+  /**
+   * Fetch site settings and roles when settings tab is selected
+   */
+  useEffect(() => {
+    if (user && isAdmin && activeTab === 'settings') {
+      fetchSiteSettings();
+      fetchRoles(); // Need roles for the dropdown
     }
   }, [user, isAdmin, activeTab]);
 
@@ -460,6 +474,50 @@ export default function Admin() {
       }
     } catch (err) {
       console.error('Failed to fetch permissions:', err);
+    }
+  };
+  
+  /**
+   * Fetch site settings
+   */
+  const fetchSiteSettings = async () => {
+    setSettingsLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/admin/site-settings`, {
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSiteSettings(data.settings || {});
+      }
+    } catch (err) {
+      console.error('Failed to fetch site settings:', err);
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+  
+  /**
+   * Update a site setting
+   */
+  const updateSiteSetting = async (key: string, value: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/site-settings`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value })
+      });
+      
+      if (res.ok) {
+        setSiteSettings(prev => ({ ...prev, [key]: value }));
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to update setting');
+      }
+    } catch (err) {
+      console.error('Failed to update site setting:', err);
+      alert('Failed to update setting');
     }
   };
   
@@ -1045,41 +1103,94 @@ export default function Admin() {
 
       {/* ========== SETTINGS TAB ========== */}
       {activeTab === 'settings' && (
-        <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
-          <h3 className="font-semibold text-white mb-4">Application Settings</h3>
-          
-          <div className="space-y-4">
-            {/* API Base URL */}
-            <div className="flex items-center justify-between p-4 bg-yume-bg-light rounded-xl">
-              <div>
-                <div className="text-white font-medium">API Base URL</div>
-                <div className="text-sm text-gray-500">https://api.emuy.gg</div>
-              </div>
-              <span className="badge-success">Active</span>
-            </div>
+        <div className="space-y-6">
+          {/* Default Roles Section */}
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
+            <h3 className="font-semibold text-white mb-4">🎭 Default Roles for New Users</h3>
+            <p className="text-sm text-gray-400 mb-4">
+              Configure which role new users automatically receive when they first log in.
+            </p>
             
-            {/* Discord OAuth */}
-            <div className="flex items-center justify-between p-4 bg-yume-bg-light rounded-xl">
-              <div>
-                <div className="text-white font-medium">Discord OAuth</div>
-                <div className="text-sm text-gray-500">Client ID: 1446582844553035918</div>
+            {settingsLoading ? (
+              <div className="text-gray-400 text-center py-4">Loading settings...</div>
+            ) : (
+              <div className="space-y-4">
+                {/* Default role for emuy.gg */}
+                <div className="flex items-center justify-between p-4 bg-yume-bg-light rounded-xl">
+                  <div>
+                    <div className="text-white font-medium">emuy.gg</div>
+                    <div className="text-sm text-gray-500">Role assigned to new users on the main site</div>
+                  </div>
+                  <select
+                    value={siteSettings.default_role_emuy || 'member'}
+                    onChange={(e) => updateSiteSetting('default_role_emuy', e.target.value)}
+                    className="px-4 py-2 rounded-lg bg-yume-bg border border-yume-border text-white focus:border-yume-accent outline-none"
+                  >
+                    <option value="none">No role (none)</option>
+                    {roles.map(role => (
+                      <option key={role.id} value={role.id}>{role.name}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* Default role for ironforged-events.emuy.gg */}
+                <div className="flex items-center justify-between p-4 bg-yume-bg-light rounded-xl">
+                  <div>
+                    <div className="text-white font-medium">ironforged-events.emuy.gg</div>
+                    <div className="text-sm text-gray-500">Role assigned to new users on the events site</div>
+                  </div>
+                  <select
+                    value={siteSettings.default_role_events || 'event_participant'}
+                    onChange={(e) => updateSiteSetting('default_role_events', e.target.value)}
+                    className="px-4 py-2 rounded-lg bg-yume-bg border border-yume-border text-white focus:border-yume-accent outline-none"
+                  >
+                    <option value="none">No role (none)</option>
+                    {roles.map(role => (
+                      <option key={role.id} value={role.id}>{role.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <span className="badge-success">Connected</span>
-            </div>
-            
-            {/* D1 Database */}
-            <div className="flex items-center justify-between p-4 bg-yume-bg-light rounded-xl">
-              <div>
-                <div className="text-white font-medium">D1 Database</div>
-                <div className="text-sm text-gray-500">event_tracking</div>
-              </div>
-              <span className="badge-success">Connected</span>
-            </div>
+            )}
           </div>
           
-          <p className="text-sm text-gray-500 mt-6">
-            Note: To modify these settings, update the Worker environment variables in Cloudflare Dashboard.
-          </p>
+          {/* System Info Section */}
+          <div className="bg-yume-card rounded-2xl border border-yume-border p-6">
+            <h3 className="font-semibold text-white mb-4">⚙️ System Information</h3>
+            
+            <div className="space-y-4">
+              {/* API Base URL */}
+              <div className="flex items-center justify-between p-4 bg-yume-bg-light rounded-xl">
+                <div>
+                  <div className="text-white font-medium">API Base URL</div>
+                  <div className="text-sm text-gray-500">https://api.emuy.gg</div>
+                </div>
+                <span className="badge-success">Active</span>
+              </div>
+              
+              {/* Discord OAuth */}
+              <div className="flex items-center justify-between p-4 bg-yume-bg-light rounded-xl">
+                <div>
+                  <div className="text-white font-medium">Discord OAuth</div>
+                  <div className="text-sm text-gray-500">Client ID: 1446582844553035918</div>
+                </div>
+                <span className="badge-success">Connected</span>
+              </div>
+              
+              {/* D1 Database */}
+              <div className="flex items-center justify-between p-4 bg-yume-bg-light rounded-xl">
+                <div>
+                  <div className="text-white font-medium">D1 Database</div>
+                  <div className="text-sm text-gray-500">event_tracking</div>
+                </div>
+                <span className="badge-success">Connected</span>
+              </div>
+            </div>
+            
+            <p className="text-sm text-gray-500 mt-6">
+              Note: To modify system settings, update the Worker environment variables in Cloudflare Dashboard.
+            </p>
+          </div>
         </div>
       )}
 
