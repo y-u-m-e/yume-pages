@@ -63,7 +63,7 @@ export default function EventsLayout() {
                 className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm"
               >
                 <span>📖</span>
-                <span className="hidden sm:inline">Guide</span>
+                <span className="hidden sm:inline">How-To/Guide</span>
               </Link>
             )}
             

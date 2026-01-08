@@ -30,7 +30,7 @@ This event you will complete loot-based challenges (tiles) in a specific sequenc
 ## Basic Game Loop
 
 1. Locate your current tile to see what its objective is: (EX: Scurrius' Spine)
-2. Confirm you have the clan event passphrase visible on the screen using the [Clant Events plugin](https://runelite.net/plugin-hub/show/elysiumevents-plugin) 
+2. Confirm you have the clan event passphrase visible on the screen using the [Clan Events plugin](https://runelite.net/plugin-hub/show/elysiumevents-plugin) 
     - If on mobile, please type the passphrase into the chat
 3. Kill the designated boss until you get the drop
 4. Take a Screenshot with the following clearly displayed in the image:
