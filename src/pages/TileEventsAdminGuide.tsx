@@ -113,7 +113,7 @@ export default function TileEventsAdminGuide() {
             prose-li:text-gray-300 prose-li:marker:text-yume-accent
             prose-hr:border-yume-border
           ">
-            <ReactMarkdown remarkPlugins={[remarkGfm, [remarkToc, { heading: 'contents|toc|table of contents', maxDepth: 3 }]]} rehypePlugins={[rehypeSlug]}>{markdown}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm, [remarkToc, { heading: 'contents|toc|table of contents', maxDepth: 2 }]]} rehypePlugins={[rehypeSlug]}>{markdown}</ReactMarkdown>
           </article>
         )}
       </div>
