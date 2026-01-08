@@ -18,6 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkToc from 'remark-toc';
+import rehypeSlug from 'rehype-slug';
 
 export default function TileEventsGuide() {
   const { loading: authLoading, hasPermission } = useAuth();
@@ -112,7 +113,7 @@ export default function TileEventsGuide() {
             prose-li:text-gray-300 prose-li:marker:text-yume-accent
             prose-hr:border-yume-border
           ">
-            <ReactMarkdown remarkPlugins={[remarkGfm, [remarkToc, { heading: 'contents|toc|table of contents', maxDepth: 3 }]]}>{markdown}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm, [remarkToc, { heading: 'contents|toc|table of contents', maxDepth: 3 }]]} rehypePlugins={[rehypeSlug]}>{markdown}</ReactMarkdown>
           </article>
         )}
       </div>

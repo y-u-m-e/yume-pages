@@ -31,7 +31,7 @@ This event you will complete loot-based challenges (tiles) in a specific sequenc
 
 1. Locate your current tile to see what its objective is: (EX: Scurrius' Spine)
 2. Confirm you have the clan event passphrase visible on the screen using the [Clan Events plugin](https://runelite.net/plugin-hub/show/elysiumevents-plugin) 
-    - If on mobile, please type the passphrase into the chat
+    - If on mobile, please type the passphrase into the chatbox
 3. Kill the designated boss until you get the drop
 4. Take a Screenshot with the following clearly displayed in the image:
     - Your RSN
@@ -44,14 +44,14 @@ This event you will complete loot-based challenges (tiles) in a specific sequenc
 # Game Specifics
 
 ## Table of Contents
-* [Understanding the Game Board](#Understanding-the-Game-Board)
-* [Submitting Proof](#Submitting-Proof)
-* [Multi-Submission Tiles](#Multi-Submission-Tiles)
-* [Skips](#Skips)
-* [Ingots (Rewards)](#Ingots-(Rewards))
-* [Frequently Asked Questions](#Frequently-Asked-Questions)
-* [Need Help?](#Need-Help?)
-* [Quick Final Note](#Quick-Final-Note)
+* [Understanding the Game Board](#understanding-the-game-board)
+* [Submitting Proof](#submitting-proof)
+* [Multi-Submission Tiles](#multi-submission-tiles)
+* [Skips](#skips)
+* [Ingots (Rewards)](#ingots-rewards)
+* [Frequently Asked Questions](#frequently-asked-questions)
+* [Need Help?](#need-help)
+* [Quick Final Note](#quick-final-note)
 
 ## Understanding the Game Board
 
