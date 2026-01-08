@@ -43,6 +43,8 @@ This event you will complete loot-based challenges (tiles) in a specific sequenc
 
 # Game Specifics
 
+## Table of Contents
+
 ## Understanding the Game Board
 
 ### Tile Colors
@@ -162,9 +164,9 @@ Yes! Simply click on the tile and submit a new screenshot. Make sure to address 
 
 Unfortunately, proof must be submitted at the time of completion. Always screenshot your achievements!
 
-### "My board is in a weird state, I can't get a hold off anyone, and I dont know if I should move onto the next tile or not"
+### "My board is in a weird state, I can't get ahold off anyone, and I dont know if I should move onto the next tile or not"
 
-The entire board is viewable off the rip for this very reason! If some weird shennanigans is happening, submit a ticket or reachout, and  continue onward to the next tile. Someone will get with you to sort everything out at their earliest conveince.
+The entire board is viewable from the start for this very reason! If some weird shennanigans are happening, submit a ticket or reachout, and  continue onward to the next tile. Someone will get with you to sort everything out at their earliest conveince.
 
 ### "How do I check my overall progress?"
 
