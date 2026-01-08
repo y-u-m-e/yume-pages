@@ -87,6 +87,7 @@ The lines between tiles show your progress:
 
 ### After Submitting
 
+
 - **Auto-Approved** ✅ → Tile turns green, next tile unlocks
 - **Pending Review** ⏳ → An admin will review within 24 hours
 - **Rejected** ❌ → You'll need to resubmit with better proof
