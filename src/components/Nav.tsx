@@ -16,6 +16,8 @@ const allNavItems: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: '📊', permission: 'view_dashboard' },
   { to: '/cruddy-panel', label: 'Cruddy', icon: '◉', permission: 'view_cruddy' },
   { to: '/docs', label: 'Docs', icon: '📄', permission: 'view_docs' },
+  { to: '/events/guide', label: 'Guide', icon: '📖', permission: 'view_events_guide' },
+  { to: '/events/admin/guide', label: 'Admin Guide', icon: '📋', permission: 'view_events_admin_guide' },
   { to: '/architecture', label: 'Arch', icon: '🗺️', permission: 'view_architecture' },
   { to: '/admin', label: 'Admin', icon: '⚙️', adminOnly: true },
   { to: '/devops', label: 'DevOps', icon: '🚀', permission: 'view_devops' },
