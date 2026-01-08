@@ -1,41 +1,50 @@
-# ⚙️ Tile Events Admin Guide
+# ⚙️ Tile Events - Admin Guide
 
-This guide covers everything you need to know to create, manage, and moderate tile events.
+This guide covers everything you need to know to create, manage, and moderate tile events as an administrator.
 
 ---
 
 ## Table of Contents
 
-1. [Creating an Event](#creating-an-event)
-2. [Managing Tiles](#managing-tiles)
-3. [Google Sheets Sync](#google-sheets-sync)
-4. [Reviewing Submissions](#reviewing-submissions)
-5. [Managing Participants](#managing-participants)
-6. [Advanced Features](#advanced-features)
+1. [Accessing the Admin Panel](#accessing-the-admin-panel)
+2. [Creating an Event](#creating-an-event)
+3. [Managing Tiles](#managing-tiles)
+4. [Google Sheets Sync](#google-sheets-sync)
+5. [Reviewing Submissions](#reviewing-submissions)
+6. [Managing Participants](#managing-participants)
+7. [Troubleshooting](#troubleshooting)
+
+---
+
+## Accessing the Admin Panel
+
+1. Log in at [ironforged-events.emuy.gg](https://ironforged-events.emuy.gg)
+2. Click **"⚙️ Admin"** in the navigation header
+3. You'll see a list of all events you can manage
+
+> **Note:** You need the `view_events_admin` permission to access the admin panel.
 
 ---
 
 ## Creating an Event
 
-### Step 1: Access Admin Panel
+### Step 1: Click "New Event"
 
-1. Navigate to **Events** → **Admin Panel**
-2. Click **"+ New Event"**
+From the admin panel, click the **"+ New Event"** button.
 
-### Step 2: Fill Event Details
+### Step 2: Fill in Event Details
 
-| Field | Description |
-|-------|-------------|
-| **Name** | Event display name (e.g., "January Bingo 2026") |
-| **Description** | Brief description shown to participants |
-| **Start Date** | When the event becomes visible |
-| **End Date** | When submissions close |
-| **Status** | `draft` (hidden), `active` (live), `completed` (ended) |
-| **Max Participants** | Optional limit on participants |
+| Field | Description | Example |
+|-------|-------------|---------|
+| **Name** | Event display name | "January Bingo 2026" |
+| **Description** | Brief description | "Complete tiles to earn ingots!" |
+| **Start Date** | When event becomes visible | 2026-01-15 |
+| **End Date** | When submissions close | 2026-01-31 |
+| **Status** | Event visibility | `draft`, `active`, or `completed` |
 
-### Step 3: Save & Configure
+### Step 3: Save and Add Tiles
 
-After creating the event, you'll be redirected to the event management page where you can add tiles.
+After saving, you'll be redirected to the event management page where you can add tiles.
 
 ---
 
@@ -43,73 +52,84 @@ After creating the event, you'll be redirected to the event management page wher
 
 ### Adding Tiles Manually
 
-1. In the event admin panel, scroll to **Tiles**
+1. Scroll to the **Tiles** section
 2. Click **"+ Add Tile"**
 3. Fill in the tile details:
 
-| Field | Description |
-|-------|-------------|
-| **Position** | Order number (1, 2, 3...) |
-| **Title** | Short name (e.g., "Vorkath") |
-| **Description** | Task details |
-| **Image URL** | Optional tile image |
-| **Keywords** | Comma-separated keywords for auto-approval |
-| **Required Submissions** | How many proofs needed (default: 1) |
-| **Reward Ingots** | Points earned for completion |
-| **Skip Reward** | Skips granted at this tile (milestone tiles only) |
+| Field | Description | Example |
+|-------|-------------|---------|
+| **Position** | Order number (1, 2, 3...) | 1 |
+| **Title** | Short name | "Vorkath" |
+| **Description** | Task details | "Kill Vorkath and screenshot the KC" |
+| **Image URL** | Optional banner image | `/images/banners/Vorkath.png` |
+| **Keywords** | For auto-approval (comma-separated) | `vorkath, vorki, kill count` |
+| **Required Submissions** | How many proofs needed | 1 (or 3 for "Kill 3x") |
+| **Reward Ingots** | Points earned | 0 (or 50000 for milestones) |
+| **Skip Reward** | Skips granted | 0 (or 1, 2, 3 for milestones) |
 
 ### Keywords for Auto-Approval
 
-Keywords are used by the AI/OCR system to automatically approve submissions.
+Keywords help the AI automatically approve submissions. The OCR scans the screenshot for these terms.
 
 **Best Practices:**
-- Include boss names: `vorkath, vorki`
-- Include KC indicators: `kill count, kc, kills`
-- Include loot names: `draconic visage, vorkath's head`
-- Use variations: `zulrah, zul, snakeling`
+- Include the boss/task name: `vorkath, zulrah, gauntlet`
+- Include KC indicators: `kill count, kc, kills, completed`
+- Include loot names: `draconic visage, tanzanite fang`
+- Use variations: `zulrah, zul, snakeling, magma, tanzanite`
+- Lowercase works best
 
-**Example:**
+**Example Keywords:**
 ```
-vorkath, vorki, kill count, draconic visage, vorkath's head, skeletal visage
+vorkath, vorki, kill count, kc, draconic visage, vorkath's head, skeletal visage, dragonbone necklace
 ```
 
-### Multi-Submission Tiles
+### Editing Tiles
 
-Set **Required Submissions** > 1 for tiles that need multiple completions.
+- Click **"Edit"** on any tile to modify it
+- Click **"Save"** to save individual tile changes
+- Click **"Save All"** to batch-save all modifications
 
-Example: A "Kill Vorkath 5 times" tile would have:
-- Required Submissions: `5`
-- Keywords: `vorkath, kill count`
+### Deleting Tiles
 
-The system tracks each submission separately and only unlocks the next tile once all required submissions are made.
+- Click the **🗑️** button on a tile to remove it
+- **Warning:** This also removes all submissions for that tile!
 
 ---
 
 ## Google Sheets Sync
 
-For bulk tile management, you can sync tiles from a Google Sheet.
+For bulk tile management, sync from a Google Sheet.
 
 ### Sheet Format
 
-Your sheet should have these columns:
+Set up your sheet with these columns:
 
 | A | B | C | D | E |
 |---|---|---|---|---|
 | **Position** | **Title** | **Description** | **Keywords** | **Required** |
 | 1 | Vorkath | Kill Vorkath | vorkath,vorki,kc | 1 |
-| 2 | Zulrah | Kill Zulrah 3x | zulrah,snakeling | 3 |
+| 2 | Zulrah x3 | Kill Zulrah 3 times | zulrah,snakeling | 3 |
+| 3 | Gauntlet | Complete the Gauntlet | gauntlet,corrupted | 1 |
 
-### Setting Up Sync
+### Making the Sheet Public
 
-1. Get your Google Sheet ID from the URL: `docs.google.com/spreadsheets/d/**SHEET_ID**/edit`
-2. In the event admin, enter the Sheet ID
-3. Click **"Sync from Sheet"**
+1. Open your Google Sheet
+2. Click **Share** → **General access** → **Anyone with the link**
+3. Set permission to **Viewer**
 
-> **Note:** The sheet must be publicly viewable (Anyone with link can view)
+### Getting the Sheet ID
 
-### Re-syncing
+From the URL: `docs.google.com/spreadsheets/d/**SHEET_ID_HERE**/edit`
 
-Click **"Sync from Sheet"** anytime to update tiles. Existing tiles are matched by position.
+Copy the long string between `/d/` and `/edit`.
+
+### Syncing
+
+1. Paste the Sheet ID in the admin panel
+2. Click **"Sync from Sheet"**
+3. Tiles will be created/updated based on position
+
+> **Note:** Syncing matches tiles by position number. Existing tiles at the same position will be updated.
 
 ---
 
@@ -117,29 +137,33 @@ Click **"Sync from Sheet"** anytime to update tiles. Existing tiles are matched 
 
 ### Accessing Submissions
 
-1. Go to the event admin panel
-2. Click **"View Submissions"** or scroll to the submissions section
+1. Go to the event admin page
+2. Scroll to **"Pending Submissions"** or click **"View All Submissions"**
 3. Filter by status: `pending`, `approved`, `rejected`
 
-### Reviewing a Submission
+### Submission Details
 
 Each submission shows:
-- **User**: Who submitted
-- **Tile**: Which tile they're submitting for
-- **Image**: Click to view full size
-- **Status**: Current status
-- **AI Analysis**: What the OCR detected (if available)
+- **User** - RSN and Discord info
+- **Tile** - Which tile they're completing
+- **Image** - Click to view full size
+- **AI Analysis** - What the OCR detected (if available)
+- **Timestamp** - When submitted
 
 ### Approving/Rejecting
 
-- Click ✅ **Approve** to accept the submission
-- Click ❌ **Reject** to deny (optionally provide a reason)
+| Action | When to Use |
+|--------|-------------|
+| ✅ **Approve** | Screenshot clearly shows task completion |
+| ❌ **Reject** | Screenshot doesn't show completion, wrong task, or suspicious |
 
-**When to Reject:**
-- Screenshot doesn't show completion
+**Rejection Reasons:**
+- Screenshot doesn't show the required completion
+- RSN not visible (if required)
+- Suspected screenshot manipulation
 - Wrong tile/task
-- Suspected manipulation
-- Missing RSN (if required)
+
+> **Tip:** When rejecting, consider messaging the user on Discord to explain why, so they can resubmit correctly.
 
 ---
 
@@ -147,80 +171,117 @@ Each submission shows:
 
 ### Viewing Participants
 
-The Participants tab shows:
-- Username / RSN
+The **Participants** tab shows:
+- RSN / Discord username
 - Current tile position
-- Submissions count
-- Skips used
+- Total submissions
+- Skips used / available
 
 ### Adjusting Skips
 
-To manually adjust a user's skip count:
-1. Find the participant
-2. Click the **+/-** buttons next to their skip count
-3. Useful for compensating issues or revoking misused skips
+Use the **+/-** buttons to manually adjust a user's skip count:
+- **Add skips:** Compensate for issues or as a reward
+- **Remove skips:** If skips were used incorrectly
 
-### Viewing User Submissions
+### Viewing User Progress
 
-Click the **📋** icon next to a participant to see all their submissions for review.
+Click the **📋** icon next to a participant to see:
+- All their submissions
+- Submission status for each tile
+- Approval/rejection history
 
 ---
 
-## Advanced Features
+## Event Settings
+
+### Event Status
+
+| Status | Description |
+|--------|-------------|
+| **Draft** | Only admins can see. Use for setup. |
+| **Active** | Visible to all. Submissions open. |
+| **Completed** | Visible but submissions closed. Final standings. |
 
 ### Milestone Configuration
 
-Milestones grant bonus rewards at specific tiles:
+Standard milestone rewards:
 
-| Tile Position | Default Skip Reward | Default Ingots |
-|--------------|---------------------|----------------|
-| 6 | +1 skip | 50,000 |
-| 12 | +2 skips | 100,000 |
-| 18 | +3 skips | 150,000 |
+| Tile | Skip Reward | Ingots |
+|------|-------------|--------|
+| 6 | +1 | 50,000 |
+| 12 | +2 | 100,000 |
+| 18 | +3 | 150,000 |
 
-Set these values on the specific tile's **Skip Reward** and **Reward Ingots** fields.
-
-### Event Status Lifecycle
-
-```
-draft → active → completed
-```
-
-- **Draft**: Only admins can see; use for setup
-- **Active**: Visible to all participants; submissions open
-- **Completed**: Visible but submissions closed; final standings
-
-### Bulk Actions
-
-- **Save All Tiles**: Saves all tile changes at once
-- **Delete All Tiles**: Clears all tiles (careful!)
-- **Export Data**: Download participant progress as CSV
+Set these on the individual tile's **Skip Reward** and **Reward Ingots** fields.
 
 ---
 
 ## Troubleshooting
 
-### Common Issues
+### "Submission not showing for user"
 
-**"Submission not showing"**
-- Check if the user has the correct tile unlocked
-- Verify the image uploaded successfully
+1. Check if the user has the correct tile unlocked
+2. Verify the image uploaded successfully (check network tab)
+3. Look for error messages in the submission response
 
-**"Auto-approval not working"**
-- Add more keywords to the tile
-- Check if the screenshot contains readable text
-- OCR works best with clear, full screenshots
+### "Auto-approval not working"
 
-**"User stuck on wrong tile"**
-- Check for rejected submissions
-- Verify previous tiles are properly approved
-- Manually approve if needed
+1. Add more relevant keywords to the tile
+2. Check if the screenshot text is readable
+3. OCR works best with clear, full-screen screenshots
+4. Some fonts or overlays may interfere with text detection
 
-### Need More Help?
+### "User stuck on wrong tile"
 
-Contact a developer if you encounter technical issues or need database-level fixes.
+1. Check for rejected submissions on previous tiles
+2. Verify all previous tiles are approved
+3. For multi-submission tiles, check if all required submissions are in
+4. Manually approve any stuck pending submissions
+
+### "Tiles not syncing from sheet"
+
+1. Verify the sheet is publicly viewable
+2. Check the Sheet ID is correct (no extra characters)
+3. Ensure column format matches expected (A=Position, B=Title, etc.)
+4. Check for empty rows that might cause issues
+
+### "User can't see the event"
+
+1. Verify event status is **Active** (not Draft)
+2. Check if the user is logged in
+3. Verify the event dates include today
 
 ---
 
-Happy event managing! 🎮
+## Quick Reference
 
+### Keyboard Shortcuts
+
+- None currently implemented
+
+### Image Paths
+
+Local images are stored at: `/images/banners/[filename].png`
+
+Available banners (check `public/images/banners/`):
+- Amoxliatl.png, Barrows.png, Dag_kings.png
+- Gauntlet.png, GWD.png, Nightmare.png
+- Raids.png, Scurrius.png, Vorkath.png
+- Yama.png, Zulrah.png, and more...
+
+### API Endpoints (for debugging)
+
+- `GET /tile-events` - List all events
+- `GET /tile-events/:id` - Get event details
+- `GET /tile-events/:id/progress` - User's progress
+- `POST /tile-events/:id/tiles/:tileId/submit` - Submit proof
+
+---
+
+## Need Help?
+
+- **Technical Issues:** Contact a developer in Discord
+- **Permission Issues:** Ask a super admin to check your roles
+- **Feature Requests:** Submit in #suggestions
+
+Happy event managing! 🎮

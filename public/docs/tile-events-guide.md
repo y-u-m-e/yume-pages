@@ -1,116 +1,164 @@
-# 🎯 Tile Events User Guide
+# 🎯 Tile Events - Participant Guide
 
-Welcome to the Tile Events system! This guide will help you understand how to participate in tile-based events and track your progress.
+Welcome to Ironforged Events! This guide will help you understand how to participate in tile-based bingo events and track your progress.
 
 ---
 
 ## What Are Tile Events?
 
-Tile events are progression-based challenges where you complete tasks (tiles) in sequence. Each tile represents a specific challenge - typically a boss kill, skilling milestone, or other in-game achievement.
+Tile events are progression-based challenges where you complete tasks (tiles) in sequence. Each tile represents a specific challenge - typically a boss kill, skilling milestone, or other in-game achievement. Complete tiles to earn **ingots** and unlock rewards!
+
+---
 
 ## Getting Started
 
-### 1. Joining an Event
+### Step 1: Log In with Discord
 
-1. Navigate to the **Events** page
-2. Browse available events and click on one to view details
-3. Once you're viewing an event, you'll see a game board with numbered tiles
-4. Your current tile is highlighted - this is where you need to submit proof
+1. Go to [ironforged-events.emuy.gg](https://ironforged-events.emuy.gg)
+2. Click **"Login with Discord"**
+3. Authorize the app to verify your clan membership
 
-### 2. Understanding the Board
+### Step 2: Join an Event
 
-| Tile Color | Meaning |
-|------------|---------|
-| 🟢 **Green** | Completed - You've finished this tile |
-| 🟡 **Yellow** | Current - This is your active tile |
-| ⚫ **Gray** | Locked - Complete previous tiles to unlock |
+1. Browse available events on the home page
+2. Click on an event card to view the game board
+3. Your progress is automatically tracked once you start submitting
 
-**Connection Lines:**
-- 🟢 **Green line** - Previous tile fully approved
-- 🟡 **Amber line** - Previous tile submitted, awaiting approval
-- ⚫ **Gray dashed line** - Tile still locked
+---
+
+## Understanding the Game Board
+
+### Tile Colors
+
+| Color | Status | Action |
+|-------|--------|--------|
+| 🟢 **Green** | Completed | No action needed |
+| 🟡 **Yellow/Orange** | Current Tile | Submit proof here! |
+| 🔵 **Blue** | Pending Review | Waiting for approval |
+| ⚫ **Gray** | Locked | Complete previous tiles first |
+
+### Connection Lines
+
+The lines between tiles show your progress:
+- **Green solid line** → Previous tile fully approved
+- **Amber solid line** → Previous tile submitted, awaiting approval  
+- **Gray dashed line** → Path to locked tiles
 
 ---
 
 ## Submitting Proof
 
-### Step 1: Take a Screenshot
+### What Makes Good Proof?
 
-When you complete a task:
-1. Take a clear screenshot showing the completion
-2. Make sure any relevant text (KC, loot, etc.) is visible
-3. Include your RuneScape name in the screenshot if possible
+✅ **Do Include:**
+- Clear, full screenshot of completion
+- Visible kill count (KC), loot, or achievement popup
+- Your RuneScape name visible in the screenshot
+- Any keywords mentioned in the tile description
 
-### Step 2: Upload Your Proof
+❌ **Avoid:**
+- Blurry or cropped screenshots
+- Screenshots from the wiki or other sources
+- Screenshots without your RSN visible
 
-1. Click on your **current tile** (highlighted in yellow)
-2. Click the **"Upload Screenshot"** button
-3. Select your screenshot file
-4. Wait for the upload to complete
+### How to Submit
 
-### Step 3: Wait for Processing
+1. **Click your current tile** (highlighted in yellow/orange)
+2. **Click "Upload Screenshot"** in the modal
+3. **Select your image file** (PNG, JPG supported)
+4. **Wait for processing** - the AI will analyze your screenshot
 
-After uploading:
-- **Auto-approved**: If the system recognizes your proof, the tile turns green immediately
-- **Pending review**: If manual review is needed, you'll see a yellow "Pending" status
+### After Submitting
 
-> **Tip:** Include keywords mentioned in the tile description for faster auto-approval!
+- **Auto-Approved** ✅ → Tile turns green, next tile unlocks
+- **Pending Review** ⏳ → An admin will review within 24 hours
+- **Rejected** ❌ → You'll need to resubmit with better proof
+
+> **Pro Tip:** Include keywords from the tile description in your screenshot for faster auto-approval!
 
 ---
 
 ## Multi-Submission Tiles
 
-Some tiles require **multiple completions** (e.g., "Kill Boss X 3 times").
+Some tiles require **multiple completions** (e.g., "Kill Zulrah 3 times").
 
-- The tile will show progress like "1/3 submitted"
+- Progress shows as "1/3 submitted", "2/3 submitted", etc.
 - Keep submitting until you reach the required count
-- The next tile unlocks once you've submitted enough proof
+- The next tile unlocks once you've submitted all required proofs
+- You don't need to wait for approval to continue submitting
 
 ---
 
 ## Skips
 
-Depending on the event, you may earn **skips** at milestone tiles:
-- Tile 6: +1 skip
-- Tile 12: +2 skips
-- Tile 18: +3 skips
+At milestone tiles, you earn **skips** that let you bypass difficult tiles:
 
-**Using a Skip:**
-1. Click on your current tile
-2. If you have skips available, you'll see a **"Skip This Tile"** button
-3. Confirm to use one skip and move to the next tile
+| Milestone | Skips Earned |
+|-----------|--------------|
+| Tile 6 | +1 skip |
+| Tile 12 | +2 skips |
+| Tile 18 | +3 skips |
 
-> **Note:** Skips are valuable - save them for difficult tiles!
+### Using a Skip
 
----
+1. Click your current tile
+2. If you have skips available, you'll see **"⏭️ Skip This Tile"**
+3. Click to use one skip and move to the next tile
 
-## Rewards: Ingots
-
-As you progress, you earn **ingots** (in-game currency/points):
-- Tile 6: 50,000 ingots
-- Tile 12: 100,000 more (150k total)
-- Tile 18: 150,000 more (300k total)
-
-Track your total ingots earned in the stats bar above the game board.
+> **Strategy:** Save skips for tiles you truly can't complete. Some boss requirements might be too difficult for your account build!
 
 ---
 
-## Tips for Success
+## Ingots (Rewards)
 
-1. **Read tile descriptions carefully** - They often contain keywords for auto-approval
-2. **Take clear screenshots** - Blurry or cropped images may be rejected
-3. **Include your RSN** - Helps verify the submission is yours
-4. **Save skips wisely** - Use them on tiles you truly can't complete
-5. **Check back regularly** - Pending submissions are usually reviewed within 24 hours
+As you progress, you earn **ingots** - the event currency:
+
+| Milestone | Ingots Earned | Total |
+|-----------|---------------|-------|
+| Tile 6 | 50,000 | 50k |
+| Tile 12 | 100,000 | 150k |
+| Tile 18 | 150,000 | 300k |
+
+Track your ingots in the stats bar above the game board. Ingots can be redeemed for clan rewards!
+
+---
+
+## Frequently Asked Questions
+
+### "Why is my submission pending?"
+
+The AI couldn't auto-verify your screenshot. This happens when:
+- Text isn't clearly readable
+- The screenshot doesn't contain expected keywords
+- It's an uncommon format or layout
+
+Don't worry - an admin will review it manually within 24 hours.
+
+### "Can I redo a rejected submission?"
+
+Yes! Simply click on the tile and submit a new screenshot. Make sure to address the rejection reason.
+
+### "What if I complete a tile but forget to screenshot?"
+
+Unfortunately, proof must be submitted at the time of completion. Always screenshot your achievements!
+
+### "Can I participate in multiple events?"
+
+Yes! Your progress is tracked separately for each event.
+
+### "How do I check my overall progress?"
+
+The stats bar above the game board shows:
+- Current tile position
+- Available skips
+- Total ingots earned
 
 ---
 
 ## Need Help?
 
-If you're having issues:
-- Contact an event admin in Discord
-- Check if the event has specific rules posted
-- Make sure your screenshot clearly shows completion
+- **Discord:** Ask in the #events channel
+- **Admin:** Contact an event admin for issues
+- **Bug Reports:** Let a developer know in Discord
 
 Good luck and have fun! 🎮
-
