@@ -22,6 +22,7 @@ export async function onRequest(context: { request: Request; env: Env; next: () 
     pathname.startsWith('/favicon/') ||
     pathname.startsWith('/images/') ||
     pathname.startsWith('/yume-pfp/') ||
+    pathname.startsWith('/docs/') ||
     pathname.endsWith('.js') ||
     pathname.endsWith('.css') ||
     pathname.endsWith('.png') ||
@@ -34,7 +35,8 @@ export async function onRequest(context: { request: Request; env: Env; next: () 
     pathname.endsWith('.json') ||
     pathname.endsWith('.woff') ||
     pathname.endsWith('.woff2') ||
-    pathname.endsWith('.webmanifest')
+    pathname.endsWith('.webmanifest') ||
+    pathname.endsWith('.md')
   ) {
     return context.next();
   }
