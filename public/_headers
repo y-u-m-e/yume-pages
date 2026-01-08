@@ -29,7 +29,7 @@
   Access-Control-Allow-Origin: *
 
 /docs/*
-  Cache-Control: public, max-age=3600
+  Cache-Control: no-cache, must-revalidate
   Access-Control-Allow-Origin: *
   Content-Type: text/markdown; charset=utf-8
 
