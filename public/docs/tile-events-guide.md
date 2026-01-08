@@ -90,7 +90,8 @@ The lines between tiles show your progress:
 - **Auto-Approved** ✅ → Tile turns green, next tile unlocks
 - **Pending Review** ⏳ → An admin will review within 24 hours
 - **Rejected** ❌ → You'll need to resubmit with better proof
-    -- At the top of your board, you will see a note if the submission was rejected
+    - At the top of your board, you will see a note if the submission was rejected
+    - EX: ![Rejection Example Image](Markdown-mark.png)
 
 ---
 
