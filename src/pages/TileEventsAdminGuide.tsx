@@ -74,7 +74,7 @@ export default function TileEventsAdminGuide() {
           <p className="text-gray-400">Learn how to manage tile events</p>
         </div>
         <Link 
-          to="/events/admin"
+          to="/admin"
           className="px-4 py-2 rounded-xl bg-yume-card border border-yume-border text-gray-300 hover:text-white hover:border-yume-accent transition-colors"
         >
           ← Back to Admin Panel

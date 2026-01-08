@@ -29,6 +29,10 @@ import TileEvent from '@/pages/TileEvent'
 import TileEventAdmin from '@/pages/TileEventAdmin'
 import AIDebug from '@/pages/AIDebug'
 
+// Guide pages
+import TileEventsGuide from '@/pages/TileEventsGuide'
+import TileEventsAdminGuide from '@/pages/TileEventsAdminGuide'
+
 /**
  * Events Application Component
  * 
@@ -48,6 +52,10 @@ function EventsApp() {
           
           {/* Individual event view - reuses TileEvent component */}
           <Route path="events/:eventId" element={<TileEvent />} />
+          
+          {/* Guide pages */}
+          <Route path="guide" element={<TileEventsGuide />} />
+          <Route path="admin/guide" element={<TileEventsAdminGuide />} />
           
           {/* Admin routes - requires events permission */}
           <Route path="admin" element={<TileEventAdmin />} />

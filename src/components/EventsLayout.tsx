@@ -17,7 +17,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function EventsLayout() {
-  const { user, loading, login, logout, isEventsAdmin } = useAuth();
+  const { user, loading, login, logout, isEventsAdmin, hasPermission } = useAuth();
   const location = useLocation();
   
   // Check if we're on the home page
@@ -53,6 +53,28 @@ export default function EventsLayout() {
                 className="text-gray-400 hover:text-white transition-colors text-sm"
               >
                 All Events
+              </Link>
+            )}
+            
+            {/* User Guide - for event participants */}
+            {user && hasPermission('view_events_guide') && (
+              <Link 
+                to="/guide" 
+                className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm"
+              >
+                <span>📖</span>
+                <span className="hidden sm:inline">Guide</span>
+              </Link>
+            )}
+            
+            {/* Admin Guide - for event admins */}
+            {user && hasPermission('view_events_admin_guide') && (
+              <Link 
+                to="/admin/guide" 
+                className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-colors text-sm"
+              >
+                <span>📋</span>
+                <span className="hidden sm:inline">Admin Guide</span>
               </Link>
             )}
             
