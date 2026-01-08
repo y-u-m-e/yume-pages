@@ -50,7 +50,7 @@ This event you will complete loot-based challenges (tiles) in a specific sequenc
 | Color | Status | Action |
 |-------|--------|--------|
 | 🟢 **Green** | Completed | No action needed |
-| 🟢 **Pulsing Green**| Current Tile | Submit proof here! |
+| 🔵 **Pulsing Blue**| Current Tile | Submit proof here! |
 | 🟡 **Yellow/Orange**| Pending Review | Waiting for approval |
 | ⚫ **Gray** | Locked | Complete previous tiles first |
 
@@ -159,6 +159,10 @@ Yes! Simply click on the tile and submit a new screenshot. Make sure to address 
 
 Unfortunately, proof must be submitted at the time of completion. Always screenshot your achievements!
 
+### "My board is in a weird state, I can't get a hold off anyone, and I dont know if I should move onto the next tile or not"
+
+The entire board is viewable off the rip for this very reason! If some weird shennanigans is happening, submit a ticket or reachout, and  continue onward to the next tile. Someone will get with you to sort everything out at their earliest conveince.
+
 ### "How do I check my overall progress?"
 
 The stats bar above the game board shows:
@@ -170,8 +174,15 @@ The stats bar above the game board shows:
 
 ## Need Help?
 
-- **Discord:** Ask in the #events channel
-- **Admin:** Contact an event admin for issues
-- **Bug Reports:** Let a developer know in Discord
+- **Discord:** Ask in the _#miniseasonal-general_ channel, reach out to an event admin, or submit a ticket
+- **Bug Reports:** Please reach out to __y u m e__ on discord with any bugs
+
+---
+## Quick Final Note
+
+This is the first time we are trying something like this, please be patient. There may be some bumps in the road that may appear, but the goal we have is to bring a fun and enjoyable experience to everyone. Thanks for being here and participating!
+
 
 Good luck and have fun! 🎮
+---
+
