@@ -917,25 +917,31 @@ export default function TileEvent() {
               const currTile = tiles[index + 1];
               const prevPos = snakePositions[index];
               const currPos = snakePositions[index + 1];
-              const prevStatus = getTileStatus(prevTile);
-              const currStatus = getTileStatus(currTile);
               
-              // Determine line style based on previous tile status
-              const isPrevCompleted = prevStatus === 'completed';
-              const isPrevPending = prevStatus === 'pending';
-              const nextTileAccessible = currStatus === 'completed' || currStatus === 'current' || currStatus === 'pending';
+              // Use tiles_unlocked for line state (handles skips, multi-submission, etc.)
+              const isPrevUnlocked = progress?.tiles_unlocked?.includes(prevTile.position) || false;
+              const isCurrUnlocked = progress?.tiles_unlocked?.includes(currTile.position) || false;
+              const isCurrAccessible = isCurrUnlocked || (isPrevUnlocked && currTile.position === prevTile.position + 1);
               
-              // Line colors: green (completed), amber (pending), gray (locked)
+              // Check if prev tile has pending submissions (submitted but not yet in tiles_unlocked)
+              const prevProgress = tileProgress[prevTile.id];
+              const prevRequired = prevTile.required_submissions || 1;
+              const prevSubmitted = prevProgress?.submitted || 0;
+              const isPrevPendingSubmissions = !isPrevUnlocked && prevSubmitted >= prevRequired;
+              
+              // Line colors: green (unlocked/completed/skipped), amber (pending), gray (locked)
               let strokeColor = '#374151'; // gray - locked
               let strokeWidth = 2;
               let strokeDash: string | undefined = '5,5';
               
-              if (isPrevCompleted && nextTileAccessible) {
-                strokeColor = '#10b981'; // green - fully completed
+              if (isPrevUnlocked && isCurrAccessible) {
+                // Previous tile is unlocked (completed or skipped) and current is accessible
+                strokeColor = '#10b981'; // green
                 strokeWidth = 3;
                 strokeDash = undefined;
-              } else if (isPrevPending && nextTileAccessible) {
-                strokeColor = '#f59e0b'; // amber - pending approval
+              } else if (isPrevPendingSubmissions && isCurrAccessible) {
+                // Previous tile has all submissions but awaiting approval
+                strokeColor = '#f59e0b'; // amber
                 strokeWidth = 3;
                 strokeDash = undefined;
               }
